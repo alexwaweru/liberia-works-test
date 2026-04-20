@@ -1,0 +1,13 @@
+{
+  "name": "@liberia-works/mobile",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "build:android": "eas build --platform android",
+    "build:ios": "eas build --platform ios"
+  },
+  "_comment": "Phase 2 — React Native (Expo) mobile app. Empty stub in Phase 1."
+}

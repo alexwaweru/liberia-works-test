@@ -1,0 +1,874 @@
+// Phase column legend: 1 = ships in Phase 1, 2 = model present in Phase 1 migrations but feature goes live Phase 2.
+// All tables include: id UUID PK (gen_random_uuid()), createdAt, updatedAt.
+// Foreign keys are ON DELETE RESTRICT unless noted.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ─────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  INDIVIDUAL
+  EMPLOYER_ADMIN
+  EMPLOYER_HR
+  MOL_OFFICER
+  MOL_DIRECTOR
+  SYSTEM_ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  PREFER_NOT_TO_SAY
+}
+
+enum DocumentType {
+  CV
+  NATIONAL_ID
+  PASSPORT
+  CERTIFICATE
+  TRAINING_RECORD
+  PERMIT_DOC
+  DISPUTE_ATTACHMENT
+  OTHER
+}
+
+enum DataSource {
+  MANUAL
+  CV_PARSE
+}
+
+enum Proficiency {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+enum CvParseStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  NEEDS_REVIEW
+}
+
+enum VacancyType {
+  VACATION_JOB
+  PERMANENT
+  CONTRACT
+  INTERNSHIP
+}
+
+enum VacancyStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
+enum ApplicationChannel {
+  WEB
+  MOBILE
+  WHATSAPP
+  SMS
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SHORTLISTED
+  REJECTED
+  WITHDRAWN
+  HIRED
+}
+
+enum WorkPermitStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  INFO_REQUIRED
+  APPROVED
+  REJECTED
+}
+
+enum ComplianceStatus {
+  COMPLIANT
+  PENDING
+  OVERDUE
+  EXEMPT
+}
+
+enum DisputeCategory {
+  PERMIT_DECISION
+  COMPLIANCE_FINDING
+  APPLICANT_CONDUCT
+  PLATFORM_ISSUE
+  REGULATORY_INQUIRY
+}
+
+enum DisputeStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  RESPONDED
+  CLOSED
+}
+
+enum PlacementStatus {
+  MATCHED
+  CONFIRMED
+  COMPLETED
+  NO_SHOW
+  CANCELLED
+}
+
+enum VacationJobCycleStatus {
+  PLANNED
+  OPEN
+  MATCHING
+  COMPLETED
+}
+
+enum WorkforceReturnStatus {
+  DRAFT
+  SUBMITTED
+  VALIDATED
+  DISPUTED
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageChannel {
+  SMS
+  WHATSAPP
+}
+
+enum MessageDeliveryStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  FAILED
+  READ
+}
+
+enum OtpChannel {
+  SMS
+  WHATSAPP
+  EMAIL
+}
+
+enum OtpPurpose {
+  REGISTRATION
+  LOGIN
+  PHONE_CHANGE
+  EMAIL_CHANGE
+}
+
+enum EmployerUserRole {
+  ADMIN
+  HR
+}
+
+// ── Reference tables (seeded) ─────────────────────────────────────────────────
+
+/// 15 Liberian counties — ISO 3166-2:LR
+model County {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  isoCode   String   @unique @map("iso_code") @db.VarChar(6)
+  name      String   @db.VarChar(100)
+  region    String?  @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  individuals             Individual[]
+  employers               Employer[]
+  vacancies               Vacancy[]
+  vacationHostingCapacity VacationJobHostingCapacity[]
+
+  @@map("counties")
+}
+
+/// ISIC Rev.4 sector taxonomy (top two levels seeded, all 4 levels in schema)
+model Sector {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  isicCode  String   @unique @map("isic_code") @db.VarChar(10)
+  name      String   @db.VarChar(200)
+  parentId  String?  @map("parent_id") @db.Uuid
+  level     Int      @db.SmallInt
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  parent   Sector?  @relation("SectorHierarchy", fields: [parentId], references: [id])
+  children Sector[] @relation("SectorHierarchy")
+
+  employers               Employer[]
+  vacancies               Vacancy[]
+  individualInterests     IndividualSectorInterest[]
+  vacationHostingCapacity VacationJobHostingCapacity[]
+
+  @@map("sectors")
+}
+
+/// ISCO-08 occupation codes (all 4-digit unit groups seeded)
+model Occupation {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  iscoCode   String   @unique @map("isco_code") @db.VarChar(10)
+  name       String   @db.VarChar(200)
+  majorGroup String   @map("major_group") @db.VarChar(100)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  vacancies              Vacancy[]
+  workHistory            IndividualWorkHistory[]
+  workPermitApplications WorkPermitApplication[]
+
+  @@map("occupations")
+}
+
+/// ISO 3166-1 country list (for foreign worker nationality)
+model Country {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  alpha2    String   @unique @map("alpha_2") @db.Char(2)
+  alpha3    String   @unique @map("alpha_3") @db.Char(3)
+  name      String   @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  workPermitApplications WorkPermitApplication[]
+
+  @@map("countries")
+}
+
+/// ISCED 2011 education levels (8 levels seeded)
+model EducationLevel {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  iscedCode  String   @unique @map("isced_code") @db.VarChar(5)
+  name       String   @db.VarChar(100)
+  levelOrder Int      @map("level_order") @db.SmallInt
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  individuals             Individual[]
+  individualEducation     IndividualEducation[]
+  vacancies               Vacancy[]
+  vacationHostingCapacity VacationJobHostingCapacity[]
+
+  @@map("education_levels")
+}
+
+// ── Identity & accounts ───────────────────────────────────────────────────────
+
+/// Single auth record per human.
+/// DB-level: CHECK (phone_number IS NOT NULL OR email IS NOT NULL) — added via raw migration.
+model User {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phoneNumber     String?   @unique @map("phone_number") @db.VarChar(20)
+  email           String?   @unique @db.VarChar(255)
+  passwordHash    String?   @map("password_hash") @db.VarChar(255)
+  role            UserRole
+  isPhoneVerified Boolean   @default(false) @map("is_phone_verified")
+  isEmailVerified Boolean   @default(false) @map("is_email_verified")
+  isActive        Boolean   @default(true) @map("is_active")
+  lastLoginAt     DateTime? @map("last_login_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  individual                Individual?
+  employerUsers             EmployerUser[]
+  invitedEmployerUsers      EmployerUser[]              @relation("EmployerUserInviter")
+  sessions                  Session[]
+  otpCodes                  OtpCode[]
+  uploadedDocuments         Document[]                  @relation("DocumentUploader")
+  applicationStatusChanges  Application[]               @relation("ApplicationStatusChanger")
+  decidedPermits            WorkPermitApplication[]     @relation("PermitDecider")
+  permitStatusHistories     WorkPermitStatusHistory[]
+  submittedDisputes         Dispute[]                   @relation("DisputeSubmitter")
+  assignedDisputes          Dispute[]                   @relation("DisputeAssignee")
+  respondedDisputes         Dispute[]                   @relation("DisputeResponder")
+  submittedWorkforceReturns WorkforceReturn[]           @relation("WorkforceReturnSubmitter")
+  validatedWorkforceReturns WorkforceReturn[]           @relation("WorkforceReturnValidator")
+  revokedCertificates       ComplianceCertificate[]     @relation("CertificateRevoker")
+  auditLogs                 AuditLog[]
+  notifications             Notification[]
+  messageEvents             MessageEvent[]
+
+  @@map("users")
+}
+
+model OtpCode {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String?    @map("user_id") @db.Uuid
+  destination String     @db.VarChar(255)
+  channel     OtpChannel
+  purpose     OtpPurpose
+  codeHash    String     @map("code_hash") @db.VarChar(255)
+  expiresAt   DateTime   @map("expires_at") @db.Timestamptz(6)
+  attempts    Int        @default(0) @db.SmallInt
+  consumedAt  DateTime?  @map("consumed_at") @db.Timestamptz(6)
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([destination, purpose, consumedAt], map: "idx_otp_destination_purpose")
+  @@map("otp_codes")
+}
+
+model Session {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  refreshTokenHash String    @unique @map("refresh_token_hash") @db.VarChar(255)
+  issuedAt         DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(6)
+  userAgent        String?   @map("user_agent") @db.VarChar(500)
+  ipAddress        String?   @map("ip_address")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("sessions")
+}
+
+// ── Individual domain ─────────────────────────────────────────────────────────
+
+/// 1:1 with users where role = INDIVIDUAL
+model Individual {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId               String    @unique @map("user_id") @db.Uuid
+  fullName             String    @map("full_name") @db.VarChar(200)
+  dateOfBirth          DateTime? @map("date_of_birth") @db.Date
+  gender               Gender?
+  countyId             String    @map("county_id") @db.Uuid
+  nin                  String?   @db.VarChar(20)
+  educationLevelId     String    @map("education_level_id") @db.Uuid
+  profileCompletionPct Int       @default(0) @map("profile_completion_pct") @db.SmallInt
+  vacationJobOptIn     Boolean   @default(false) @map("vacation_job_opt_in")
+  vacationJobOptInAt   DateTime? @map("vacation_job_opt_in_at") @db.Timestamptz(6)
+  isActive             Boolean   @default(true) @map("is_active")
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user            User                       @relation(fields: [userId], references: [id])
+  county          County                     @relation(fields: [countyId], references: [id])
+  educationLevel  EducationLevel             @relation(fields: [educationLevelId], references: [id])
+  sectorInterests IndividualSectorInterest[]
+  education       IndividualEducation[]
+  workHistory     IndividualWorkHistory[]
+  skills          IndividualSkill[]
+  documents       Document[]
+  cvParseJobs     CvParseJob[]
+  applications    Application[]
+  placements      VacationJobPlacement[]
+
+  @@map("individuals")
+}
+
+model IndividualSectorInterest {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  individualId  String   @map("individual_id") @db.Uuid
+  sectorId      String   @map("sector_id") @db.Uuid
+  priorityOrder Int      @default(0) @map("priority_order") @db.SmallInt
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  individual Individual @relation(fields: [individualId], references: [id])
+  sector     Sector     @relation(fields: [sectorId], references: [id])
+
+  @@unique([individualId, sectorId])
+  @@map("individual_sector_interests")
+}
+
+model IndividualEducation {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  individualId     String    @map("individual_id") @db.Uuid
+  institutionName  String    @map("institution_name") @db.VarChar(300)
+  qualification    String?   @db.VarChar(200)
+  fieldOfStudy     String?   @map("field_of_study") @db.VarChar(200)
+  educationLevelId String?   @map("education_level_id") @db.Uuid
+  startDate        DateTime? @map("start_date") @db.Date
+  endDate          DateTime? @map("end_date") @db.Date
+  isCurrent        Boolean   @default(false) @map("is_current")
+  source           DataSource
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  individual     Individual      @relation(fields: [individualId], references: [id])
+  educationLevel EducationLevel? @relation(fields: [educationLevelId], references: [id])
+
+  @@map("individual_education")
+}
+
+model IndividualWorkHistory {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  individualId String    @map("individual_id") @db.Uuid
+  employerName String    @map("employer_name") @db.VarChar(300)
+  title        String?   @db.VarChar(200)
+  occupationId String?   @map("occupation_id") @db.Uuid
+  startDate    DateTime? @map("start_date") @db.Date
+  endDate      DateTime? @map("end_date") @db.Date
+  isCurrent    Boolean   @default(false) @map("is_current")
+  description  String?   @db.Text
+  source       DataSource
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  individual Individual  @relation(fields: [individualId], references: [id])
+  occupation Occupation? @relation(fields: [occupationId], references: [id])
+
+  @@map("individual_work_history")
+}
+
+model IndividualSkill {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  individualId    String       @map("individual_id") @db.Uuid
+  skillName       String       @map("skill_name") @db.VarChar(200)
+  proficiency     Proficiency?
+  yearsExperience Int?         @map("years_experience") @db.SmallInt
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  individual Individual @relation(fields: [individualId], references: [id])
+
+  @@index([individualId, skillName])
+  @@map("individual_skills")
+}
+
+/// Document vault — CVs, IDs, permits, dispute attachments.
+/// DB-level: CHECK at least one of (individual_id, employer_id, work_permit_application_id, dispute_id) NOT NULL
+/// — enforced via raw SQL migration, not Prisma schema.
+model Document {
+  id                      String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  individualId            String?      @map("individual_id") @db.Uuid
+  employerId              String?      @map("employer_id") @db.Uuid
+  workPermitApplicationId String?      @map("work_permit_application_id") @db.Uuid
+  disputeId               String?      @map("dispute_id") @db.Uuid
+  documentType            DocumentType @map("document_type")
+  storageKey              String       @map("storage_key") @db.VarChar(500)
+  fileName                String       @map("file_name") @db.VarChar(300)
+  fileSizeBytes           BigInt       @map("file_size_bytes")
+  mimeType                String       @map("mime_type") @db.VarChar(100)
+  uploadedByUserId        String       @map("uploaded_by_user_id") @db.Uuid
+  isActive                Boolean      @default(true) @map("is_active")
+  createdAt               DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  individual            Individual?           @relation(fields: [individualId], references: [id])
+  employer              Employer?             @relation(fields: [employerId], references: [id])
+  workPermitApplication WorkPermitApplication? @relation(fields: [workPermitApplicationId], references: [id])
+  dispute               Dispute?              @relation(fields: [disputeId], references: [id])
+  uploadedBy            User                  @relation("DocumentUploader", fields: [uploadedByUserId], references: [id])
+  cvParseJob            CvParseJob?
+
+  @@map("documents")
+}
+
+model CvParseJob {
+  id                    String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  documentId            String        @unique @map("document_id") @db.Uuid
+  individualId          String        @map("individual_id") @db.Uuid
+  status                CvParseStatus
+  extractedData         Json?         @map("extracted_data") @db.JsonB
+  confidenceScores      Json?         @map("confidence_scores") @db.JsonB
+  processingStartedAt   DateTime?     @map("processing_started_at") @db.Timestamptz(6)
+  processingCompletedAt DateTime?     @map("processing_completed_at") @db.Timestamptz(6)
+  errorMessage          String?       @map("error_message") @db.Text
+  modelVersion          String        @map("model_version") @db.VarChar(50)
+  bullmqJobId           String?       @map("bullmq_job_id") @db.VarChar(100)
+  createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  document   Document   @relation(fields: [documentId], references: [id])
+  individual Individual @relation(fields: [individualId], references: [id])
+
+  @@map("cv_parse_jobs")
+}
+
+// ── Employer domain ───────────────────────────────────────────────────────────
+
+model Employer {
+  id                       String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  lraRegistrationNumber    String           @unique @map("lra_registration_number") @db.VarChar(50)
+  companyName              String           @map("company_name") @db.VarChar(300)
+  sectorId                 String           @map("sector_id") @db.Uuid
+  countyId                 String           @map("county_id") @db.Uuid
+  primaryContactName       String           @map("primary_contact_name") @db.VarChar(200)
+  primaryContactEmail      String           @map("primary_contact_email") @db.VarChar(255)
+  primaryContactPhone      String           @map("primary_contact_phone") @db.VarChar(20)
+  complianceStatus         ComplianceStatus @default(PENDING) @map("compliance_status")
+  certificateExpiryDate    DateTime?        @map("certificate_expiry_date") @db.Date
+  vacationJobHosting       Boolean          @default(false) @map("vacation_job_hosting")
+  vacationJobDonating      Boolean          @default(false) @map("vacation_job_donating")
+  totalEmployeesLastReturn Int?             @map("total_employees_last_return")
+  isActive                 Boolean          @default(true) @map("is_active")
+  createdAt                DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  sector                  Sector                       @relation(fields: [sectorId], references: [id])
+  county                  County                       @relation(fields: [countyId], references: [id])
+  employerUsers           EmployerUser[]
+  vacancies               Vacancy[]
+  workPermitApplications  WorkPermitApplication[]
+  disputes                Dispute[]
+  documents               Document[]
+  workforceReturns        WorkforceReturn[]
+  complianceCertificates  ComplianceCertificate[]
+  placements              VacationJobPlacement[]
+  vacationHostingCapacity VacationJobHostingCapacity[]
+
+  @@map("employers")
+}
+
+/// employer ↔ user membership — one person can represent multiple employers
+model EmployerUser {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  employerId      String           @map("employer_id") @db.Uuid
+  userId          String           @map("user_id") @db.Uuid
+  role            EmployerUserRole
+  isActive        Boolean          @default(true) @map("is_active")
+  invitedByUserId String?          @map("invited_by_user_id") @db.Uuid
+  invitedAt       DateTime?        @map("invited_at") @db.Timestamptz(6)
+  acceptedAt      DateTime?        @map("accepted_at") @db.Timestamptz(6)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  employer   Employer @relation(fields: [employerId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+  invitedBy  User?    @relation("EmployerUserInviter", fields: [invitedByUserId], references: [id])
+
+  @@unique([employerId, userId])
+  @@map("employer_users")
+}
+
+// ── Vacancies & applications ──────────────────────────────────────────────────
+
+model Vacancy {
+  id                      String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  employerId              String        @map("employer_id") @db.Uuid
+  title                   String        @db.VarChar(300)
+  description             String        @db.Text
+  occupationId            String?       @map("occupation_id") @db.Uuid
+  vacancyType             VacancyType   @map("vacancy_type")
+  countyId                String        @map("county_id") @db.Uuid
+  sectorId                String?       @map("sector_id") @db.Uuid
+  minimumEducationLevelId String?       @map("minimum_education_level_id") @db.Uuid
+  slotsAvailable          Int           @map("slots_available") @db.SmallInt
+  deadline                DateTime      @db.Date
+  isMandatoryAdvertised   Boolean       @default(false) @map("is_mandatory_advertised")
+  status                  VacancyStatus @default(DRAFT)
+  postedAt                DateTime?     @map("posted_at") @db.Timestamptz(6)
+  isActive                Boolean       @default(true) @map("is_active")
+  createdAt               DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  employer              Employer        @relation(fields: [employerId], references: [id])
+  occupation            Occupation?     @relation(fields: [occupationId], references: [id])
+  county                County          @relation(fields: [countyId], references: [id])
+  sector                Sector?         @relation(fields: [sectorId], references: [id])
+  minimumEducationLevel EducationLevel? @relation(fields: [minimumEducationLevelId], references: [id])
+  applications          Application[]
+  workPermitApplications WorkPermitApplication[]
+
+  @@index([status, deadline], map: "idx_vacancy_status_deadline")
+  @@index([countyId, status], map: "idx_vacancy_county_status")
+  @@index([employerId, status], map: "idx_vacancy_employer_status")
+  @@index([isMandatoryAdvertised, postedAt], map: "idx_vacancy_mandatory_advertised")
+  @@map("vacancies")
+}
+
+model Application {
+  id                    String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  individualId          String            @map("individual_id") @db.Uuid
+  vacancyId             String            @map("vacancy_id") @db.Uuid
+  channel               ApplicationChannel
+  status                ApplicationStatus @default(APPLIED)
+  statusChangedAt       DateTime          @default(now()) @map("status_changed_at") @db.Timestamptz(6)
+  statusChangedByUserId String?           @map("status_changed_by_user_id") @db.Uuid
+  appliedAt             DateTime          @default(now()) @map("applied_at") @db.Timestamptz(6)
+  isActive              Boolean           @default(true) @map("is_active")
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  individual          Individual @relation(fields: [individualId], references: [id])
+  vacancy             Vacancy    @relation(fields: [vacancyId], references: [id])
+  statusChangedByUser User?      @relation("ApplicationStatusChanger", fields: [statusChangedByUserId], references: [id])
+
+  @@unique([individualId, vacancyId])
+  @@index([vacancyId, status], map: "idx_application_vacancy_status")
+  @@map("applications")
+}
+
+// ── Work permits ──────────────────────────────────────────────────────────────
+
+/// vacancyId is NOT NULL at DB level — enforces regulation RL/MOL/CWK/M/1011/725
+model WorkPermitApplication {
+  id                      String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  referenceNumber         String           @unique @map("reference_number") @db.VarChar(30)
+  employerId              String           @map("employer_id") @db.Uuid
+  vacancyId               String           @map("vacancy_id") @db.Uuid
+  occupationId            String?          @map("occupation_id") @db.Uuid
+  foreignWorkerName       String           @map("foreign_worker_name") @db.VarChar(200)
+  nationalityId           String           @map("nationality_id") @db.Uuid
+  passportNumber          String           @map("passport_number") @db.VarChar(50)
+  priorLiberiaWorkHistory String?          @map("prior_liberia_work_history") @db.Text
+  roleJustification       String           @map("role_justification") @db.Text
+  proposedSalaryUsd       Decimal?         @map("proposed_salary_usd") @db.Decimal(12, 2)
+  benefitsSummary         String?          @map("benefits_summary") @db.Text
+  contractDurationMonths  Int?             @map("contract_duration_months") @db.SmallInt
+  status                  WorkPermitStatus @default(DRAFT)
+  submittedAt             DateTime?        @map("submitted_at") @db.Timestamptz(6)
+  decidedAt               DateTime?        @map("decided_at") @db.Timestamptz(6)
+  decidedByUserId         String?          @map("decided_by_user_id") @db.Uuid
+  decisionNotes           String?          @map("decision_notes") @db.Text
+  createdAt               DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  employer      Employer    @relation(fields: [employerId], references: [id])
+  vacancy       Vacancy     @relation(fields: [vacancyId], references: [id])
+  occupation    Occupation? @relation(fields: [occupationId], references: [id])
+  nationality   Country     @relation(fields: [nationalityId], references: [id])
+  decidedBy     User?       @relation("PermitDecider", fields: [decidedByUserId], references: [id])
+  statusHistory WorkPermitStatusHistory[]
+  documents     Document[]
+
+  @@map("work_permit_applications")
+}
+
+model WorkPermitStatusHistory {
+  id                      String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  workPermitApplicationId String            @map("work_permit_application_id") @db.Uuid
+  fromStatus              WorkPermitStatus? @map("from_status")
+  toStatus                WorkPermitStatus  @map("to_status")
+  changedByUserId         String            @map("changed_by_user_id") @db.Uuid
+  reasonCode              String?           @map("reason_code") @db.VarChar(50)
+  notes                   String?           @db.Text
+  changedAt               DateTime          @map("changed_at") @db.Timestamptz(6)
+  createdAt               DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  workPermitApplication WorkPermitApplication @relation(fields: [workPermitApplicationId], references: [id])
+  changedBy             User                  @relation(fields: [changedByUserId], references: [id])
+
+  @@map("work_permit_status_history")
+}
+
+// ── Disputes ──────────────────────────────────────────────────────────────────
+
+model Dispute {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  referenceNumber   String          @unique @map("reference_number") @db.VarChar(30)
+  employerId        String          @map("employer_id") @db.Uuid
+  submittedByUserId String          @map("submitted_by_user_id") @db.Uuid
+  category          DisputeCategory
+  relatedReferenceId String?        @map("related_reference_id") @db.VarChar(100)
+  description       String          @db.Text
+  status            DisputeStatus   @default(SUBMITTED)
+  assignedToUserId  String?         @map("assigned_to_user_id") @db.Uuid
+  molResponseText   String?         @map("mol_response_text") @db.Text
+  submittedAt       DateTime        @map("submitted_at") @db.Timestamptz(6)
+  slaDueAt          DateTime        @map("sla_due_at") @db.Timestamptz(6)
+  respondedAt       DateTime?       @map("responded_at") @db.Timestamptz(6)
+  respondedByUserId String?         @map("responded_by_user_id") @db.Uuid
+  closedAt          DateTime?       @map("closed_at") @db.Timestamptz(6)
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  employer     Employer  @relation(fields: [employerId], references: [id])
+  submittedBy  User      @relation("DisputeSubmitter", fields: [submittedByUserId], references: [id])
+  assignedTo   User?     @relation("DisputeAssignee", fields: [assignedToUserId], references: [id])
+  respondedBy  User?     @relation("DisputeResponder", fields: [respondedByUserId], references: [id])
+  documents    Document[]
+
+  @@index([status, slaDueAt], map: "idx_dispute_status_sla")
+  @@map("disputes")
+}
+
+// ── Vacation job program ──────────────────────────────────────────────────────
+
+/// Phase 1: cycle management. Phase 2: hosting capacity + placements.
+model VacationJobCycle {
+  id        String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String                 @db.VarChar(100)
+  year      Int                    @db.SmallInt
+  startDate DateTime               @map("start_date") @db.Date
+  endDate   DateTime               @map("end_date") @db.Date
+  status    VacationJobCycleStatus
+  createdAt DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  hostingCapacity VacationJobHostingCapacity[]
+  placements      VacationJobPlacement[]
+
+  @@map("vacation_job_cycles")
+}
+
+/// Phase 2 feature — schema stub present in Phase 1 migrations
+model VacationJobHostingCapacity {
+  id                        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  employerId                String   @map("employer_id") @db.Uuid
+  cycleId                   String   @map("cycle_id") @db.Uuid
+  slotsOffered              Int      @map("slots_offered") @db.SmallInt
+  preferredSectorId         String?  @map("preferred_sector_id") @db.Uuid
+  preferredEducationLevelId String?  @map("preferred_education_level_id") @db.Uuid
+  countyId                  String   @map("county_id") @db.Uuid
+  contactName               String   @map("contact_name") @db.VarChar(200)
+  contactPhone              String   @map("contact_phone") @db.VarChar(20)
+  placementInstructions     String?  @map("placement_instructions") @db.Text
+  createdAt                 DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  employer                Employer        @relation(fields: [employerId], references: [id])
+  cycle                   VacationJobCycle @relation(fields: [cycleId], references: [id])
+  preferredSector         Sector?         @relation(fields: [preferredSectorId], references: [id])
+  preferredEducationLevel EducationLevel? @relation(fields: [preferredEducationLevelId], references: [id])
+  county                  County          @relation(fields: [countyId], references: [id])
+
+  @@unique([employerId, cycleId])
+  @@map("vacation_job_hosting_capacity")
+}
+
+model VacationJobPlacement {
+  id                   String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  individualId         String          @map("individual_id") @db.Uuid
+  employerId           String          @map("employer_id") @db.Uuid
+  cycleId              String          @map("cycle_id") @db.Uuid
+  matchDate            DateTime        @map("match_date") @db.Date
+  reportDate           DateTime?       @map("report_date") @db.Date
+  contactName          String          @map("contact_name") @db.VarChar(200)
+  contactPhone         String          @map("contact_phone") @db.VarChar(20)
+  confirmationCode     String          @unique @map("confirmation_code") @db.VarChar(20)
+  status               PlacementStatus @default(MATCHED)
+  confirmedAt          DateTime?       @map("confirmed_at") @db.Timestamptz(6)
+  confirmationDeadline DateTime        @map("confirmation_deadline") @db.Timestamptz(6)
+  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  individual Individual      @relation(fields: [individualId], references: [id])
+  employer   Employer        @relation(fields: [employerId], references: [id])
+  cycle      VacationJobCycle @relation(fields: [cycleId], references: [id])
+
+  @@map("vacation_job_placements")
+}
+
+// ── Workforce returns & compliance (Phase 2 models) ───────────────────────────
+
+/// DB-level: CHECK (total_employees = liberian_nationals + foreign_nationals) — raw migration
+model WorkforceReturn {
+  id                String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  employerId        String                @map("employer_id") @db.Uuid
+  returnPeriod      String                @map("return_period") @db.VarChar(10)
+  totalEmployees    Int                   @map("total_employees")
+  liberianNationals Int                   @map("liberian_nationals")
+  foreignNationals  Int                   @map("foreign_nationals")
+  femaleEmployees   Int                   @map("female_employees")
+  maleEmployees     Int                   @map("male_employees")
+  status            WorkforceReturnStatus @default(DRAFT)
+  submittedByUserId String?               @map("submitted_by_user_id") @db.Uuid
+  submittedAt       DateTime?             @map("submitted_at") @db.Timestamptz(6)
+  validatedByUserId String?               @map("validated_by_user_id") @db.Uuid
+  validatedAt       DateTime?             @map("validated_at") @db.Timestamptz(6)
+  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  employer    Employer @relation(fields: [employerId], references: [id])
+  submittedBy User?    @relation("WorkforceReturnSubmitter", fields: [submittedByUserId], references: [id])
+  validatedBy User?    @relation("WorkforceReturnValidator", fields: [validatedByUserId], references: [id])
+
+  @@unique([employerId, returnPeriod])
+  @@map("workforce_returns")
+}
+
+model ComplianceCertificate {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  employerId       String    @map("employer_id") @db.Uuid
+  serialNumber     String    @unique @map("serial_number") @db.VarChar(50)
+  issuedAt         DateTime  @map("issued_at") @db.Timestamptz(6)
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revokedByUserId  String?   @map("revoked_by_user_id") @db.Uuid
+  revocationReason String?   @map("revocation_reason") @db.Text
+  pdfStorageKey    String    @map("pdf_storage_key") @db.VarChar(500)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  employer  Employer @relation(fields: [employerId], references: [id])
+  revokedBy User?    @relation("CertificateRevoker", fields: [revokedByUserId], references: [id])
+
+  @@map("compliance_certificates")
+}
+
+// ── Messaging & notifications ─────────────────────────────────────────────────
+
+/// Raw SMS/WhatsApp message log. messageBody anonymised at retentionExpiresAt via BullMQ job.
+model MessageEvent {
+  id                 String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String?                @map("user_id") @db.Uuid
+  phoneNumber        String                 @map("phone_number") @db.VarChar(20)
+  direction          MessageDirection
+  channel            MessageChannel
+  templateName       String?                @map("template_name") @db.VarChar(100)
+  messageBody        String?                @map("message_body") @db.Text
+  externalMessageId  String?                @map("external_message_id") @db.VarChar(100)
+  deliveryStatus     MessageDeliveryStatus? @map("delivery_status")
+  deliveredAt        DateTime?              @map("delivered_at") @db.Timestamptz(6)
+  retentionExpiresAt DateTime               @map("retention_expires_at") @db.Timestamptz(6)
+  provider           String                 @db.VarChar(50)
+  createdAt          DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)], map: "idx_message_user_created")
+  @@index([externalMessageId], map: "idx_message_external_id")
+  @@index([retentionExpiresAt], map: "idx_message_retention")
+  @@map("message_events")
+}
+
+model Notification {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String    @map("user_id") @db.Uuid
+  type               String    @db.VarChar(100)
+  title              String    @db.VarChar(200)
+  body               String    @db.Text
+  metadata           Json      @default("{}") @db.JsonB
+  readAt             DateTime? @map("read_at") @db.Timestamptz(6)
+  channelsDispatched Json      @default("[]") @map("channels_dispatched") @db.JsonB
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+// ── Audit log ─────────────────────────────────────────────────────────────────
+
+/// Append-only. DB-level: REVOKE UPDATE, DELETE ON audit_log FROM api_role
+/// + Postgres rule blocking those operations — added via raw migration.
+model AuditLog {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  actorRole   String   @map("actor_role") @db.VarChar(30)
+  action      String   @db.VarChar(100)
+  targetTable String?  @map("target_table") @db.VarChar(100)
+  targetId    String?  @map("target_id") @db.Uuid
+  beforeData  Json?    @map("before_data") @db.JsonB
+  afterData   Json?    @map("after_data") @db.JsonB
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent") @db.VarChar(500)
+  requestId   String?  @map("request_id") @db.Uuid
+  timestamp   DateTime @default(now()) @db.Timestamptz(6)
+
+  actorUser User? @relation(fields: [actorUserId], references: [id])
+
+  @@index([targetTable, targetId, timestamp(sort: Desc)], map: "idx_audit_target")
+  @@index([actorUserId, timestamp(sort: Desc)], map: "idx_audit_actor")
+  @@index([action, timestamp(sort: Desc)], map: "idx_audit_action")
+  @@map("audit_log")
+}
