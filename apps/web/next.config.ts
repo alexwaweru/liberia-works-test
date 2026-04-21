@@ -2,9 +2,6 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
 
   // Transpile cross-workspace packages (not pre-compiled for Next.js)
   transpilePackages: [
