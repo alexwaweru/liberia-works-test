@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancel in-progress runs on the same branch so stale jobs don't eat minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Lint · Typecheck · Test ──────────────────────────────────────────────────
+  # Turbo runs build → lint/typecheck/test in a single job.
+  # Warm path: pnpm store + .turbo cache restore makes this ~60-80s.
+  quality:
+    name: Lint · Typecheck · Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Version comes from "packageManager": "pnpm@9.15.4" in package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm' # Caches ~/.pnpm-store keyed on pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      # Turbo task cache — keyed on commit so each push writes a fresh entry,
+      # but prior-branch entries are restored via the prefix restore-key.
+      # For cross-PR warm cache, set TURBO_TOKEN + TURBO_TEAM (Vercel Remote Cache).
+      - name: Restore Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
+
+      - name: Build · Lint · Typecheck · Test
+        run: pnpm turbo build lint typecheck test --cache-dir=.turbo
+
+  # ── Migration drift ──────────────────────────────────────────────────────────
+  # Fails if schema.prisma was edited without a corresponding migration file.
+  # Requires the developer to run: pnpm --filter @liberia-works/api exec prisma migrate dev
+  migration-diff:
+    name: Migration drift
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: shadow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Check for migration drift
+        working-directory: apps/api
+        env:
+          SHADOW_DATABASE_URL: postgresql://postgres:password@localhost:5432/shadow
+        run: |
+          pnpm exec prisma migrate diff \
+            --from-migrations prisma/migrations \
+            --to-schema-datamodel prisma/schema.prisma \
+            --shadow-database-url "$SHADOW_DATABASE_URL" \
+            --exit-code
