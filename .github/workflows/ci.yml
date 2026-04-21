@@ -51,7 +51,8 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16-alpine
+        # postgis/postgis has PostGIS pre-installed; pgvector is added below via docker exec.
+        image: postgis/postgis:16-3.5
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
@@ -65,6 +66,11 @@ jobs:
           --health-retries 10
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install pgvector in postgres container
+        run: |
+          docker exec ${{ job.services.postgres.id }} bash -c \
+            "apt-get update -qq && apt-get install -y --no-install-recommends postgresql-16-pgvector"
 
       - uses: pnpm/action-setup@v4
 

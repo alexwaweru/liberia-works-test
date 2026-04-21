@@ -1,4 +1,3 @@
-// Phase column legend: 1 = ships in Phase 1, 2 = model present in Phase 1 migrations but feature goes live Phase 2.
 // All tables include: id UUID PK (gen_random_uuid()), createdAt, updatedAt.
 // Foreign keys are ON DELETE RESTRICT unless noted.
 
@@ -121,19 +120,23 @@ enum DisputeStatus {
   CLOSED
 }
 
-enum PlacementStatus {
+enum ProgramType {
+  VACATION_JOB
+}
+
+enum ProgramCycleStatus {
+  PLANNED
+  OPEN
+  MATCHING
+  COMPLETED
+}
+
+enum ProgramPlacementStatus {
   MATCHED
   CONFIRMED
   COMPLETED
   NO_SHOW
   CANCELLED
-}
-
-enum VacationJobCycleStatus {
-  PLANNED
-  OPEN
-  MATCHING
-  COMPLETED
 }
 
 enum WorkforceReturnStatus {
@@ -190,10 +193,10 @@ model County {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  individuals             Individual[]
-  employers               Employer[]
-  vacancies               Vacancy[]
-  vacationHostingCapacity VacationJobHostingCapacity[]
+  individuals            Individual[]
+  employers              Employer[]
+  vacancies              Vacancy[]
+  programHostingCapacity ProgramHostingCapacity[]
 
   @@map("counties")
 }
@@ -211,10 +214,10 @@ model Sector {
   parent   Sector?  @relation("SectorHierarchy", fields: [parentId], references: [id])
   children Sector[] @relation("SectorHierarchy")
 
-  employers               Employer[]
-  vacancies               Vacancy[]
-  individualInterests     IndividualSectorInterest[]
-  vacationHostingCapacity VacationJobHostingCapacity[]
+  employers              Employer[]
+  vacancies              Vacancy[]
+  individualInterests    IndividualSectorInterest[]
+  programHostingCapacity ProgramHostingCapacity[]
 
   @@map("sectors")
 }
@@ -403,10 +406,10 @@ model EducationLevel {
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  individuals             Individual[]
-  individualEducation     IndividualEducation[]
-  vacancies               Vacancy[]
-  vacationHostingCapacity VacationJobHostingCapacity[]
+  individuals            Individual[]
+  individualEducation    IndividualEducation[]
+  vacancies              Vacancy[]
+  programHostingCapacity ProgramHostingCapacity[]
 
   @@map("education_levels")
 }
@@ -514,7 +517,7 @@ model Individual {
   documents       Document[]
   cvParseJobs     CvParseJob[]
   applications    Application[]
-  placements      VacationJobPlacement[]
+  placements      ProgramPlacement[]
 
   @@map("individuals")
 }
@@ -668,8 +671,8 @@ model Employer {
   documents               Document[]
   workforceReturns        WorkforceReturn[]
   complianceCertificates  ComplianceCertificate[]
-  placements              VacationJobPlacement[]
-  vacationHostingCapacity VacationJobHostingCapacity[]
+  placements              ProgramPlacement[]
+  programHostingCapacity  ProgramHostingCapacity[]
 
   @@map("employers")
 }
@@ -837,27 +840,29 @@ model Dispute {
   @@map("disputes")
 }
 
-// ── Vacation job program ──────────────────────────────────────────────────────
+// ── Programs ──────────────────────────────────────────────────────────────────
 
-/// Phase 1: cycle management. Phase 2: hosting capacity + placements.
-model VacationJobCycle {
-  id        String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name      String                 @db.VarChar(100)
-  year      Int                    @db.SmallInt
-  startDate DateTime               @map("start_date") @db.Date
-  endDate   DateTime               @map("end_date") @db.Date
-  status    VacationJobCycleStatus
-  createdAt DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+/// A time-bounded run of a program. The type field identifies which program this
+/// cycle belongs to, allowing different programs to coexist in the same tables.
+model ProgramCycle {
+  id        String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type      ProgramType
+  name      String             @db.VarChar(100)
+  year      Int                @db.SmallInt
+  startDate DateTime           @map("start_date") @db.Date
+  endDate   DateTime           @map("end_date") @db.Date
+  status    ProgramCycleStatus
+  createdAt DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  hostingCapacity VacationJobHostingCapacity[]
-  placements      VacationJobPlacement[]
+  hostingCapacity ProgramHostingCapacity[]
+  placements      ProgramPlacement[]
 
-  @@map("vacation_job_cycles")
+  @@map("program_cycles")
 }
 
-/// Phase 2 feature — schema stub present in Phase 1 migrations
-model VacationJobHostingCapacity {
+/// Employer declaration of capacity for a given program cycle.
+model ProgramHostingCapacity {
   id                        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   employerId                String   @map("employer_id") @db.Uuid
   cycleId                   String   @map("cycle_id") @db.Uuid
@@ -871,37 +876,38 @@ model VacationJobHostingCapacity {
   createdAt                 DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                 DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  employer                Employer        @relation(fields: [employerId], references: [id])
-  cycle                   VacationJobCycle @relation(fields: [cycleId], references: [id])
-  preferredSector         Sector?         @relation(fields: [preferredSectorId], references: [id])
+  employer                Employer       @relation(fields: [employerId], references: [id])
+  cycle                   ProgramCycle   @relation(fields: [cycleId], references: [id])
+  preferredSector         Sector?        @relation(fields: [preferredSectorId], references: [id])
   preferredEducationLevel EducationLevel? @relation(fields: [preferredEducationLevelId], references: [id])
-  county                  County          @relation(fields: [countyId], references: [id])
+  county                  County         @relation(fields: [countyId], references: [id])
 
   @@unique([employerId, cycleId])
-  @@map("vacation_job_hosting_capacity")
+  @@map("program_hosting_capacity")
 }
 
-model VacationJobPlacement {
-  id                   String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  individualId         String          @map("individual_id") @db.Uuid
-  employerId           String          @map("employer_id") @db.Uuid
-  cycleId              String          @map("cycle_id") @db.Uuid
-  matchDate            DateTime        @map("match_date") @db.Date
-  reportDate           DateTime?       @map("report_date") @db.Date
-  contactName          String          @map("contact_name") @db.VarChar(200)
-  contactPhone         String          @map("contact_phone") @db.VarChar(20)
-  confirmationCode     String          @unique @map("confirmation_code") @db.VarChar(20)
-  status               PlacementStatus @default(MATCHED)
-  confirmedAt          DateTime?       @map("confirmed_at") @db.Timestamptz(6)
-  confirmationDeadline DateTime        @map("confirmation_deadline") @db.Timestamptz(6)
-  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+/// An individual placed with an employer for a given program cycle.
+model ProgramPlacement {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  individualId         String                 @map("individual_id") @db.Uuid
+  employerId           String                 @map("employer_id") @db.Uuid
+  cycleId              String                 @map("cycle_id") @db.Uuid
+  matchDate            DateTime               @map("match_date") @db.Date
+  reportDate           DateTime?              @map("report_date") @db.Date
+  contactName          String                 @map("contact_name") @db.VarChar(200)
+  contactPhone         String                 @map("contact_phone") @db.VarChar(20)
+  confirmationCode     String                 @unique @map("confirmation_code") @db.VarChar(20)
+  status               ProgramPlacementStatus @default(MATCHED)
+  confirmedAt          DateTime?              @map("confirmed_at") @db.Timestamptz(6)
+  confirmationDeadline DateTime               @map("confirmation_deadline") @db.Timestamptz(6)
+  createdAt            DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  individual Individual      @relation(fields: [individualId], references: [id])
-  employer   Employer        @relation(fields: [employerId], references: [id])
-  cycle      VacationJobCycle @relation(fields: [cycleId], references: [id])
+  individual Individual  @relation(fields: [individualId], references: [id])
+  employer   Employer    @relation(fields: [employerId], references: [id])
+  cycle      ProgramCycle @relation(fields: [cycleId], references: [id])
 
-  @@map("vacation_job_placements")
+  @@map("program_placements")
 }
 
 // ── Workforce returns & compliance (Phase 2 models) ───────────────────────────

@@ -41,3 +41,7 @@ yarn-error.log*
 
 # test
 coverage/
+
+# ignore individual ai settings
+.agent/
+.claude/

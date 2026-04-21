@@ -31,7 +31,7 @@ const swaggerPlugin: FastifyPluginAsync = async (app) => {
         { name: 'applications', description: 'Job applications' },
         { name: 'work-permits', description: 'Work permit applications' },
         { name: 'disputes', description: 'Dispute submissions' },
-        { name: 'vacation-jobs', description: 'Vacation job programme' },
+        { name: 'programs', description: 'Programs (vacation jobs and future programme types)' },
         { name: 'mol', description: 'MoL dashboard (read-only)' },
         { name: 'reference', description: 'Reference data (counties, sectors, occupations)' },
       ],
