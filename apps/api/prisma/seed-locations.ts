@@ -14,19 +14,28 @@
  */
 
 import { PrismaClient, Prisma } from '@prisma/client'
-import { gunzipSync } from 'zlib'
 
 const BASE_URL =
-  'https://raw.githubusercontent.com/dr5hn/countries-states-cities-database/master/json'
+  'https://raw.githubusercontent.com/alexwaweru/countries-states-cities-database/master/json'
 
 const BATCH_SIZE = 500
 const MAX_RETRIES = 3
 const RETRY_DELAY_MS = 5_000
 
+// cities come via the large nested file — give it 10 minutes
+const FETCH_TIMEOUTS: Record<string, number> = {
+  'countries+states+cities.json': 600_000,
+}
+
 const VALID_ONLY = ['regions', 'subregions', 'countries', 'states', 'cities'] as const
 type OnlyValue = (typeof VALID_ONLY)[number]
 
 const prisma = new PrismaClient()
+
+// ── Lookup maps (populated during import, consumed by later steps) ─────────────
+// countries.json stores region/subregion as string names, not IDs.
+const regionNameToId = new Map<string, number>()
+const subregionNameToId = new Map<string, number>()
 
 // ── CLI args ───────────────────────────────────────────────────────────────────
 
@@ -49,37 +58,13 @@ async function fetchJson(filename: string): Promise<unknown[]> {
   const url = `${BASE_URL}/${filename}`
   console.log(`  Fetching ${url}...`)
 
+  const timeout = FETCH_TIMEOUTS[filename] ?? 300_000
   let lastError: unknown
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(300_000) })
+      const res = await fetch(url, { signal: AbortSignal.timeout(timeout) })
       if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`)
       return (await res.json()) as unknown[]
-    } catch (err) {
-      lastError = err
-      if (attempt < MAX_RETRIES - 1) {
-        console.warn(
-          `    Attempt ${attempt + 1}/${MAX_RETRIES} failed: ${(err as Error).message}. ` +
-            `Retrying in ${RETRY_DELAY_MS / 1000}s...`,
-        )
-        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS))
-      }
-    }
-  }
-  throw lastError
-}
-
-async function fetchGzippedJson(filename: string): Promise<unknown[]> {
-  const url = `${BASE_URL}/${filename}`
-  console.log(`  Fetching ${url} (gzipped)...`)
-
-  let lastError: unknown
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(600_000) })
-      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`)
-      const buf = Buffer.from(await res.arrayBuffer())
-      return JSON.parse(gunzipSync(buf).toString('utf-8')) as unknown[]
     } catch (err) {
       lastError = err
       if (attempt < MAX_RETRIES - 1) {
@@ -109,6 +94,12 @@ function pointSql(lat: unknown, lng: unknown): Prisma.Sql {
   return Prisma.sql`NULL::geography`
 }
 
+function toInt(val: unknown): number | null {
+  if (val == null || val === '') return null
+  const n = Number(val)
+  return isNaN(n) ? null : n
+}
+
 // ── Clear helpers ──────────────────────────────────────────────────────────────
 
 async function clearAll(target: OnlyValue | undefined) {
@@ -134,7 +125,7 @@ async function clearAll(target: OnlyValue | undefined) {
   }
 }
 
-// ── Raw data shapes (dr5hn JSON structure) ─────────────────────────────────────
+// ── Raw data shapes ────────────────────────────────────────────────────────────
 
 interface RawRegion {
   id: number
@@ -164,8 +155,9 @@ interface RawCountry {
   currency_symbol?: string | null
   tld?: string | null
   native?: string | null
-  region_id?: number | null
-  subregion_id?: number | null
+  // new format: region/subregion are string names, not numeric IDs
+  region?: string | null
+  subregion?: string | null
   nationality?: string | null
   timezones?: unknown
   translations?: unknown
@@ -186,12 +178,13 @@ interface RawState {
   name: string
   country_id: number
   country_code: string
+  country_name?: string | null
   fips_code?: string | null
   iso2?: string | null
   iso3166_2?: string | null
-  state_code?: string | null
+  state_code?: string | null   // may be absent; fall back to iso2
   type?: string | null
-  level?: number | null
+  level?: number | string | null
   parent_id?: number | null
   native?: string | null
   latitude?: string | number | null
@@ -202,30 +195,43 @@ interface RawState {
   population?: number | null
 }
 
-interface RawCity {
+// Nested city shape inside countries+states+cities.json
+interface RawNestedCity {
   id: number
   name: string
-  state_id: number
-  state_code?: string | null
-  country_id: number
-  country_code: string
   latitude?: string | number | null
   longitude?: string | number | null
+  wikiDataId?: string | null
   type?: string | null
-  level?: number | null
+  level?: number | string | null
   parent_id?: number | null
   native?: string | null
   population?: number | null
   timezone?: string | null
   translations?: unknown
-  wikiDataId?: string | null
 }
 
-// ── Import functions ───────────────────────────────────────────────────────────
+interface RawNestedState {
+  id: number
+  name: string
+  state_code?: string | null
+  iso2?: string | null
+  cities?: RawNestedCity[]
+}
+
+interface RawNestedCountry {
+  id: number
+  iso2: string
+  states?: RawNestedState[]
+}
+
+// ── Import regions ─────────────────────────────────────────────────────────────
 
 async function importRegions() {
   console.log('\nImporting regions...')
   const data = (await fetchJson('regions.json')) as RawRegion[]
+
+  for (const r of data) regionNameToId.set(r.name, r.id)
 
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
     const rows = data.slice(i, i + BATCH_SIZE).map(
@@ -247,9 +253,13 @@ async function importRegions() {
   console.log(`  ✓ ${data.length} regions`)
 }
 
+// ── Import subregions ──────────────────────────────────────────────────────────
+
 async function importSubregions() {
   console.log('\nImporting subregions...')
   const data = (await fetchJson('subregions.json')) as RawSubregion[]
+
+  for (const s of data) subregionNameToId.set(s.name, s.id)
 
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
     const rows = data.slice(i, i + BATCH_SIZE).map(
@@ -272,26 +282,33 @@ async function importSubregions() {
   console.log(`  ✓ ${data.length} subregions`)
 }
 
+// ── Import countries ───────────────────────────────────────────────────────────
+
 async function importCountries() {
   console.log('\nImporting countries...')
   const data = (await fetchJson('countries.json')) as RawCountry[]
 
   for (let i = 0; i < data.length; i += BATCH_SIZE) {
-    const rows = data.slice(i, i + BATCH_SIZE).map(
-      (c) => Prisma.sql`(
+    const rows = data.slice(i, i + BATCH_SIZE).map((c) => {
+      // Resolve region/subregion names → IDs using the maps populated in earlier steps
+      const regionId = c.region ? (regionNameToId.get(c.region) ?? null) : null
+      const subregionId = c.subregion ? (subregionNameToId.get(c.subregion) ?? null) : null
+
+      return Prisma.sql`(
         ${c.id}, ${c.name}, ${c.iso3 ?? null}, ${c.numeric_code ?? null},
         ${c.iso2 ?? null}, ${c.phonecode ?? null}, ${c.capital ?? null},
         ${c.currency ?? null}, ${c.currency_name ?? null}, ${c.currency_symbol ?? null},
         ${c.tld ?? null}, ${c.native ?? null},
-        ${c.region_id ?? null}, ${c.subregion_id ?? null},
+        ${regionId}, ${subregionId},
         ${c.nationality ?? null}, ${jsonSql(c.timezones)}::jsonb, ${jsonSql(c.translations)}::jsonb,
         ${pointSql(c.latitude, c.longitude)},
         ${c.emoji ?? null}, ${c.emojiU ?? null}, ${c.wikiDataId ?? null}, true,
         ${c.population ?? null}, ${c.gdp ?? null}, ${c.area_sq_km ?? null},
         ${c.postal_code_format ?? null}, ${c.postal_code_regex ?? null},
         NOW(), NOW()
-      )`,
-    )
+      )`
+    })
+
     await prisma.$executeRaw`
       INSERT INTO location_country (
         id, name, iso3, numeric_code, iso2, phonecode, capital,
@@ -334,7 +351,8 @@ async function importCountries() {
   console.log(`  ✓ ${data.length} countries`)
 }
 
-// Two-pass: first insert all rows with parent_id = NULL, then back-fill parent refs.
+// ── Import states (two-pass for self-referential parent_id) ───────────────────
+
 async function importStates() {
   console.log('\nImporting states...')
   const data = (await fetchJson('states.json')) as RawState[]
@@ -345,18 +363,18 @@ async function importStates() {
     const batch = data.slice(i, i + BATCH_SIZE)
 
     for (const s of batch) {
-      if (s.parent_id) parentUpdates.push({ id: s.id, parentId: s.parent_id })
+      if (s.parent_id) parentUpdates.push({ id: Number(s.id), parentId: Number(s.parent_id) })
     }
 
     const rows = batch.map(
       (s) => Prisma.sql`(
         ${s.id}, ${s.name}, ${s.country_id}, ${s.country_code},
         ${s.fips_code ?? null}, ${s.iso2 ?? null}, ${s.iso3166_2 ?? null},
-        ${s.state_code ?? ''}, ${s.type ?? null}, ${s.level ?? null},
+        ${s.state_code ?? s.iso2 ?? ''}, ${s.type ?? null}, ${toInt(s.level)}::integer,
         NULL,
         ${s.native ?? null}, ${pointSql(s.latitude, s.longitude)},
         ${s.timezone ?? null}, ${jsonSql(s.translations)}::jsonb,
-        ${s.wikiDataId ?? null}, true, ${s.population ?? null},
+        ${s.wikiDataId ?? null}, true, ${toInt(s.population)}::bigint,
         NOW(), NOW()
       )`,
     )
@@ -405,70 +423,85 @@ async function importStates() {
   console.log(`  ✓ ${data.length} states`)
 }
 
-// Two-pass: City.location is NOT NULL so cities without coordinates are skipped.
+// ── Import cities ──────────────────────────────────────────────────────────────
+// Source: countries+states+cities.json (nested: country → state → city[])
+// City.location is NOT NULL — cities without valid coordinates are skipped.
+
+async function insertCityBatch(rows: Prisma.Sql[]) {
+  await prisma.$executeRaw`
+    INSERT INTO location_city (
+      id, name, state_id, state_code, country_id, country_code,
+      location, city_type, level, parent_id,
+      native, population, timezone, translations, wikidata_id, flag,
+      created_at, updated_at
+    )
+    VALUES ${Prisma.join(rows)}
+    ON CONFLICT (id) DO UPDATE SET
+      name         = EXCLUDED.name,
+      state_id     = EXCLUDED.state_id,
+      state_code   = EXCLUDED.state_code,
+      country_id   = EXCLUDED.country_id,
+      country_code = EXCLUDED.country_code,
+      location     = EXCLUDED.location,
+      city_type    = EXCLUDED.city_type,
+      level        = EXCLUDED.level,
+      native       = EXCLUDED.native,
+      population   = EXCLUDED.population,
+      timezone     = EXCLUDED.timezone,
+      translations = EXCLUDED.translations,
+      wikidata_id  = EXCLUDED.wikidata_id,
+      updated_at   = NOW()
+  `
+}
+
 async function importCities() {
   console.log('\nImporting cities (this may take a while)...')
-  const data = (await fetchGzippedJson('cities.json.gz')) as RawCity[]
+  const countries = (await fetchJson('countries+states+cities.json')) as RawNestedCountry[]
+
   const parentUpdates: { id: number; parentId: number }[] = []
+  let cityBatch: Prisma.Sql[] = []
   let imported = 0
   let skipped = 0
 
-  for (let i = 0; i < data.length; i += BATCH_SIZE) {
-    const batch = data.slice(i, i + BATCH_SIZE)
-    const rows: Prisma.Sql[] = []
+  for (const country of countries) {
+    for (const state of country.states ?? []) {
+      const stateCode = state.state_code ?? state.iso2 ?? ''
 
-    for (const c of batch) {
-      const latF = c.latitude != null && c.latitude !== '' ? parseFloat(String(c.latitude)) : NaN
-      const lngF = c.longitude != null && c.longitude !== '' ? parseFloat(String(c.longitude)) : NaN
+      for (const city of state.cities ?? []) {
+        const latF = city.latitude != null && city.latitude !== '' ? parseFloat(String(city.latitude)) : NaN
+        const lngF = city.longitude != null && city.longitude !== '' ? parseFloat(String(city.longitude)) : NaN
 
-      if (isNaN(latF) || isNaN(lngF)) {
-        skipped++
-        continue
+        if (isNaN(latF) || isNaN(lngF)) {
+          skipped++
+          continue
+        }
+
+        if (city.parent_id) parentUpdates.push({ id: Number(city.id), parentId: Number(city.parent_id) })
+
+        cityBatch.push(
+          Prisma.sql`(
+            ${city.id}, ${city.name}, ${state.id}, ${stateCode}, ${country.id}, ${country.iso2},
+            ST_SetSRID(ST_MakePoint(${lngF}::float8, ${latF}::float8), 4326)::geography,
+            ${city.type ?? null}, ${toInt(city.level)}::integer, NULL,
+            ${city.native ?? null}, ${toInt(city.population)}::bigint, ${city.timezone ?? null},
+            ${jsonSql(city.translations)}::jsonb, ${city.wikiDataId ?? null}, true,
+            NOW(), NOW()
+          )`,
+        )
+
+        if (cityBatch.length >= BATCH_SIZE) {
+          await insertCityBatch(cityBatch)
+          imported += cityBatch.length
+          cityBatch = []
+          process.stdout.write(`  ${imported + skipped} cities processed...\r`)
+        }
       }
-
-      if (c.parent_id) parentUpdates.push({ id: c.id, parentId: c.parent_id })
-
-      rows.push(
-        Prisma.sql`(
-          ${c.id}, ${c.name}, ${c.state_id}, ${c.state_code ?? ''}, ${c.country_id}, ${c.country_code},
-          ST_SetSRID(ST_MakePoint(${lngF}::float8, ${latF}::float8), 4326)::geography,
-          ${c.type ?? null}, ${c.level ?? null}, NULL,
-          ${c.native ?? null}, ${c.population ?? null}, ${c.timezone ?? null},
-          ${jsonSql(c.translations)}::jsonb, ${c.wikiDataId ?? null}, true,
-          NOW(), NOW()
-        )`,
-      )
     }
+  }
 
-    if (rows.length === 0) continue
-
-    await prisma.$executeRaw`
-      INSERT INTO location_city (
-        id, name, state_id, state_code, country_id, country_code,
-        location, city_type, level, parent_id,
-        native, population, timezone, translations, wikidata_id, flag,
-        created_at, updated_at
-      )
-      VALUES ${Prisma.join(rows)}
-      ON CONFLICT (id) DO UPDATE SET
-        name         = EXCLUDED.name,
-        state_id     = EXCLUDED.state_id,
-        state_code   = EXCLUDED.state_code,
-        country_id   = EXCLUDED.country_id,
-        country_code = EXCLUDED.country_code,
-        location     = EXCLUDED.location,
-        city_type    = EXCLUDED.city_type,
-        level        = EXCLUDED.level,
-        native       = EXCLUDED.native,
-        population   = EXCLUDED.population,
-        timezone     = EXCLUDED.timezone,
-        translations = EXCLUDED.translations,
-        wikidata_id  = EXCLUDED.wikidata_id,
-        updated_at   = NOW()
-    `
-
-    imported += rows.length
-    process.stdout.write(`  ${imported + skipped}/${data.length} cities processed...\r`)
+  if (cityBatch.length > 0) {
+    await insertCityBatch(cityBatch)
+    imported += cityBatch.length
   }
 
   if (parentUpdates.length > 0) {
