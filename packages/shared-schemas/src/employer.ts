@@ -4,7 +4,7 @@ export const CreateEmployerSchema = z.object({
   lraRegistrationNumber: z.string().min(6).max(50),
   companyName: z.string().min(2).max(300),
   sectorId: z.string().uuid(),
-  countyId: z.string().uuid(),
+  stateId: z.string().uuid(),
   primaryContactName: z.string().min(2).max(200),
   primaryContactEmail: z.string().email(),
   primaryContactPhone: z
@@ -19,7 +19,7 @@ export const EmployerResponseSchema = z.object({
   lraRegistrationNumber: z.string(),
   companyName: z.string(),
   sectorId: z.string().uuid(),
-  countyId: z.string().uuid(),
+  stateId: z.string().uuid(),
   primaryContactName: z.string(),
   primaryContactEmail: z.string(),
   primaryContactPhone: z.string(),

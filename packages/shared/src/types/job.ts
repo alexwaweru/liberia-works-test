@@ -8,7 +8,7 @@ export type Job = Timestamp & {
   title: string
   description: string
   employerId: ID
-  county: string
+  state: string
   type: JobType
   status: JobStatus
   salaryMin?: number

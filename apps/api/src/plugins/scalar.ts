@@ -1,9 +1,9 @@
 import fp from 'fastify-plugin'
 import swagger from '@fastify/swagger'
-import swaggerUi from '@fastify/swagger-ui'
+import { jsonSchemaTransform } from 'fastify-type-provider-zod'
 import type { FastifyPluginAsync } from 'fastify'
 
-const swaggerPlugin: FastifyPluginAsync = async (app) => {
+const scalarPlugin: FastifyPluginAsync = async (app) => {
   await app.register(swagger, {
     openapi: {
       openapi: '3.0.3',
@@ -33,15 +33,34 @@ const swaggerPlugin: FastifyPluginAsync = async (app) => {
         { name: 'disputes', description: 'Dispute submissions' },
         { name: 'programs', description: 'Programs (vacation jobs and future programme types)' },
         { name: 'mol', description: 'MoL dashboard (read-only)' },
-        { name: 'reference', description: 'Reference data (counties, sectors, occupations)' },
+        { name: 'reference', description: 'Reference data (sectors, occupations, countries, education levels, regions, subregions, states, cities)' },
       ],
     },
+    transform: jsonSchemaTransform,
   })
 
-  await app.register(swaggerUi, {
+  await app.register(import('@scalar/fastify-api-reference'), {
     routePrefix: '/api/docs',
-    uiConfig: { docExpansion: 'list', deepLinking: false },
+  })
+
+  // Helmet's default CSP blocks Scalar's inline bootstrap script.
+  // Relax only for the docs path — other routes are unaffected.
+  app.addHook('onSend', async (request, reply) => {
+    if (request.url.startsWith('/api/docs')) {
+      reply.header(
+        'content-security-policy',
+        [
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-inline'",
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data: https:",
+          "font-src 'self' data:",
+          "worker-src blob:",
+          "connect-src *",
+        ].join('; '),
+      )
+    }
   })
 }
 
-export default fp(swaggerPlugin, { name: 'swagger' })
+export default fp(scalarPlugin, { name: 'scalar' })

@@ -77,18 +77,6 @@ CREATE TYPE "OtpPurpose" AS ENUM ('REGISTRATION', 'LOGIN', 'PHONE_CHANGE', 'EMAI
 CREATE TYPE "EmployerUserRole" AS ENUM ('ADMIN', 'HR');
 
 -- CreateTable
-CREATE TABLE "counties" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "iso_code" VARCHAR(6) NOT NULL,
-    "name" VARCHAR(100) NOT NULL,
-    "region" VARCHAR(50),
-    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ(6) NOT NULL,
-
-    CONSTRAINT "counties_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "sectors" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "isic_code" VARCHAR(10) NOT NULL,
@@ -298,7 +286,7 @@ CREATE TABLE "individuals" (
     "full_name" VARCHAR(200) NOT NULL,
     "date_of_birth" DATE,
     "gender" "Gender",
-    "county_id" UUID NOT NULL,
+    "state_id" INTEGER NOT NULL,
     "nin" VARCHAR(20),
     "education_level_id" UUID NOT NULL,
     "profile_completion_pct" SMALLINT NOT NULL DEFAULT 0,
@@ -417,7 +405,7 @@ CREATE TABLE "employers" (
     "lra_registration_number" VARCHAR(50) NOT NULL,
     "company_name" VARCHAR(300) NOT NULL,
     "sector_id" UUID NOT NULL,
-    "county_id" UUID NOT NULL,
+    "state_id" INTEGER NOT NULL,
     "primary_contact_name" VARCHAR(200) NOT NULL,
     "primary_contact_email" VARCHAR(255) NOT NULL,
     "primary_contact_phone" VARCHAR(20) NOT NULL,
@@ -457,7 +445,7 @@ CREATE TABLE "vacancies" (
     "description" TEXT NOT NULL,
     "occupation_id" UUID,
     "vacancy_type" "VacancyType" NOT NULL,
-    "county_id" UUID NOT NULL,
+    "state_id" INTEGER NOT NULL,
     "sector_id" UUID,
     "minimum_education_level_id" UUID,
     "slots_available" SMALLINT NOT NULL,
@@ -576,7 +564,7 @@ CREATE TABLE "program_hosting_capacity" (
     "slots_offered" SMALLINT NOT NULL,
     "preferred_sector_id" UUID,
     "preferred_education_level_id" UUID,
-    "county_id" UUID NOT NULL,
+    "state_id" INTEGER NOT NULL,
     "contact_name" VARCHAR(200) NOT NULL,
     "contact_phone" VARCHAR(20) NOT NULL,
     "placement_instructions" TEXT,
@@ -698,9 +686,6 @@ CREATE TABLE "audit_log" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "counties_iso_code_key" ON "counties"("iso_code");
-
--- CreateIndex
 CREATE UNIQUE INDEX "sectors_isic_code_key" ON "sectors"("isic_code");
 
 -- CreateIndex
@@ -782,7 +767,7 @@ CREATE UNIQUE INDEX "employer_users_employer_id_user_id_key" ON "employer_users"
 CREATE INDEX "idx_vacancy_status_deadline" ON "vacancies"("status", "deadline");
 
 -- CreateIndex
-CREATE INDEX "idx_vacancy_county_status" ON "vacancies"("county_id", "status");
+CREATE INDEX "idx_vacancy_state_status" ON "vacancies"("state_id", "status");
 
 -- CreateIndex
 CREATE INDEX "idx_vacancy_employer_status" ON "vacancies"("employer_id", "status");
@@ -872,7 +857,7 @@ ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_fkey" FOREIGN KEY ("user
 ALTER TABLE "individuals" ADD CONSTRAINT "individuals_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "individuals" ADD CONSTRAINT "individuals_county_id_fkey" FOREIGN KEY ("county_id") REFERENCES "counties"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "individuals" ADD CONSTRAINT "individuals_state_id_fkey" FOREIGN KEY ("state_id") REFERENCES "location_state"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "individuals" ADD CONSTRAINT "individuals_education_level_id_fkey" FOREIGN KEY ("education_level_id") REFERENCES "education_levels"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -923,7 +908,7 @@ ALTER TABLE "cv_parse_jobs" ADD CONSTRAINT "cv_parse_jobs_individual_id_fkey" FO
 ALTER TABLE "employers" ADD CONSTRAINT "employers_sector_id_fkey" FOREIGN KEY ("sector_id") REFERENCES "sectors"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "employers" ADD CONSTRAINT "employers_county_id_fkey" FOREIGN KEY ("county_id") REFERENCES "counties"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "employers" ADD CONSTRAINT "employers_state_id_fkey" FOREIGN KEY ("state_id") REFERENCES "location_state"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "employer_users" ADD CONSTRAINT "employer_users_employer_id_fkey" FOREIGN KEY ("employer_id") REFERENCES "employers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -941,7 +926,7 @@ ALTER TABLE "vacancies" ADD CONSTRAINT "vacancies_employer_id_fkey" FOREIGN KEY 
 ALTER TABLE "vacancies" ADD CONSTRAINT "vacancies_occupation_id_fkey" FOREIGN KEY ("occupation_id") REFERENCES "occupations"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "vacancies" ADD CONSTRAINT "vacancies_county_id_fkey" FOREIGN KEY ("county_id") REFERENCES "counties"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "vacancies" ADD CONSTRAINT "vacancies_state_id_fkey" FOREIGN KEY ("state_id") REFERENCES "location_state"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "vacancies" ADD CONSTRAINT "vacancies_sector_id_fkey" FOREIGN KEY ("sector_id") REFERENCES "sectors"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -1004,7 +989,7 @@ ALTER TABLE "program_hosting_capacity" ADD CONSTRAINT "program_hosting_capacity_
 ALTER TABLE "program_hosting_capacity" ADD CONSTRAINT "program_hosting_capacity_preferred_education_level_id_fkey" FOREIGN KEY ("preferred_education_level_id") REFERENCES "education_levels"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "program_hosting_capacity" ADD CONSTRAINT "program_hosting_capacity_county_id_fkey" FOREIGN KEY ("county_id") REFERENCES "counties"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "program_hosting_capacity" ADD CONSTRAINT "program_hosting_capacity_state_id_fkey" FOREIGN KEY ("state_id") REFERENCES "location_state"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "program_placements" ADD CONSTRAINT "program_placements_individual_id_fkey" FOREIGN KEY ("individual_id") REFERENCES "individuals"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

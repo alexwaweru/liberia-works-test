@@ -4,7 +4,7 @@ export const UpdateIndividualProfileSchema = z.object({
   fullName: z.string().min(2).max(200).optional(),
   dateOfBirth: z.string().date().optional(),
   gender: z.enum(['MALE', 'FEMALE', 'PREFER_NOT_TO_SAY']).optional(),
-  countyId: z.string().uuid().optional(),
+  stateId: z.string().uuid().optional(),
   educationLevelId: z.string().uuid().optional(),
   vacationJobOptIn: z.boolean().optional(),
 })
@@ -15,7 +15,7 @@ export const IndividualProfileResponseSchema = z.object({
   fullName: z.string(),
   dateOfBirth: z.string().nullable(),
   gender: z.string().nullable(),
-  countyId: z.string().uuid(),
+  stateId: z.string().uuid(),
   educationLevelId: z.string().uuid(),
   profileCompletionPct: z.number().int().min(0).max(100),
   vacationJobOptIn: z.boolean(),
