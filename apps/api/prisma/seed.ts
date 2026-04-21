@@ -10,34 +10,6 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('Seeding reference data...')
 
-  // ── 15 Liberian counties (ISO 3166-2:LR) ─────────────────────────────────
-  const counties = [
-    { isoCode: 'LR-BM', name: 'Bomi', region: 'Western' },
-    { isoCode: 'LR-BN', name: 'Bong', region: 'Central' },
-    { isoCode: 'LR-GA', name: 'Gbarpolu', region: 'Western' },
-    { isoCode: 'LR-GB', name: 'Grand Bassa', region: 'Southcentral' },
-    { isoCode: 'LR-GC', name: 'Grand Cape Mount', region: 'Western' },
-    { isoCode: 'LR-GG', name: 'Grand Gedeh', region: 'Southeastern' },
-    { isoCode: 'LR-GK', name: 'Grand Kru', region: 'Southeastern' },
-    { isoCode: 'LR-LO', name: 'Lofa', region: 'Northern' },
-    { isoCode: 'LR-MA', name: 'Margibi', region: 'Southcentral' },
-    { isoCode: 'LR-MY', name: 'Maryland', region: 'Southeastern' },
-    { isoCode: 'LR-MO', name: 'Montserrado', region: 'Western' },
-    { isoCode: 'LR-NI', name: 'Nimba', region: 'Northern' },
-    { isoCode: 'LR-RG', name: 'River Gee', region: 'Southeastern' },
-    { isoCode: 'LR-RI', name: 'Rivercess', region: 'Southcentral' },
-    { isoCode: 'LR-SI', name: 'Sinoe', region: 'Southeastern' },
-  ]
-
-  for (const county of counties) {
-    await prisma.county.upsert({
-      where: { isoCode: county.isoCode },
-      update: { name: county.name, region: county.region },
-      create: county,
-    })
-  }
-  console.log(`  ✓ ${counties.length} counties`)
-
   // ── ISCED 2011 education levels ───────────────────────────────────────────
   const educationLevels = [
     { iscedCode: '0', name: 'None / Early childhood', levelOrder: 0 },
@@ -59,33 +31,6 @@ async function main() {
     })
   }
   console.log(`  ✓ ${educationLevels.length} education levels`)
-
-  // ── Liberia as a country (ISO 3166-1) ─────────────────────────────────────
-  // Full country list should be loaded from a CSV/JSON in production.
-  // Stub with the most common ones for Phase 1.
-  const countries = [
-    { alpha2: 'LR', alpha3: 'LBR', name: 'Liberia' },
-    { alpha2: 'NG', alpha3: 'NGA', name: 'Nigeria' },
-    { alpha2: 'GH', alpha3: 'GHA', name: 'Ghana' },
-    { alpha2: 'SL', alpha3: 'SLE', name: 'Sierra Leone' },
-    { alpha2: 'GN', alpha3: 'GIN', name: 'Guinea' },
-    { alpha2: 'CI', alpha3: 'CIV', name: "Côte d'Ivoire" },
-    { alpha2: 'SN', alpha3: 'SEN', name: 'Senegal' },
-    { alpha2: 'IN', alpha3: 'IND', name: 'India' },
-    { alpha2: 'CN', alpha3: 'CHN', name: 'China' },
-    { alpha2: 'LB', alpha3: 'LBN', name: 'Lebanon' },
-    { alpha2: 'US', alpha3: 'USA', name: 'United States' },
-    { alpha2: 'GB', alpha3: 'GBR', name: 'United Kingdom' },
-  ]
-
-  for (const country of countries) {
-    await prisma.country.upsert({
-      where: { alpha2: country.alpha2 },
-      update: { alpha3: country.alpha3, name: country.name },
-      create: country,
-    })
-  }
-  console.log(`  ✓ ${countries.length} countries (stub — expand to ISO 3166-1 full list)`)
 
   // ── ISIC Rev.4 sectors (top-level sections only — expand to full taxonomy) ─
   // Full 400-entry taxonomy should be loaded from the official ISIC spreadsheet.

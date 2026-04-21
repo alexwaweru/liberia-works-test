@@ -37,6 +37,9 @@ pnpm --filter @liberia-works/api db:migrate:dev
 # Seed reference data
 pnpm --filter @liberia-works/api db:seed
 
+# Seed location data
+pnpm --filter @liberia-works/api db:seed:locations
+
 # Start the API in watch mode
 pnpm --filter @liberia-works/api dev
 ```

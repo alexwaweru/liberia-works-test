@@ -16,8 +16,8 @@ import type { FastifyPluginAsync } from 'fastify'
  *   POST   /api/v1/individuals/me/skills
  *   DELETE /api/v1/individuals/me/skills/:id
  *   PUT    /api/v1/individuals/me/sector-interests
- *   POST   /api/v1/individuals/me/vacation-job/opt-in
- *   DELETE /api/v1/individuals/me/vacation-job/opt-in
+ *   POST   /api/v1/programs/opt-in
+ *   DELETE /api/v1/programs/opt-in
  */
 export const individualsModule: FastifyPluginAsync = async (_app) => {
   // TODO: implement in Sprint 0, step 6 (Individuals module)

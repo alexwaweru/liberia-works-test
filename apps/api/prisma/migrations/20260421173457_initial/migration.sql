@@ -1,3 +1,9 @@
+-- CreateExtension
+CREATE EXTENSION IF NOT EXISTS "postgis";
+
+-- CreateExtension
+CREATE EXTENSION IF NOT EXISTS "vector";
+
 -- CreateEnum
 CREATE TYPE "UserRole" AS ENUM ('INDIVIDUAL', 'EMPLOYER_ADMIN', 'EMPLOYER_HR', 'MOL_OFFICER', 'MOL_DIRECTOR', 'SYSTEM_ADMIN');
 
@@ -41,10 +47,13 @@ CREATE TYPE "DisputeCategory" AS ENUM ('PERMIT_DECISION', 'COMPLIANCE_FINDING', 
 CREATE TYPE "DisputeStatus" AS ENUM ('SUBMITTED', 'UNDER_REVIEW', 'RESPONDED', 'CLOSED');
 
 -- CreateEnum
-CREATE TYPE "PlacementStatus" AS ENUM ('MATCHED', 'CONFIRMED', 'COMPLETED', 'NO_SHOW', 'CANCELLED');
+CREATE TYPE "ProgramType" AS ENUM ('VACATION_JOB');
 
 -- CreateEnum
-CREATE TYPE "VacationJobCycleStatus" AS ENUM ('PLANNED', 'OPEN', 'MATCHING', 'COMPLETED');
+CREATE TYPE "ProgramCycleStatus" AS ENUM ('PLANNED', 'OPEN', 'MATCHING', 'COMPLETED');
+
+-- CreateEnum
+CREATE TYPE "ProgramPlacementStatus" AS ENUM ('MATCHED', 'CONFIRMED', 'COMPLETED', 'NO_SHOW', 'CANCELLED');
 
 -- CreateEnum
 CREATE TYPE "WorkforceReturnStatus" AS ENUM ('DRAFT', 'SUBMITTED', 'VALIDATED', 'DISPUTED');
@@ -105,15 +114,120 @@ CREATE TABLE "occupations" (
 );
 
 -- CreateTable
-CREATE TABLE "countries" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "alpha_2" CHAR(2) NOT NULL,
-    "alpha_3" CHAR(3) NOT NULL,
+CREATE TABLE "location_region" (
+    "id" INTEGER NOT NULL,
     "name" VARCHAR(100) NOT NULL,
+    "translations" JSONB,
+    "wikidata_id" VARCHAR(255),
+    "flag" BOOLEAN NOT NULL DEFAULT true,
+    "name_embedding" vector(384),
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
-    CONSTRAINT "countries_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "location_region_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "location_subregion" (
+    "id" INTEGER NOT NULL,
+    "name" VARCHAR(100) NOT NULL,
+    "region_id" INTEGER NOT NULL,
+    "translations" JSONB,
+    "wikidata_id" VARCHAR(255),
+    "flag" BOOLEAN NOT NULL DEFAULT true,
+    "name_embedding" vector(384),
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(6) NOT NULL,
+
+    CONSTRAINT "location_subregion_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "location_country" (
+    "id" INTEGER NOT NULL,
+    "name" VARCHAR(100) NOT NULL,
+    "iso3" VARCHAR(3),
+    "numeric_code" VARCHAR(3),
+    "iso2" VARCHAR(2) NOT NULL,
+    "phonecode" VARCHAR(255),
+    "capital" VARCHAR(255),
+    "currency" VARCHAR(255),
+    "currency_name" VARCHAR(255),
+    "currency_symbol" VARCHAR(255),
+    "tld" VARCHAR(255),
+    "native" VARCHAR(255),
+    "region_id" INTEGER,
+    "subregion_id" INTEGER,
+    "nationality" VARCHAR(255),
+    "timezones" JSONB,
+    "translations" JSONB,
+    "location" geography(Point,4326),
+    "emoji" VARCHAR(191),
+    "emoji_u" VARCHAR(191),
+    "wikidata_id" VARCHAR(255),
+    "flag" BOOLEAN NOT NULL DEFAULT true,
+    "population" BIGINT,
+    "gdp" BIGINT,
+    "area_sq_km" DOUBLE PRECISION,
+    "postal_code_format" VARCHAR(255),
+    "postal_code_regex" VARCHAR(255),
+    "name_embedding" vector(384),
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(6) NOT NULL,
+
+    CONSTRAINT "location_country_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "location_state" (
+    "id" INTEGER NOT NULL,
+    "name" VARCHAR(255) NOT NULL,
+    "country_id" INTEGER NOT NULL,
+    "country_code" VARCHAR(2) NOT NULL,
+    "fips_code" VARCHAR(255),
+    "iso2" VARCHAR(255),
+    "iso3166_2" VARCHAR(10),
+    "state_code" VARCHAR(255) NOT NULL,
+    "state_type" VARCHAR(191),
+    "level" INTEGER,
+    "parent_id" INTEGER,
+    "native" VARCHAR(255),
+    "location" geography(Point,4326),
+    "timezone" VARCHAR(255),
+    "translations" JSONB,
+    "wikidata_id" VARCHAR(255),
+    "flag" BOOLEAN NOT NULL DEFAULT true,
+    "population" BIGINT,
+    "name_embedding" vector(384),
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(6) NOT NULL,
+
+    CONSTRAINT "location_state_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "location_city" (
+    "id" INTEGER NOT NULL,
+    "name" VARCHAR(255) NOT NULL,
+    "state_id" INTEGER NOT NULL,
+    "state_code" VARCHAR(255) NOT NULL,
+    "country_id" INTEGER NOT NULL,
+    "country_code" VARCHAR(2) NOT NULL,
+    "location" geography(Point,4326) NOT NULL,
+    "city_type" VARCHAR(191),
+    "level" INTEGER,
+    "parent_id" INTEGER,
+    "native" VARCHAR(255),
+    "population" BIGINT,
+    "timezone" VARCHAR(255),
+    "translations" JSONB,
+    "wikidata_id" VARCHAR(255),
+    "flag" BOOLEAN NOT NULL DEFAULT true,
+    "name_embedding" vector(384),
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(6) NOT NULL,
+
+    CONSTRAINT "location_city_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -383,7 +497,7 @@ CREATE TABLE "work_permit_applications" (
     "vacancy_id" UUID NOT NULL,
     "occupation_id" UUID,
     "foreign_worker_name" VARCHAR(200) NOT NULL,
-    "nationality_id" UUID NOT NULL,
+    "nationality_id" INTEGER NOT NULL,
     "passport_number" VARCHAR(50) NOT NULL,
     "prior_liberia_work_history" TEXT,
     "role_justification" TEXT NOT NULL,
@@ -440,21 +554,22 @@ CREATE TABLE "disputes" (
 );
 
 -- CreateTable
-CREATE TABLE "vacation_job_cycles" (
+CREATE TABLE "program_cycles" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "type" "ProgramType" NOT NULL,
     "name" VARCHAR(100) NOT NULL,
     "year" SMALLINT NOT NULL,
     "start_date" DATE NOT NULL,
     "end_date" DATE NOT NULL,
-    "status" "VacationJobCycleStatus" NOT NULL,
+    "status" "ProgramCycleStatus" NOT NULL,
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
-    CONSTRAINT "vacation_job_cycles_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "program_cycles_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "vacation_job_hosting_capacity" (
+CREATE TABLE "program_hosting_capacity" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "employer_id" UUID NOT NULL,
     "cycle_id" UUID NOT NULL,
@@ -468,11 +583,11 @@ CREATE TABLE "vacation_job_hosting_capacity" (
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
-    CONSTRAINT "vacation_job_hosting_capacity_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "program_hosting_capacity_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "vacation_job_placements" (
+CREATE TABLE "program_placements" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "individual_id" UUID NOT NULL,
     "employer_id" UUID NOT NULL,
@@ -482,13 +597,13 @@ CREATE TABLE "vacation_job_placements" (
     "contact_name" VARCHAR(200) NOT NULL,
     "contact_phone" VARCHAR(20) NOT NULL,
     "confirmation_code" VARCHAR(20) NOT NULL,
-    "status" "PlacementStatus" NOT NULL DEFAULT 'MATCHED',
+    "status" "ProgramPlacementStatus" NOT NULL DEFAULT 'MATCHED',
     "confirmed_at" TIMESTAMPTZ(6),
     "confirmation_deadline" TIMESTAMPTZ(6) NOT NULL,
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
-    CONSTRAINT "vacation_job_placements_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "program_placements_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -592,10 +707,43 @@ CREATE UNIQUE INDEX "sectors_isic_code_key" ON "sectors"("isic_code");
 CREATE UNIQUE INDEX "occupations_isco_code_key" ON "occupations"("isco_code");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "countries_alpha_2_key" ON "countries"("alpha_2");
+CREATE INDEX "loc_region_wikidata_idx" ON "location_region"("wikidata_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "countries_alpha_3_key" ON "countries"("alpha_3");
+CREATE INDEX "loc_subregion_wikidata_idx" ON "location_subregion"("wikidata_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "location_country_iso2_key" ON "location_country"("iso2");
+
+-- CreateIndex
+CREATE INDEX "loc_country_iso2_idx" ON "location_country"("iso2");
+
+-- CreateIndex
+CREATE INDEX "loc_country_iso3_idx" ON "location_country"("iso3");
+
+-- CreateIndex
+CREATE INDEX "loc_country_name_idx" ON "location_country"("name");
+
+-- CreateIndex
+CREATE INDEX "loc_country_wikidata_idx" ON "location_country"("wikidata_id");
+
+-- CreateIndex
+CREATE INDEX "loc_state_country_code_idx" ON "location_state"("country_id", "state_code");
+
+-- CreateIndex
+CREATE INDEX "loc_state_name_idx" ON "location_state"("name");
+
+-- CreateIndex
+CREATE INDEX "loc_state_wikidata_idx" ON "location_state"("wikidata_id");
+
+-- CreateIndex
+CREATE INDEX "loc_city_country_state_idx" ON "location_city"("country_id", "state_id");
+
+-- CreateIndex
+CREATE INDEX "loc_city_name_idx" ON "location_city"("name");
+
+-- CreateIndex
+CREATE INDEX "loc_city_wikidata_idx" ON "location_city"("wikidata_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "education_levels_isced_code_key" ON "education_levels"("isced_code");
@@ -658,10 +806,10 @@ CREATE UNIQUE INDEX "disputes_reference_number_key" ON "disputes"("reference_num
 CREATE INDEX "idx_dispute_status_sla" ON "disputes"("status", "sla_due_at");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "vacation_job_hosting_capacity_employer_id_cycle_id_key" ON "vacation_job_hosting_capacity"("employer_id", "cycle_id");
+CREATE UNIQUE INDEX "program_hosting_capacity_employer_id_cycle_id_key" ON "program_hosting_capacity"("employer_id", "cycle_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "vacation_job_placements_confirmation_code_key" ON "vacation_job_placements"("confirmation_code");
+CREATE UNIQUE INDEX "program_placements_confirmation_code_key" ON "program_placements"("confirmation_code");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "workforce_returns_employer_id_return_period_key" ON "workforce_returns"("employer_id", "return_period");
@@ -689,6 +837,30 @@ CREATE INDEX "idx_audit_action" ON "audit_log"("action", "timestamp" DESC);
 
 -- AddForeignKey
 ALTER TABLE "sectors" ADD CONSTRAINT "sectors_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "sectors"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "location_subregion" ADD CONSTRAINT "location_subregion_region_id_fkey" FOREIGN KEY ("region_id") REFERENCES "location_region"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "location_country" ADD CONSTRAINT "location_country_region_id_fkey" FOREIGN KEY ("region_id") REFERENCES "location_region"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "location_country" ADD CONSTRAINT "location_country_subregion_id_fkey" FOREIGN KEY ("subregion_id") REFERENCES "location_subregion"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "location_state" ADD CONSTRAINT "location_state_country_id_fkey" FOREIGN KEY ("country_id") REFERENCES "location_country"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "location_state" ADD CONSTRAINT "location_state_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "location_state"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "location_city" ADD CONSTRAINT "location_city_state_id_fkey" FOREIGN KEY ("state_id") REFERENCES "location_state"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "location_city" ADD CONSTRAINT "location_city_country_id_fkey" FOREIGN KEY ("country_id") REFERENCES "location_country"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "location_city" ADD CONSTRAINT "location_city_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "location_city"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "otp_codes" ADD CONSTRAINT "otp_codes_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -796,7 +968,7 @@ ALTER TABLE "work_permit_applications" ADD CONSTRAINT "work_permit_applications_
 ALTER TABLE "work_permit_applications" ADD CONSTRAINT "work_permit_applications_occupation_id_fkey" FOREIGN KEY ("occupation_id") REFERENCES "occupations"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "work_permit_applications" ADD CONSTRAINT "work_permit_applications_nationality_id_fkey" FOREIGN KEY ("nationality_id") REFERENCES "countries"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "work_permit_applications" ADD CONSTRAINT "work_permit_applications_nationality_id_fkey" FOREIGN KEY ("nationality_id") REFERENCES "location_country"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "work_permit_applications" ADD CONSTRAINT "work_permit_applications_decided_by_user_id_fkey" FOREIGN KEY ("decided_by_user_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -820,28 +992,28 @@ ALTER TABLE "disputes" ADD CONSTRAINT "disputes_assigned_to_user_id_fkey" FOREIG
 ALTER TABLE "disputes" ADD CONSTRAINT "disputes_responded_by_user_id_fkey" FOREIGN KEY ("responded_by_user_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "vacation_job_hosting_capacity" ADD CONSTRAINT "vacation_job_hosting_capacity_employer_id_fkey" FOREIGN KEY ("employer_id") REFERENCES "employers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "program_hosting_capacity" ADD CONSTRAINT "program_hosting_capacity_employer_id_fkey" FOREIGN KEY ("employer_id") REFERENCES "employers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "vacation_job_hosting_capacity" ADD CONSTRAINT "vacation_job_hosting_capacity_cycle_id_fkey" FOREIGN KEY ("cycle_id") REFERENCES "vacation_job_cycles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "program_hosting_capacity" ADD CONSTRAINT "program_hosting_capacity_cycle_id_fkey" FOREIGN KEY ("cycle_id") REFERENCES "program_cycles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "vacation_job_hosting_capacity" ADD CONSTRAINT "vacation_job_hosting_capacity_preferred_sector_id_fkey" FOREIGN KEY ("preferred_sector_id") REFERENCES "sectors"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "program_hosting_capacity" ADD CONSTRAINT "program_hosting_capacity_preferred_sector_id_fkey" FOREIGN KEY ("preferred_sector_id") REFERENCES "sectors"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "vacation_job_hosting_capacity" ADD CONSTRAINT "vacation_job_hosting_capacity_preferred_education_level_id_fkey" FOREIGN KEY ("preferred_education_level_id") REFERENCES "education_levels"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "program_hosting_capacity" ADD CONSTRAINT "program_hosting_capacity_preferred_education_level_id_fkey" FOREIGN KEY ("preferred_education_level_id") REFERENCES "education_levels"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "vacation_job_hosting_capacity" ADD CONSTRAINT "vacation_job_hosting_capacity_county_id_fkey" FOREIGN KEY ("county_id") REFERENCES "counties"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "program_hosting_capacity" ADD CONSTRAINT "program_hosting_capacity_county_id_fkey" FOREIGN KEY ("county_id") REFERENCES "counties"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "vacation_job_placements" ADD CONSTRAINT "vacation_job_placements_individual_id_fkey" FOREIGN KEY ("individual_id") REFERENCES "individuals"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "program_placements" ADD CONSTRAINT "program_placements_individual_id_fkey" FOREIGN KEY ("individual_id") REFERENCES "individuals"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "vacation_job_placements" ADD CONSTRAINT "vacation_job_placements_employer_id_fkey" FOREIGN KEY ("employer_id") REFERENCES "employers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "program_placements" ADD CONSTRAINT "program_placements_employer_id_fkey" FOREIGN KEY ("employer_id") REFERENCES "employers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "vacation_job_placements" ADD CONSTRAINT "vacation_job_placements_cycle_id_fkey" FOREIGN KEY ("cycle_id") REFERENCES "vacation_job_cycles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "program_placements" ADD CONSTRAINT "program_placements_cycle_id_fkey" FOREIGN KEY ("cycle_id") REFERENCES "program_cycles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "workforce_returns" ADD CONSTRAINT "workforce_returns_employer_id_fkey" FOREIGN KEY ("employer_id") REFERENCES "employers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
