@@ -233,18 +233,163 @@ model Occupation {
   @@map("occupations")
 }
 
-/// ISO 3166-1 country list (for foreign worker nationality)
+// ── Location hierarchy (dr5hn/countries-states-cities-database) ──────────────
+
+/// World region (e.g., Africa, Europe, Asia).
+model Region {
+  id            Int                         @id
+  name          String                      @db.VarChar(100)
+  translations  Json?
+  wikidataId    String?                     @map("wikidata_id") @db.VarChar(255)
+  flag          Boolean                     @default(true)
+  nameEmbedding Unsupported("vector(384)")? @map("name_embedding")
+  createdAt     DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  subregions Subregion[]
+  countries  Country[]
+
+  @@index([wikidataId], map: "loc_region_wikidata_idx")
+  // GIN trigram on name — raw migration: CREATE INDEX loc_region_name_trgm ON location_region USING gin (name gin_trgm_ops)
+  @@map("location_region")
+}
+
+/// World subregion (e.g., Eastern Africa, Western Europe).
+model Subregion {
+  id            Int                         @id
+  name          String                      @db.VarChar(100)
+  regionId      Int                         @map("region_id")
+  translations  Json?
+  wikidataId    String?                     @map("wikidata_id") @db.VarChar(255)
+  flag          Boolean                     @default(true)
+  nameEmbedding Unsupported("vector(384)")? @map("name_embedding")
+  createdAt     DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  region    Region    @relation(fields: [regionId], references: [id], onDelete: Cascade)
+  countries Country[]
+
+  @@index([wikidataId], map: "loc_subregion_wikidata_idx")
+  // GIN trigram on name — raw migration: CREATE INDEX loc_subreg_name_trgm ON location_subregion USING gin (name gin_trgm_ops)
+  @@map("location_subregion")
+}
+
+/// Country with geographic and administrative information.
 model Country {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  alpha2    String   @unique @map("alpha_2") @db.Char(2)
-  alpha3    String   @unique @map("alpha_3") @db.Char(3)
-  name      String   @db.VarChar(100)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id               Int                         @id
+  name             String                      @db.VarChar(100)
+  iso3             String?                     @db.VarChar(3)
+  numericCode      String?                     @map("numeric_code") @db.VarChar(3)
+  iso2             String                      @unique @db.VarChar(2)
+  phonecode        String?                     @db.VarChar(255)
+  capital          String?                     @db.VarChar(255)
+  currency         String?                     @db.VarChar(255)
+  currencyName     String?                     @map("currency_name") @db.VarChar(255)
+  currencySymbol   String?                     @map("currency_symbol") @db.VarChar(255)
+  tld              String?                     @db.VarChar(255)
+  native           String?                     @db.VarChar(255)
+  regionId         Int?                        @map("region_id")
+  subregionId      Int?                        @map("subregion_id")
+  nationality      String?                     @db.VarChar(255)
+  timezones        Json?
+  translations     Json?
+  location         Unsupported("geography(Point,4326)")?
+  emoji            String?                     @db.VarChar(191)
+  emojiU           String?                     @map("emoji_u") @db.VarChar(191)
+  wikidataId       String?                     @map("wikidata_id") @db.VarChar(255)
+  flag             Boolean                     @default(true)
+  population       BigInt?
+  gdp              BigInt?
+  areaSqKm         Float?                      @map("area_sq_km")
+  postalCodeFormat String?                     @map("postal_code_format") @db.VarChar(255)
+  postalCodeRegex  String?                     @map("postal_code_regex") @db.VarChar(255)
+  nameEmbedding    Unsupported("vector(384)")? @map("name_embedding")
+  createdAt        DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  region    Region?    @relation(fields: [regionId], references: [id], onDelete: SetNull)
+  subregion Subregion? @relation(fields: [subregionId], references: [id], onDelete: SetNull)
+  states    State[]
+  cities    City[]
 
   workPermitApplications WorkPermitApplication[]
 
-  @@map("countries")
+  @@index([iso2], map: "loc_country_iso2_idx")
+  @@index([iso3], map: "loc_country_iso3_idx")
+  @@index([name], map: "loc_country_name_idx")
+  @@index([wikidataId], map: "loc_country_wikidata_idx")
+  // GIN trigram on name — raw migration: CREATE INDEX loc_country_name_trgm ON location_country USING gin (name gin_trgm_ops)
+  @@map("location_country")
+}
+
+/// State or province within a country.
+model State {
+  id            Int                         @id
+  name          String                      @db.VarChar(255)
+  countryId     Int                         @map("country_id")
+  countryCode   String                      @map("country_code") @db.VarChar(2)
+  fipsCode      String?                     @map("fips_code") @db.VarChar(255)
+  iso2          String?                     @db.VarChar(255)
+  iso31662      String?                     @map("iso3166_2") @db.VarChar(10)
+  stateCode     String                      @map("state_code") @db.VarChar(255)
+  stateType     String?                     @map("state_type") @db.VarChar(191)
+  level         Int?
+  parentId      Int?                        @map("parent_id")
+  native        String?                     @db.VarChar(255)
+  location      Unsupported("geography(Point,4326)")?
+  timezone      String?                     @db.VarChar(255)
+  translations  Json?
+  wikidataId    String?                     @map("wikidata_id") @db.VarChar(255)
+  flag          Boolean                     @default(true)
+  population    BigInt?
+  nameEmbedding Unsupported("vector(384)")? @map("name_embedding")
+  createdAt     DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  country  Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  parent   State?  @relation("StateHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children State[] @relation("StateHierarchy")
+  cities   City[]
+
+  @@index([countryId, stateCode], map: "loc_state_country_code_idx")
+  @@index([name], map: "loc_state_name_idx")
+  @@index([wikidataId], map: "loc_state_wikidata_idx")
+  // GIN trigram on name — raw migration: CREATE INDEX loc_state_name_trgm ON location_state USING gin (name gin_trgm_ops)
+  @@map("location_state")
+}
+
+/// City within a state/country.
+model City {
+  id            Int                         @id
+  name          String                      @db.VarChar(255)
+  stateId       Int                         @map("state_id")
+  stateCode     String                      @map("state_code") @db.VarChar(255)
+  countryId     Int                         @map("country_id")
+  countryCode   String                      @map("country_code") @db.VarChar(2)
+  location      Unsupported("geography(Point,4326)")
+  cityType      String?                     @map("city_type") @db.VarChar(191)
+  level         Int?
+  parentId      Int?                        @map("parent_id")
+  native        String?                     @db.VarChar(255)
+  population    BigInt?
+  timezone      String?                     @db.VarChar(255)
+  translations  Json?
+  wikidataId    String?                     @map("wikidata_id") @db.VarChar(255)
+  flag          Boolean                     @default(true)
+  nameEmbedding Unsupported("vector(384)")? @map("name_embedding")
+  createdAt     DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  state    State   @relation(fields: [stateId], references: [id], onDelete: Cascade)
+  country  Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  parent   City?   @relation("CityHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children City[]  @relation("CityHierarchy")
+
+  @@index([countryId, stateId], map: "loc_city_country_state_idx")
+  @@index([name], map: "loc_city_name_idx")
+  @@index([wikidataId], map: "loc_city_wikidata_idx")
+  // GIN trigram on name — raw migration: CREATE INDEX loc_city_name_trgm ON location_city USING gin (name gin_trgm_ops)
+  @@map("location_city")
 }
 
 /// ISCED 2011 education levels (8 levels seeded)
@@ -616,7 +761,7 @@ model WorkPermitApplication {
   vacancyId               String           @map("vacancy_id") @db.Uuid
   occupationId            String?          @map("occupation_id") @db.Uuid
   foreignWorkerName       String           @map("foreign_worker_name") @db.VarChar(200)
-  nationalityId           String           @map("nationality_id") @db.Uuid
+  nationalityId           Int              @map("nationality_id")
   passportNumber          String           @map("passport_number") @db.VarChar(50)
   priorLiberiaWorkHistory String?          @map("prior_liberia_work_history") @db.Text
   roleJustification       String           @map("role_justification") @db.Text
