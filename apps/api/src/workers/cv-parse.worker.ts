@@ -12,13 +12,16 @@
 
 import { Worker } from 'bullmq'
 import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+import pg from 'pg'
 import { Redis } from 'ioredis'
 
 const redis = new Redis(process.env['REDIS_URL'] ?? 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
 })
 
-const prisma = new PrismaClient()
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL })
+const prisma = new PrismaClient({ adapter: new PrismaPg(pool) })
 
 export interface CvParseJobData {
   cvParseJobId: string

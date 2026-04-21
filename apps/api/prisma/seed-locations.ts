@@ -14,6 +14,8 @@
  */
 
 import { PrismaClient, Prisma } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+import pg from 'pg'
 
 const BASE_URL =
   'https://raw.githubusercontent.com/alexwaweru/countries-states-cities-database/master/json'
@@ -30,7 +32,7 @@ const FETCH_TIMEOUTS: Record<string, number> = {
 const VALID_ONLY = ['regions', 'subregions', 'countries', 'states', 'cities'] as const
 type OnlyValue = (typeof VALID_ONLY)[number]
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient({ adapter: new PrismaPg(new pg.Pool({ connectionString: process.env.DATABASE_URL })) })
 
 // ── Lookup maps (populated during import, consumed by later steps) ─────────────
 // countries.json stores region/subregion as string names, not IDs.

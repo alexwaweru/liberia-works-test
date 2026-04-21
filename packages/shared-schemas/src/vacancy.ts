@@ -5,7 +5,7 @@ export const CreateVacancySchema = z.object({
   title: z.string().min(3).max(300),
   description: z.string().min(10),
   vacancyType: z.enum(['VACATION_JOB', 'PERMANENT', 'CONTRACT', 'INTERNSHIP']),
-  countyId: z.string().uuid(),
+  stateId: z.string().uuid(),
   sectorId: z.string().uuid().optional(),
   occupationId: z.string().uuid().optional(),
   minimumEducationLevelId: z.string().uuid().optional(),
@@ -21,7 +21,7 @@ export const VacancyResponseSchema = z.object({
   title: z.string(),
   description: z.string(),
   vacancyType: z.string(),
-  countyId: z.string().uuid(),
+  stateId: z.string().uuid(),
   sectorId: z.string().uuid().nullable(),
   occupationId: z.string().uuid().nullable(),
   minimumEducationLevelId: z.string().uuid().nullable(),
@@ -35,7 +35,7 @@ export const VacancyResponseSchema = z.object({
 })
 
 export const VacancyFilterSchema = CursorQuerySchema.extend({
-  countyId: z.string().uuid().optional(),
+  stateId: z.string().uuid().optional(),
   sectorId: z.string().uuid().optional(),
   vacancyType: z.enum(['VACATION_JOB', 'PERMANENT', 'CONTRACT', 'INTERNSHIP']).optional(),
   status: z.enum(['DRAFT', 'ACTIVE', 'CLOSED', 'ARCHIVED']).optional(),

@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: 'Browse Jobs' }
 export default async function JobsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ county?: string; sector?: string; type?: string; cursor?: string }>
+  searchParams: Promise<{ state?: string; sector?: string; type?: string; cursor?: string }>
 }) {
   const params = await searchParams
 
@@ -18,12 +18,12 @@ export default async function JobsPage({
     <div className="mx-auto max-w-5xl px-4 py-8">
       <h1 className="text-2xl font-semibold text-gray-900">Browse Jobs</h1>
 
-      {/* TODO: VacancyFilter component (county, sector, type dropdowns) */}
+      {/* TODO: VacancyFilter component (state, sector, type dropdowns) */}
       {/* TODO: VacancyList + VacancyCard components */}
       {/* TODO: cursor-based pagination */}
 
       <p className="mt-4 text-sm text-gray-500">
-        Filters: county={params.county ?? 'all'}, sector={params.sector ?? 'all'}
+        Filters: state={params.state ?? 'all'}, sector={params.sector ?? 'all'}
       </p>
     </div>
   )

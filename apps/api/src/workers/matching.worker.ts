@@ -6,7 +6,7 @@
  *
  * Algorithm:
  *   1. For each opted-in individual, score against available hosting capacity slots
- *      (county preference, sector interest, education level match).
+ *      (state preference, sector interest, education level match).
  *   2. Create VacationJobPlacement records for top matches.
  *   3. Enqueue notifications for matched individuals.
  *   4. Set confirmationDeadline = matchDate + 48h.

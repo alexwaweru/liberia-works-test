@@ -13,7 +13,7 @@ import { env } from './config/env.js'
 import prismaPlugin from './plugins/prisma.js'
 import redisPlugin from './plugins/redis.js'
 import authPlugin from './plugins/auth.js'
-import swaggerPlugin from './plugins/swagger.js'
+import scalarPlugin from './plugins/scalar.js'
 import idempotencyPlugin from './plugins/idempotency.js'
 import auditPlugin from './plugins/audit.js'
 import errorHandlerPlugin from './plugins/error-handler.js'
@@ -72,7 +72,7 @@ await app.register(rateLimit, {
 })
 
 // ── OpenAPI docs ──────────────────────────────────────────────────────────────
-await app.register(swaggerPlugin)
+await app.register(scalarPlugin)
 
 // ── Application plugins ───────────────────────────────────────────────────────
 await app.register(authPlugin)
@@ -97,7 +97,7 @@ await app.register(auditModule,        { prefix: '/api/v1/audit-log' })
 await app.register(molModule,          { prefix: '/api/v1/mol' })
 
 // ── Health check ──────────────────────────────────────────────────────────────
-app.get('/health', async () => ({
+app.get('/health', { schema: { hide: true } }, async () => ({
   status: 'ok',
   timestamp: new Date().toISOString(),
   env: env.NODE_ENV,

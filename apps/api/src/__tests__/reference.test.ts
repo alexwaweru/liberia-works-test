@@ -27,6 +27,24 @@ const mockEducationLevels = [
   { id: 'd1000000-0000-0000-0000-000000000002', name: 'Secondary', iscedCode: 'ISCED2', levelOrder: 2 },
 ]
 
+const mockRegions = [
+  { id: 1, name: 'Africa' },
+  { id: 2, name: 'Europe' },
+]
+
+const mockSubregions = [
+  { id: 11, name: 'Eastern Africa', regionId: 1 },
+  { id: 12, name: 'Western Africa', regionId: 1 },
+]
+
+const mockStates = [
+  { id: 101, name: 'Montserrado', countryId: 121, stateCode: 'MO' },
+]
+
+const mockCities = [
+  { id: 1001, name: 'Monrovia', countryId: 121, stateId: 101 },
+]
+
 function buildApp() {
   const app = Fastify()
   app.setValidatorCompiler(validatorCompiler)
@@ -36,6 +54,10 @@ function buildApp() {
     occupation: { findMany: vi.fn() },
     country: { findMany: vi.fn() },
     educationLevel: { findMany: vi.fn() },
+    region: { findMany: vi.fn() },
+    subregion: { findMany: vi.fn() },
+    state: { findMany: vi.fn() },
+    city: { findMany: vi.fn() },
   } as unknown as PrismaClient)
   return app
 }
@@ -128,5 +150,197 @@ describe('GET /api/v1/reference/education-levels', () => {
     const body = res.json()
     expect(body).toHaveLength(2)
     expect(body[0]).toMatchObject({ iscedCode: 'ISCED1', levelOrder: 1 })
+  })
+})
+
+describe('GET /api/v1/reference/regions', () => {
+  it('returns 200 with all regions and Cache-Control header when no filter', async () => {
+    const app = buildApp()
+    ;(app.prisma.region.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(mockRegions)
+    await app.register(referenceModule, { prefix: '/api/v1/reference' })
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reference/regions' })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['cache-control']).toBe('public, max-age=86400, stale-while-revalidate=3600')
+    const body = res.json()
+    expect(body).toHaveLength(2)
+    expect(body[0]).toMatchObject({ id: 1, name: 'Africa' })
+    const calledWith = (app.prisma.region.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(calledWith.where).toEqual({})
+  })
+
+  it('filters by name (contains, insensitive) when name param provided', async () => {
+    const app = buildApp()
+    ;(app.prisma.region.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([mockRegions[0]])
+    await app.register(referenceModule, { prefix: '/api/v1/reference' })
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reference/regions?name=afr' })
+
+    expect(res.statusCode).toBe(200)
+    const calledWith = (app.prisma.region.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(calledWith.where).toEqual({ name: { contains: 'afr', mode: 'insensitive' } })
+  })
+})
+
+describe('GET /api/v1/reference/sub-regions', () => {
+  it('returns 200 with all subregions and Cache-Control header when no filter', async () => {
+    const app = buildApp()
+    ;(app.prisma.subregion.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(mockSubregions)
+    await app.register(referenceModule, { prefix: '/api/v1/reference' })
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reference/sub-regions' })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['cache-control']).toBe('public, max-age=86400, stale-while-revalidate=3600')
+    const body = res.json()
+    expect(body).toHaveLength(2)
+    expect(body[0]).toMatchObject({ id: 11, name: 'Eastern Africa', regionId: 1 })
+    const calledWith = (app.prisma.subregion.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(calledWith.where).toEqual({})
+  })
+
+  it('filters by regionId when provided', async () => {
+    const app = buildApp()
+    ;(app.prisma.subregion.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(mockSubregions)
+    await app.register(referenceModule, { prefix: '/api/v1/reference' })
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reference/sub-regions?regionId=1' })
+
+    expect(res.statusCode).toBe(200)
+    const calledWith = (app.prisma.subregion.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(calledWith.where).toEqual({ regionId: 1 })
+  })
+
+  it('filters by name and regionId together', async () => {
+    const app = buildApp()
+    ;(app.prisma.subregion.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([mockSubregions[0]])
+    await app.register(referenceModule, { prefix: '/api/v1/reference' })
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reference/sub-regions?regionId=1&name=east' })
+
+    expect(res.statusCode).toBe(200)
+    const calledWith = (app.prisma.subregion.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(calledWith.where).toEqual({ regionId: 1, name: { contains: 'east', mode: 'insensitive' } })
+  })
+
+  it('rejects non-integer regionId with 400', async () => {
+    const app = buildApp()
+    await app.register(referenceModule, { prefix: '/api/v1/reference' })
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reference/sub-regions?regionId=abc' })
+
+    expect(res.statusCode).toBe(400)
+  })
+})
+
+describe('GET /api/v1/reference/countries (extended filters)', () => {
+  it('filters by regionId and name together', async () => {
+    const app = buildApp()
+    ;(app.prisma.country.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([mockCountries[0]])
+    await app.register(referenceModule, { prefix: '/api/v1/reference' })
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reference/countries?regionId=1&name=lib' })
+
+    expect(res.statusCode).toBe(200)
+    const calledWith = (app.prisma.country.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(calledWith.where).toEqual({ regionId: 1, name: { contains: 'lib', mode: 'insensitive' } })
+  })
+
+  it('filters by subregionId when provided', async () => {
+    const app = buildApp()
+    ;(app.prisma.country.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(mockCountries)
+    await app.register(referenceModule, { prefix: '/api/v1/reference' })
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reference/countries?subregionId=11' })
+
+    expect(res.statusCode).toBe(200)
+    const calledWith = (app.prisma.country.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(calledWith.where).toEqual({ subregionId: 11 })
+  })
+
+  it('rejects non-integer regionId with 400', async () => {
+    const app = buildApp()
+    await app.register(referenceModule, { prefix: '/api/v1/reference' })
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reference/countries?regionId=notanumber' })
+
+    expect(res.statusCode).toBe(400)
+  })
+})
+
+describe('GET /api/v1/reference/states', () => {
+  it('returns 200 with all states and Cache-Control header when no filter', async () => {
+    const app = buildApp()
+    ;(app.prisma.state.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(mockStates)
+    await app.register(referenceModule, { prefix: '/api/v1/reference' })
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reference/states' })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['cache-control']).toBe('public, max-age=86400, stale-while-revalidate=3600')
+    const body = res.json()
+    expect(body[0]).toMatchObject({ id: 101, name: 'Montserrado', countryId: 121, stateCode: 'MO' })
+    const calledWith = (app.prisma.state.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(calledWith.where).toEqual({})
+  })
+
+  it('filters by countryId when provided', async () => {
+    const app = buildApp()
+    ;(app.prisma.state.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(mockStates)
+    await app.register(referenceModule, { prefix: '/api/v1/reference' })
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reference/states?countryId=121' })
+
+    expect(res.statusCode).toBe(200)
+    const calledWith = (app.prisma.state.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(calledWith.where).toEqual({ countryId: 121 })
+  })
+
+  it('rejects non-integer countryId with 400', async () => {
+    const app = buildApp()
+    await app.register(referenceModule, { prefix: '/api/v1/reference' })
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reference/states?countryId=abc' })
+
+    expect(res.statusCode).toBe(400)
+  })
+})
+
+describe('GET /api/v1/reference/cities', () => {
+  it('returns 200 with all cities and Cache-Control header when no filter', async () => {
+    const app = buildApp()
+    ;(app.prisma.city.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(mockCities)
+    await app.register(referenceModule, { prefix: '/api/v1/reference' })
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reference/cities' })
+
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['cache-control']).toBe('public, max-age=86400, stale-while-revalidate=3600')
+    const body = res.json()
+    expect(body[0]).toMatchObject({ id: 1001, name: 'Monrovia', countryId: 121, stateId: 101 })
+    const calledWith = (app.prisma.city.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(calledWith.where).toEqual({})
+  })
+
+  it('filters by countryId and stateId together', async () => {
+    const app = buildApp()
+    ;(app.prisma.city.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(mockCities)
+    await app.register(referenceModule, { prefix: '/api/v1/reference' })
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reference/cities?countryId=121&stateId=101' })
+
+    expect(res.statusCode).toBe(200)
+    const calledWith = (app.prisma.city.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(calledWith.where).toEqual({ countryId: 121, stateId: 101 })
+  })
+
+  it('rejects non-integer stateId with 400', async () => {
+    const app = buildApp()
+    await app.register(referenceModule, { prefix: '/api/v1/reference' })
+
+    const res = await app.inject({ method: 'GET', url: '/api/v1/reference/cities?stateId=notanumber' })
+
+    expect(res.statusCode).toBe(400)
   })
 })

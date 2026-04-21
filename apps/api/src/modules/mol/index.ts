@@ -8,7 +8,7 @@ import type { FastifyPluginAsync } from 'fastify'
  *
  * Endpoints:
  *   GET /api/v1/mol/overview             (KPI summary: employers, individuals, vacancies, permits)
- *   GET /api/v1/mol/employers            (paginated, filterable by county/sector/compliance)
+ *   GET /api/v1/mol/employers            (paginated, filterable by state/sector/compliance)
  *   GET /api/v1/mol/employers/:id
  *   GET /api/v1/mol/individuals          (paginated, filterable)
  *   GET /api/v1/mol/individuals/:id

@@ -13,7 +13,7 @@ export type User = Timestamp & {
 export type JobSeeker = User & {
   role: 'jobseeker'
   skills: string[]
-  county: string
+  state: string
   resumeUrl?: string
 }
 

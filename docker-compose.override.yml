@@ -1,0 +1,22 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: deps
+    volumes:
+      - ./apps/api/src:/app/apps/api/src
+      - ./apps/api/prisma:/app/apps/api/prisma
+      - ./apps/api/prisma.config.ts:/app/apps/api/prisma.config.ts
+      - ./apps/api/tsconfig.json:/app/apps/api/tsconfig.json
+      - ./packages:/app/packages
+    command:
+      - sh
+      - -c
+      - |
+        pnpm --filter '@liberia-works/shared*' build &&
+        pnpm --filter @liberia-works/api db:generate &&
+        pnpm --filter @liberia-works/api db:migrate &&
+        exec pnpm --filter @liberia-works/api dev
+    environment:
+      NODE_ENV: development

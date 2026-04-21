@@ -8,7 +8,6 @@ generator client {
 
 datasource db {
   provider   = "postgresql"
-  url        = env("DATABASE_URL")
   extensions = [postgis, vector]
 }
 
@@ -184,23 +183,6 @@ enum EmployerUserRole {
 
 // ── Reference tables (seeded) ─────────────────────────────────────────────────
 
-/// 15 Liberian counties — ISO 3166-2:LR
-model County {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  isoCode   String   @unique @map("iso_code") @db.VarChar(6)
-  name      String   @db.VarChar(100)
-  region    String?  @db.VarChar(50)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  individuals            Individual[]
-  employers              Employer[]
-  vacancies              Vacancy[]
-  programHostingCapacity ProgramHostingCapacity[]
-
-  @@map("counties")
-}
-
 /// ISIC Rev.4 sector taxonomy (top two levels seeded, all 4 levels in schema)
 model Sector {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -281,36 +263,36 @@ model Subregion {
 
 /// Country with geographic and administrative information.
 model Country {
-  id               Int                         @id
-  name             String                      @db.VarChar(100)
-  iso3             String?                     @db.VarChar(3)
-  numericCode      String?                     @map("numeric_code") @db.VarChar(3)
-  iso2             String                      @unique @db.VarChar(2)
-  phonecode        String?                     @db.VarChar(255)
-  capital          String?                     @db.VarChar(255)
-  currency         String?                     @db.VarChar(255)
-  currencyName     String?                     @map("currency_name") @db.VarChar(255)
-  currencySymbol   String?                     @map("currency_symbol") @db.VarChar(255)
-  tld              String?                     @db.VarChar(255)
-  native           String?                     @db.VarChar(255)
-  regionId         Int?                        @map("region_id")
-  subregionId      Int?                        @map("subregion_id")
-  nationality      String?                     @db.VarChar(255)
+  id               Int                                   @id
+  name             String                                @db.VarChar(100)
+  iso3             String?                               @db.VarChar(3)
+  numericCode      String?                               @map("numeric_code") @db.VarChar(3)
+  iso2             String                                @unique @db.VarChar(2)
+  phonecode        String?                               @db.VarChar(255)
+  capital          String?                               @db.VarChar(255)
+  currency         String?                               @db.VarChar(255)
+  currencyName     String?                               @map("currency_name") @db.VarChar(255)
+  currencySymbol   String?                               @map("currency_symbol") @db.VarChar(255)
+  tld              String?                               @db.VarChar(255)
+  native           String?                               @db.VarChar(255)
+  regionId         Int?                                  @map("region_id")
+  subregionId      Int?                                  @map("subregion_id")
+  nationality      String?                               @db.VarChar(255)
   timezones        Json?
   translations     Json?
   location         Unsupported("geography(Point,4326)")?
-  emoji            String?                     @db.VarChar(191)
-  emojiU           String?                     @map("emoji_u") @db.VarChar(191)
-  wikidataId       String?                     @map("wikidata_id") @db.VarChar(255)
-  flag             Boolean                     @default(true)
+  emoji            String?                               @db.VarChar(191)
+  emojiU           String?                               @map("emoji_u") @db.VarChar(191)
+  wikidataId       String?                               @map("wikidata_id") @db.VarChar(255)
+  flag             Boolean                               @default(true)
   population       BigInt?
   gdp              BigInt?
-  areaSqKm         Float?                      @map("area_sq_km")
-  postalCodeFormat String?                     @map("postal_code_format") @db.VarChar(255)
-  postalCodeRegex  String?                     @map("postal_code_regex") @db.VarChar(255)
-  nameEmbedding    Unsupported("vector(384)")? @map("name_embedding")
-  createdAt        DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  areaSqKm         Float?                                @map("area_sq_km")
+  postalCodeFormat String?                               @map("postal_code_format") @db.VarChar(255)
+  postalCodeRegex  String?                               @map("postal_code_regex") @db.VarChar(255)
+  nameEmbedding    Unsupported("vector(384)")?           @map("name_embedding")
+  createdAt        DateTime                              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime                              @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   region    Region?    @relation(fields: [regionId], references: [id], onDelete: SetNull)
   subregion Subregion? @relation(fields: [subregionId], references: [id], onDelete: SetNull)
@@ -329,32 +311,36 @@ model Country {
 
 /// State or province within a country.
 model State {
-  id            Int                         @id
-  name          String                      @db.VarChar(255)
-  countryId     Int                         @map("country_id")
-  countryCode   String                      @map("country_code") @db.VarChar(2)
-  fipsCode      String?                     @map("fips_code") @db.VarChar(255)
-  iso2          String?                     @db.VarChar(255)
-  iso31662      String?                     @map("iso3166_2") @db.VarChar(10)
-  stateCode     String                      @map("state_code") @db.VarChar(255)
-  stateType     String?                     @map("state_type") @db.VarChar(191)
+  id            Int                                   @id
+  name          String                                @db.VarChar(255)
+  countryId     Int                                   @map("country_id")
+  countryCode   String                                @map("country_code") @db.VarChar(2)
+  fipsCode      String?                               @map("fips_code") @db.VarChar(255)
+  iso2          String?                               @db.VarChar(255)
+  iso31662      String?                               @map("iso3166_2") @db.VarChar(10)
+  stateCode     String                                @map("state_code") @db.VarChar(255)
+  stateType     String?                               @map("state_type") @db.VarChar(191)
   level         Int?
-  parentId      Int?                        @map("parent_id")
-  native        String?                     @db.VarChar(255)
+  parentId      Int?                                  @map("parent_id")
+  native        String?                               @db.VarChar(255)
   location      Unsupported("geography(Point,4326)")?
-  timezone      String?                     @db.VarChar(255)
+  timezone      String?                               @db.VarChar(255)
   translations  Json?
-  wikidataId    String?                     @map("wikidata_id") @db.VarChar(255)
-  flag          Boolean                     @default(true)
+  wikidataId    String?                               @map("wikidata_id") @db.VarChar(255)
+  flag          Boolean                               @default(true)
   population    BigInt?
-  nameEmbedding Unsupported("vector(384)")? @map("name_embedding")
-  createdAt     DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  nameEmbedding Unsupported("vector(384)")?           @map("name_embedding")
+  createdAt     DateTime                              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime                              @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  country  Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
-  parent   State?  @relation("StateHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children State[] @relation("StateHierarchy")
-  cities   City[]
+  country                  Country                  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  parent                   State?                   @relation("StateHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children                 State[]                  @relation("StateHierarchy")
+  cities                   City[]
+  individuals              Individual[]
+  employers                Employer[]
+  vacancies                Vacancy[]
+  programHostingCapacities ProgramHostingCapacity[]
 
   @@index([countryId, stateCode], map: "loc_state_country_code_idx")
   @@index([name], map: "loc_state_name_idx")
@@ -365,25 +351,25 @@ model State {
 
 /// City within a state/country.
 model City {
-  id            Int                         @id
-  name          String                      @db.VarChar(255)
-  stateId       Int                         @map("state_id")
-  stateCode     String                      @map("state_code") @db.VarChar(255)
-  countryId     Int                         @map("country_id")
-  countryCode   String                      @map("country_code") @db.VarChar(2)
+  id            Int                                  @id
+  name          String                               @db.VarChar(255)
+  stateId       Int                                  @map("state_id")
+  stateCode     String                               @map("state_code") @db.VarChar(255)
+  countryId     Int                                  @map("country_id")
+  countryCode   String                               @map("country_code") @db.VarChar(2)
   location      Unsupported("geography(Point,4326)")
-  cityType      String?                     @map("city_type") @db.VarChar(191)
+  cityType      String?                              @map("city_type") @db.VarChar(191)
   level         Int?
-  parentId      Int?                        @map("parent_id")
-  native        String?                     @db.VarChar(255)
+  parentId      Int?                                 @map("parent_id")
+  native        String?                              @db.VarChar(255)
   population    BigInt?
-  timezone      String?                     @db.VarChar(255)
+  timezone      String?                              @db.VarChar(255)
   translations  Json?
-  wikidataId    String?                     @map("wikidata_id") @db.VarChar(255)
-  flag          Boolean                     @default(true)
-  nameEmbedding Unsupported("vector(384)")? @map("name_embedding")
-  createdAt     DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  wikidataId    String?                              @map("wikidata_id") @db.VarChar(255)
+  flag          Boolean                              @default(true)
+  nameEmbedding Unsupported("vector(384)")?          @map("name_embedding")
+  createdAt     DateTime                             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime                             @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   state    State   @relation(fields: [stateId], references: [id], onDelete: Cascade)
   country  Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
@@ -433,19 +419,19 @@ model User {
 
   individual                Individual?
   employerUsers             EmployerUser[]
-  invitedEmployerUsers      EmployerUser[]              @relation("EmployerUserInviter")
+  invitedEmployerUsers      EmployerUser[]            @relation("EmployerUserInviter")
   sessions                  Session[]
   otpCodes                  OtpCode[]
-  uploadedDocuments         Document[]                  @relation("DocumentUploader")
-  applicationStatusChanges  Application[]               @relation("ApplicationStatusChanger")
-  decidedPermits            WorkPermitApplication[]     @relation("PermitDecider")
+  uploadedDocuments         Document[]                @relation("DocumentUploader")
+  applicationStatusChanges  Application[]             @relation("ApplicationStatusChanger")
+  decidedPermits            WorkPermitApplication[]   @relation("PermitDecider")
   permitStatusHistories     WorkPermitStatusHistory[]
-  submittedDisputes         Dispute[]                   @relation("DisputeSubmitter")
-  assignedDisputes          Dispute[]                   @relation("DisputeAssignee")
-  respondedDisputes         Dispute[]                   @relation("DisputeResponder")
-  submittedWorkforceReturns WorkforceReturn[]           @relation("WorkforceReturnSubmitter")
-  validatedWorkforceReturns WorkforceReturn[]           @relation("WorkforceReturnValidator")
-  revokedCertificates       ComplianceCertificate[]     @relation("CertificateRevoker")
+  submittedDisputes         Dispute[]                 @relation("DisputeSubmitter")
+  assignedDisputes          Dispute[]                 @relation("DisputeAssignee")
+  respondedDisputes         Dispute[]                 @relation("DisputeResponder")
+  submittedWorkforceReturns WorkforceReturn[]         @relation("WorkforceReturnSubmitter")
+  validatedWorkforceReturns WorkforceReturn[]         @relation("WorkforceReturnValidator")
+  revokedCertificates       ComplianceCertificate[]   @relation("CertificateRevoker")
   auditLogs                 AuditLog[]
   notifications             Notification[]
   messageEvents             MessageEvent[]
@@ -497,7 +483,7 @@ model Individual {
   fullName             String    @map("full_name") @db.VarChar(200)
   dateOfBirth          DateTime? @map("date_of_birth") @db.Date
   gender               Gender?
-  countyId             String    @map("county_id") @db.Uuid
+  stateId              Int       @map("state_id")
   nin                  String?   @db.VarChar(20)
   educationLevelId     String    @map("education_level_id") @db.Uuid
   profileCompletionPct Int       @default(0) @map("profile_completion_pct") @db.SmallInt
@@ -508,7 +494,7 @@ model Individual {
   updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   user            User                       @relation(fields: [userId], references: [id])
-  county          County                     @relation(fields: [countyId], references: [id])
+  state           State                      @relation(fields: [stateId], references: [id])
   educationLevel  EducationLevel             @relation(fields: [educationLevelId], references: [id])
   sectorInterests IndividualSectorInterest[]
   education       IndividualEducation[]
@@ -538,18 +524,18 @@ model IndividualSectorInterest {
 }
 
 model IndividualEducation {
-  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  individualId     String    @map("individual_id") @db.Uuid
-  institutionName  String    @map("institution_name") @db.VarChar(300)
-  qualification    String?   @db.VarChar(200)
-  fieldOfStudy     String?   @map("field_of_study") @db.VarChar(200)
-  educationLevelId String?   @map("education_level_id") @db.Uuid
-  startDate        DateTime? @map("start_date") @db.Date
-  endDate          DateTime? @map("end_date") @db.Date
-  isCurrent        Boolean   @default(false) @map("is_current")
+  id               String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  individualId     String     @map("individual_id") @db.Uuid
+  institutionName  String     @map("institution_name") @db.VarChar(300)
+  qualification    String?    @db.VarChar(200)
+  fieldOfStudy     String?    @map("field_of_study") @db.VarChar(200)
+  educationLevelId String?    @map("education_level_id") @db.Uuid
+  startDate        DateTime?  @map("start_date") @db.Date
+  endDate          DateTime?  @map("end_date") @db.Date
+  isCurrent        Boolean    @default(false) @map("is_current")
   source           DataSource
-  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt        DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   individual     Individual      @relation(fields: [individualId], references: [id])
   educationLevel EducationLevel? @relation(fields: [educationLevelId], references: [id])
@@ -558,18 +544,18 @@ model IndividualEducation {
 }
 
 model IndividualWorkHistory {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  individualId String    @map("individual_id") @db.Uuid
-  employerName String    @map("employer_name") @db.VarChar(300)
-  title        String?   @db.VarChar(200)
-  occupationId String?   @map("occupation_id") @db.Uuid
-  startDate    DateTime? @map("start_date") @db.Date
-  endDate      DateTime? @map("end_date") @db.Date
-  isCurrent    Boolean   @default(false) @map("is_current")
-  description  String?   @db.Text
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  individualId String     @map("individual_id") @db.Uuid
+  employerName String     @map("employer_name") @db.VarChar(300)
+  title        String?    @db.VarChar(200)
+  occupationId String?    @map("occupation_id") @db.Uuid
+  startDate    DateTime?  @map("start_date") @db.Date
+  endDate      DateTime?  @map("end_date") @db.Date
+  isCurrent    Boolean    @default(false) @map("is_current")
+  description  String?    @db.Text
   source       DataSource
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   individual Individual  @relation(fields: [individualId], references: [id])
   occupation Occupation? @relation(fields: [occupationId], references: [id])
@@ -611,11 +597,11 @@ model Document {
   createdAt               DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt               DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  individual            Individual?           @relation(fields: [individualId], references: [id])
-  employer              Employer?             @relation(fields: [employerId], references: [id])
+  individual            Individual?            @relation(fields: [individualId], references: [id])
+  employer              Employer?              @relation(fields: [employerId], references: [id])
   workPermitApplication WorkPermitApplication? @relation(fields: [workPermitApplicationId], references: [id])
-  dispute               Dispute?              @relation(fields: [disputeId], references: [id])
-  uploadedBy            User                  @relation("DocumentUploader", fields: [uploadedByUserId], references: [id])
+  dispute               Dispute?               @relation(fields: [disputeId], references: [id])
+  uploadedBy            User                   @relation("DocumentUploader", fields: [uploadedByUserId], references: [id])
   cvParseJob            CvParseJob?
 
   @@map("documents")
@@ -649,7 +635,7 @@ model Employer {
   lraRegistrationNumber    String           @unique @map("lra_registration_number") @db.VarChar(50)
   companyName              String           @map("company_name") @db.VarChar(300)
   sectorId                 String           @map("sector_id") @db.Uuid
-  countyId                 String           @map("county_id") @db.Uuid
+  stateId                  Int              @map("state_id")
   primaryContactName       String           @map("primary_contact_name") @db.VarChar(200)
   primaryContactEmail      String           @map("primary_contact_email") @db.VarChar(255)
   primaryContactPhone      String           @map("primary_contact_phone") @db.VarChar(20)
@@ -662,17 +648,17 @@ model Employer {
   createdAt                DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  sector                  Sector                       @relation(fields: [sectorId], references: [id])
-  county                  County                       @relation(fields: [countyId], references: [id])
-  employerUsers           EmployerUser[]
-  vacancies               Vacancy[]
-  workPermitApplications  WorkPermitApplication[]
-  disputes                Dispute[]
-  documents               Document[]
-  workforceReturns        WorkforceReturn[]
-  complianceCertificates  ComplianceCertificate[]
-  placements              ProgramPlacement[]
-  programHostingCapacity  ProgramHostingCapacity[]
+  sector                 Sector                   @relation(fields: [sectorId], references: [id])
+  state                  State                    @relation(fields: [stateId], references: [id])
+  employerUsers          EmployerUser[]
+  vacancies              Vacancy[]
+  workPermitApplications WorkPermitApplication[]
+  disputes               Dispute[]
+  documents              Document[]
+  workforceReturns       WorkforceReturn[]
+  complianceCertificates ComplianceCertificate[]
+  placements             ProgramPlacement[]
+  programHostingCapacity ProgramHostingCapacity[]
 
   @@map("employers")
 }
@@ -690,9 +676,9 @@ model EmployerUser {
   createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  employer   Employer @relation(fields: [employerId], references: [id])
-  user       User     @relation(fields: [userId], references: [id])
-  invitedBy  User?    @relation("EmployerUserInviter", fields: [invitedByUserId], references: [id])
+  employer  Employer @relation(fields: [employerId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+  invitedBy User?    @relation("EmployerUserInviter", fields: [invitedByUserId], references: [id])
 
   @@unique([employerId, userId])
   @@map("employer_users")
@@ -707,7 +693,7 @@ model Vacancy {
   description             String        @db.Text
   occupationId            String?       @map("occupation_id") @db.Uuid
   vacancyType             VacancyType   @map("vacancy_type")
-  countyId                String        @map("county_id") @db.Uuid
+  stateId                 Int           @map("state_id")
   sectorId                String?       @map("sector_id") @db.Uuid
   minimumEducationLevelId String?       @map("minimum_education_level_id") @db.Uuid
   slotsAvailable          Int           @map("slots_available") @db.SmallInt
@@ -719,33 +705,33 @@ model Vacancy {
   createdAt               DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt               DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  employer              Employer        @relation(fields: [employerId], references: [id])
-  occupation            Occupation?     @relation(fields: [occupationId], references: [id])
-  county                County          @relation(fields: [countyId], references: [id])
-  sector                Sector?         @relation(fields: [sectorId], references: [id])
-  minimumEducationLevel EducationLevel? @relation(fields: [minimumEducationLevelId], references: [id])
-  applications          Application[]
+  employer               Employer                @relation(fields: [employerId], references: [id])
+  occupation             Occupation?             @relation(fields: [occupationId], references: [id])
+  state                  State                   @relation(fields: [stateId], references: [id])
+  sector                 Sector?                 @relation(fields: [sectorId], references: [id])
+  minimumEducationLevel  EducationLevel?         @relation(fields: [minimumEducationLevelId], references: [id])
+  applications           Application[]
   workPermitApplications WorkPermitApplication[]
 
   @@index([status, deadline], map: "idx_vacancy_status_deadline")
-  @@index([countyId, status], map: "idx_vacancy_county_status")
+  @@index([stateId, status], map: "idx_vacancy_state_status")
   @@index([employerId, status], map: "idx_vacancy_employer_status")
   @@index([isMandatoryAdvertised, postedAt], map: "idx_vacancy_mandatory_advertised")
   @@map("vacancies")
 }
 
 model Application {
-  id                    String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  individualId          String            @map("individual_id") @db.Uuid
-  vacancyId             String            @map("vacancy_id") @db.Uuid
+  id                    String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  individualId          String             @map("individual_id") @db.Uuid
+  vacancyId             String             @map("vacancy_id") @db.Uuid
   channel               ApplicationChannel
-  status                ApplicationStatus @default(APPLIED)
-  statusChangedAt       DateTime          @default(now()) @map("status_changed_at") @db.Timestamptz(6)
-  statusChangedByUserId String?           @map("status_changed_by_user_id") @db.Uuid
-  appliedAt             DateTime          @default(now()) @map("applied_at") @db.Timestamptz(6)
-  isActive              Boolean           @default(true) @map("is_active")
-  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt             DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  status                ApplicationStatus  @default(APPLIED)
+  statusChangedAt       DateTime           @default(now()) @map("status_changed_at") @db.Timestamptz(6)
+  statusChangedByUserId String?            @map("status_changed_by_user_id") @db.Uuid
+  appliedAt             DateTime           @default(now()) @map("applied_at") @db.Timestamptz(6)
+  isActive              Boolean            @default(true) @map("is_active")
+  createdAt             DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   individual          Individual @relation(fields: [individualId], references: [id])
   vacancy             Vacancy    @relation(fields: [vacancyId], references: [id])
@@ -781,11 +767,11 @@ model WorkPermitApplication {
   createdAt               DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt               DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  employer      Employer    @relation(fields: [employerId], references: [id])
-  vacancy       Vacancy     @relation(fields: [vacancyId], references: [id])
-  occupation    Occupation? @relation(fields: [occupationId], references: [id])
-  nationality   Country     @relation(fields: [nationalityId], references: [id])
-  decidedBy     User?       @relation("PermitDecider", fields: [decidedByUserId], references: [id])
+  employer      Employer                  @relation(fields: [employerId], references: [id])
+  vacancy       Vacancy                   @relation(fields: [vacancyId], references: [id])
+  occupation    Occupation?               @relation(fields: [occupationId], references: [id])
+  nationality   Country                   @relation(fields: [nationalityId], references: [id])
+  decidedBy     User?                     @relation("PermitDecider", fields: [decidedByUserId], references: [id])
   statusHistory WorkPermitStatusHistory[]
   documents     Document[]
 
@@ -812,29 +798,29 @@ model WorkPermitStatusHistory {
 // ── Disputes ──────────────────────────────────────────────────────────────────
 
 model Dispute {
-  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  referenceNumber   String          @unique @map("reference_number") @db.VarChar(30)
-  employerId        String          @map("employer_id") @db.Uuid
-  submittedByUserId String          @map("submitted_by_user_id") @db.Uuid
-  category          DisputeCategory
-  relatedReferenceId String?        @map("related_reference_id") @db.VarChar(100)
-  description       String          @db.Text
-  status            DisputeStatus   @default(SUBMITTED)
-  assignedToUserId  String?         @map("assigned_to_user_id") @db.Uuid
-  molResponseText   String?         @map("mol_response_text") @db.Text
-  submittedAt       DateTime        @map("submitted_at") @db.Timestamptz(6)
-  slaDueAt          DateTime        @map("sla_due_at") @db.Timestamptz(6)
-  respondedAt       DateTime?       @map("responded_at") @db.Timestamptz(6)
-  respondedByUserId String?         @map("responded_by_user_id") @db.Uuid
-  closedAt          DateTime?       @map("closed_at") @db.Timestamptz(6)
-  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                 String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  referenceNumber    String          @unique @map("reference_number") @db.VarChar(30)
+  employerId         String          @map("employer_id") @db.Uuid
+  submittedByUserId  String          @map("submitted_by_user_id") @db.Uuid
+  category           DisputeCategory
+  relatedReferenceId String?         @map("related_reference_id") @db.VarChar(100)
+  description        String          @db.Text
+  status             DisputeStatus   @default(SUBMITTED)
+  assignedToUserId   String?         @map("assigned_to_user_id") @db.Uuid
+  molResponseText    String?         @map("mol_response_text") @db.Text
+  submittedAt        DateTime        @map("submitted_at") @db.Timestamptz(6)
+  slaDueAt           DateTime        @map("sla_due_at") @db.Timestamptz(6)
+  respondedAt        DateTime?       @map("responded_at") @db.Timestamptz(6)
+  respondedByUserId  String?         @map("responded_by_user_id") @db.Uuid
+  closedAt           DateTime?       @map("closed_at") @db.Timestamptz(6)
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  employer     Employer  @relation(fields: [employerId], references: [id])
-  submittedBy  User      @relation("DisputeSubmitter", fields: [submittedByUserId], references: [id])
-  assignedTo   User?     @relation("DisputeAssignee", fields: [assignedToUserId], references: [id])
-  respondedBy  User?     @relation("DisputeResponder", fields: [respondedByUserId], references: [id])
-  documents    Document[]
+  employer    Employer   @relation(fields: [employerId], references: [id])
+  submittedBy User       @relation("DisputeSubmitter", fields: [submittedByUserId], references: [id])
+  assignedTo  User?      @relation("DisputeAssignee", fields: [assignedToUserId], references: [id])
+  respondedBy User?      @relation("DisputeResponder", fields: [respondedByUserId], references: [id])
+  documents   Document[]
 
   @@index([status, slaDueAt], map: "idx_dispute_status_sla")
   @@map("disputes")
@@ -869,18 +855,18 @@ model ProgramHostingCapacity {
   slotsOffered              Int      @map("slots_offered") @db.SmallInt
   preferredSectorId         String?  @map("preferred_sector_id") @db.Uuid
   preferredEducationLevelId String?  @map("preferred_education_level_id") @db.Uuid
-  countyId                  String   @map("county_id") @db.Uuid
+  stateId                   Int      @map("state_id")
   contactName               String   @map("contact_name") @db.VarChar(200)
   contactPhone              String   @map("contact_phone") @db.VarChar(20)
   placementInstructions     String?  @map("placement_instructions") @db.Text
   createdAt                 DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                 DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  employer                Employer       @relation(fields: [employerId], references: [id])
-  cycle                   ProgramCycle   @relation(fields: [cycleId], references: [id])
-  preferredSector         Sector?        @relation(fields: [preferredSectorId], references: [id])
+  employer                Employer        @relation(fields: [employerId], references: [id])
+  cycle                   ProgramCycle    @relation(fields: [cycleId], references: [id])
+  preferredSector         Sector?         @relation(fields: [preferredSectorId], references: [id])
   preferredEducationLevel EducationLevel? @relation(fields: [preferredEducationLevelId], references: [id])
-  county                  County         @relation(fields: [countyId], references: [id])
+  state                   State           @relation(fields: [stateId], references: [id])
 
   @@unique([employerId, cycleId])
   @@map("program_hosting_capacity")
@@ -903,8 +889,8 @@ model ProgramPlacement {
   createdAt            DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  individual Individual  @relation(fields: [individualId], references: [id])
-  employer   Employer    @relation(fields: [employerId], references: [id])
+  individual Individual   @relation(fields: [individualId], references: [id])
+  employer   Employer     @relation(fields: [employerId], references: [id])
   cycle      ProgramCycle @relation(fields: [cycleId], references: [id])
 
   @@map("program_placements")

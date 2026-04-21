@@ -28,3 +28,28 @@ export type EducationLevelResponse = {
   iscedCode: string
   levelOrder: number
 }
+
+export type RegionResponse = {
+  id: number
+  name: string
+}
+
+export type SubregionResponse = {
+  id: number
+  name: string
+  regionId: number
+}
+
+export type StateResponse = {
+  id: number
+  name: string
+  countryId: number
+  stateCode: string
+}
+
+export type CityResponse = {
+  id: number
+  name: string
+  countryId: number
+  stateId: number
+}
