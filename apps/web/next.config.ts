@@ -2,6 +2,9 @@ import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  eslint: {
+    dirs: ['src'],
+  },
 
   // Transpile cross-workspace packages (not pre-compiled for Next.js)
   transpilePackages: [
