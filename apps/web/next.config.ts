@@ -24,17 +24,9 @@ const nextConfig: NextConfig = {
   // Strict mode
   reactStrictMode: true,
 
-  // Prevent Turbopack from parsing partial file writes on Docker volume mounts.
-  // aggregateTimeout waits until writes settle before triggering a rebuild.
-  webpack(config, { dev }) {
-    if (dev) {
-      config.watchOptions = {
-        aggregateTimeout: 400,
-        poll: 1000,
-      }
-    }
-    return config
-  },
+  // Empty turbopack config satisfies Next.js 16's requirement when no webpack config is present.
+  // Watch polling for Docker volume mounts is configured via WATCHPACK_POLLING env var instead.
+  turbopack: {},
 }
 
 export default nextConfig
