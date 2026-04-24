@@ -74,7 +74,7 @@ CREATE TYPE "OtpChannel" AS ENUM ('SMS', 'WHATSAPP', 'EMAIL');
 CREATE TYPE "OtpPurpose" AS ENUM ('REGISTRATION', 'LOGIN', 'PHONE_CHANGE', 'EMAIL_CHANGE');
 
 -- CreateEnum
-CREATE TYPE "EmployerUserRole" AS ENUM ('ADMIN', 'HR');
+CREATE TYPE "EmployerUserRole" AS ENUM ('ADMIN', 'HR', 'MEMBER');
 
 -- CreateTable
 CREATE TABLE "sectors" (
@@ -237,8 +237,12 @@ CREATE TABLE "users" (
     "email" VARCHAR(255),
     "password_hash" VARCHAR(255),
     "role" "UserRole" NOT NULL,
+    "full_name" VARCHAR(200),
+    "date_of_birth" DATE,
+    "gender" "Gender",
     "is_phone_verified" BOOLEAN NOT NULL DEFAULT false,
     "is_email_verified" BOOLEAN NOT NULL DEFAULT false,
+    "last_active_at" TIMESTAMPTZ(6),
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "last_login_at" TIMESTAMPTZ(6),
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -280,19 +284,40 @@ CREATE TABLE "sessions" (
 );
 
 -- CreateTable
+CREATE TABLE "password_history" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "user_id" UUID NOT NULL,
+    "password_hash" VARCHAR(255) NOT NULL,
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "password_history_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "addresses" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "user_id" UUID,
+    "employer_id" UUID,
+    "country_id" INTEGER NOT NULL,
+    "state_id" INTEGER,
+    "city_id" INTEGER,
+    "address_line_1" VARCHAR(300) NOT NULL,
+    "address_line_2" VARCHAR(300),
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(6) NOT NULL,
+
+    CONSTRAINT "addresses_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "individuals" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "user_id" UUID NOT NULL,
-    "full_name" VARCHAR(200) NOT NULL,
-    "date_of_birth" DATE,
-    "gender" "Gender",
-    "state_id" INTEGER NOT NULL,
     "nin" VARCHAR(20),
-    "education_level_id" UUID NOT NULL,
+    "education_level_id" UUID,
     "profile_completion_pct" SMALLINT NOT NULL DEFAULT 0,
     "vacation_job_opt_in" BOOLEAN NOT NULL DEFAULT false,
     "vacation_job_opt_in_at" TIMESTAMPTZ(6),
-    "is_active" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
@@ -404,8 +429,8 @@ CREATE TABLE "employers" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "lra_registration_number" VARCHAR(50) NOT NULL,
     "company_name" VARCHAR(300) NOT NULL,
-    "sector_id" UUID NOT NULL,
-    "state_id" INTEGER NOT NULL,
+    "sector_id" UUID,
+    "state_id" INTEGER,
     "primary_contact_name" VARCHAR(200) NOT NULL,
     "primary_contact_email" VARCHAR(255) NOT NULL,
     "primary_contact_phone" VARCHAR(20) NOT NULL,
@@ -746,6 +771,15 @@ CREATE INDEX "idx_otp_destination_purpose" ON "otp_codes"("destination", "purpos
 CREATE UNIQUE INDEX "sessions_refresh_token_hash_key" ON "sessions"("refresh_token_hash");
 
 -- CreateIndex
+CREATE INDEX "idx_pwd_history_user" ON "password_history"("user_id", "created_at" DESC);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "addresses_user_id_key" ON "addresses"("user_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "addresses_employer_id_key" ON "addresses"("employer_id");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "individuals_user_id_key" ON "individuals"("user_id");
 
 -- CreateIndex
@@ -854,13 +888,28 @@ ALTER TABLE "otp_codes" ADD CONSTRAINT "otp_codes_user_id_fkey" FOREIGN KEY ("us
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "password_history" ADD CONSTRAINT "password_history_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "addresses" ADD CONSTRAINT "addresses_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "addresses" ADD CONSTRAINT "addresses_employer_id_fkey" FOREIGN KEY ("employer_id") REFERENCES "employers"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "addresses" ADD CONSTRAINT "addresses_country_id_fkey" FOREIGN KEY ("country_id") REFERENCES "location_country"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "addresses" ADD CONSTRAINT "addresses_state_id_fkey" FOREIGN KEY ("state_id") REFERENCES "location_state"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "addresses" ADD CONSTRAINT "addresses_city_id_fkey" FOREIGN KEY ("city_id") REFERENCES "location_city"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "individuals" ADD CONSTRAINT "individuals_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "individuals" ADD CONSTRAINT "individuals_state_id_fkey" FOREIGN KEY ("state_id") REFERENCES "location_state"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "individuals" ADD CONSTRAINT "individuals_education_level_id_fkey" FOREIGN KEY ("education_level_id") REFERENCES "education_levels"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "individuals" ADD CONSTRAINT "individuals_education_level_id_fkey" FOREIGN KEY ("education_level_id") REFERENCES "education_levels"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "individual_sector_interests" ADD CONSTRAINT "individual_sector_interests_individual_id_fkey" FOREIGN KEY ("individual_id") REFERENCES "individuals"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -905,10 +954,10 @@ ALTER TABLE "cv_parse_jobs" ADD CONSTRAINT "cv_parse_jobs_document_id_fkey" FORE
 ALTER TABLE "cv_parse_jobs" ADD CONSTRAINT "cv_parse_jobs_individual_id_fkey" FOREIGN KEY ("individual_id") REFERENCES "individuals"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "employers" ADD CONSTRAINT "employers_sector_id_fkey" FOREIGN KEY ("sector_id") REFERENCES "sectors"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "employers" ADD CONSTRAINT "employers_sector_id_fkey" FOREIGN KEY ("sector_id") REFERENCES "sectors"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "employers" ADD CONSTRAINT "employers_state_id_fkey" FOREIGN KEY ("state_id") REFERENCES "location_state"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "employers" ADD CONSTRAINT "employers_state_id_fkey" FOREIGN KEY ("state_id") REFERENCES "location_state"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "employer_users" ADD CONSTRAINT "employer_users_employer_id_fkey" FOREIGN KEY ("employer_id") REFERENCES "employers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

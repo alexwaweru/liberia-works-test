@@ -1,16 +1,21 @@
 import { z } from 'zod'
 import { CursorQuerySchema } from './common.js'
 
+// applicationForm is stored as a FormDefinition JSON blob
+const applicationFormSchema = z.record(z.unknown()).nullable()
+
 export const CreateVacancySchema = z.object({
   title: z.string().min(3).max(300),
   description: z.string().min(10),
   vacancyType: z.enum(['VACATION_JOB', 'PERMANENT', 'CONTRACT', 'INTERNSHIP']),
-  stateId: z.string().uuid(),
+  stateId: z.number().int(),              // State.id is Int, not UUID
   sectorId: z.string().uuid().optional(),
   occupationId: z.string().uuid().optional(),
   minimumEducationLevelId: z.string().uuid().optional(),
   slotsAvailable: z.number().int().min(1),
   deadline: z.string().date(),
+  isMandatoryAdvertised: z.boolean().optional(),
+  applicationForm: applicationFormSchema.optional(),
 })
 
 export const UpdateVacancySchema = CreateVacancySchema.partial()
@@ -21,7 +26,7 @@ export const VacancyResponseSchema = z.object({
   title: z.string(),
   description: z.string(),
   vacancyType: z.string(),
-  stateId: z.string().uuid(),
+  stateId: z.number().int(),
   sectorId: z.string().uuid().nullable(),
   occupationId: z.string().uuid().nullable(),
   minimumEducationLevelId: z.string().uuid().nullable(),
@@ -29,13 +34,16 @@ export const VacancyResponseSchema = z.object({
   deadline: z.string(),
   isMandatoryAdvertised: z.boolean(),
   status: z.string(),
+  applicationForm: applicationFormSchema,
   postedAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 })
 
+export const VacancyListResponseSchema = z.array(VacancyResponseSchema)
+
 export const VacancyFilterSchema = CursorQuerySchema.extend({
-  stateId: z.string().uuid().optional(),
+  stateId: z.coerce.number().int().optional(),
   sectorId: z.string().uuid().optional(),
   vacancyType: z.enum(['VACATION_JOB', 'PERMANENT', 'CONTRACT', 'INTERNSHIP']).optional(),
   status: z.enum(['DRAFT', 'ACTIVE', 'CLOSED', 'ARCHIVED']).optional(),

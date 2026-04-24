@@ -34,7 +34,13 @@ export const InviteEmployerUserSchema = z.object({
   role: z.enum(['ADMIN', 'HR']),
 })
 
+export const EmployerMeResponseSchema = z.object({
+  id: z.string().uuid(),
+  companyName: z.string(),
+})
+
 export type CreateEmployer = z.infer<typeof CreateEmployerSchema>
 export type UpdateEmployer = z.infer<typeof UpdateEmployerSchema>
 export type EmployerResponse = z.infer<typeof EmployerResponseSchema>
 export type InviteEmployerUser = z.infer<typeof InviteEmployerUserSchema>
+export type EmployerMeResponse = z.infer<typeof EmployerMeResponseSchema>

@@ -149,14 +149,16 @@ export const referenceModule: FastifyPluginAsync = async (app) => {
       },
     },
     async (req, reply) => {
-      const { countryId, name } = req.query
-      const where: Record<string, unknown> = {}
-      if (countryId !== undefined) where.countryId = countryId
-      if (name !== undefined) where.name = { contains: name, mode: 'insensitive' }
+      const { countryId, countryCode, name } = req.query
       const rows = await app.prisma.state.findMany({
         select: { id: true, name: true, countryId: true, stateCode: true },
-        where,
+        where: {
+          ...(countryId ? { countryId } : {}),
+          ...(countryCode ? { countryCode: countryCode.toUpperCase() } : {}),
+          ...(name ? { name: { contains: name, mode: 'insensitive' } } : {}),
+        },
         orderBy: { name: 'asc' },
+        take: 200,
       })
       void reply.header('Cache-Control', CACHE_CONTROL)
       return rows
