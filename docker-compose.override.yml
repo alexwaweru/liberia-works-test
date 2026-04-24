@@ -20,3 +20,24 @@ services:
         exec pnpm --filter @liberia-works/api dev
     environment:
       NODE_ENV: development
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: deps
+    volumes:
+      - ./apps/web/src:/app/apps/web/src
+      - ./apps/web/next.config.ts:/app/apps/web/next.config.ts
+      - ./apps/web/postcss.config.mjs:/app/apps/web/postcss.config.mjs
+      - ./apps/web/tsconfig.json:/app/apps/web/tsconfig.json
+      - ./packages:/app/packages
+    command:
+      - sh
+      - -c
+      - |
+        pnpm --filter '@liberia-works/shared*' build &&
+        exec pnpm --filter @liberia-works/web exec next dev --port 3000 --webpack
+    environment:
+      NODE_ENV: development
+      API_URL: http://api:3001

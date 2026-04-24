@@ -87,6 +87,7 @@ export const SubregionListResponseSchema = z.array(SubregionResponseSchema)
 
 export const StateQuerySchema = z.object({
   countryId: z.coerce.number().int().optional(),
+  countryCode: z.string().max(2).optional(),
   name: z.string().optional(),
 })
 

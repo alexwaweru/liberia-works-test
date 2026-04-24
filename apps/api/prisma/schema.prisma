@@ -179,6 +179,7 @@ enum OtpPurpose {
 enum EmployerUserRole {
   ADMIN
   HR
+  MEMBER
 }
 
 // ── Reference tables (seeded) ─────────────────────────────────────────────────
@@ -300,6 +301,7 @@ model Country {
   cities    City[]
 
   workPermitApplications WorkPermitApplication[]
+  addresses              Address[]
 
   @@index([iso2], map: "loc_country_iso2_idx")
   @@index([iso3], map: "loc_country_iso3_idx")
@@ -337,10 +339,10 @@ model State {
   parent                   State?                   @relation("StateHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children                 State[]                  @relation("StateHierarchy")
   cities                   City[]
-  individuals              Individual[]
   employers                Employer[]
   vacancies                Vacancy[]
   programHostingCapacities ProgramHostingCapacity[]
+  addresses                Address[]
 
   @@index([countryId, stateCode], map: "loc_state_country_code_idx")
   @@index([name], map: "loc_state_name_idx")
@@ -373,8 +375,9 @@ model City {
 
   state    State   @relation(fields: [stateId], references: [id], onDelete: Cascade)
   country  Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
-  parent   City?   @relation("CityHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children City[]  @relation("CityHierarchy")
+  parent    City?    @relation("CityHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children  City[]   @relation("CityHierarchy")
+  addresses Address[]
 
   @@index([countryId, stateId], map: "loc_city_country_state_idx")
   @@index([name], map: "loc_city_name_idx")
@@ -410,14 +413,19 @@ model User {
   email           String?   @unique @db.VarChar(255)
   passwordHash    String?   @map("password_hash") @db.VarChar(255)
   role            UserRole
+  fullName        String?   @map("full_name") @db.VarChar(200)
+  dateOfBirth     DateTime? @map("date_of_birth") @db.Date
+  gender          Gender?
   isPhoneVerified Boolean   @default(false) @map("is_phone_verified")
   isEmailVerified Boolean   @default(false) @map("is_email_verified")
+  lastActiveAt    DateTime? @map("last_active_at") @db.Timestamptz(6)
   isActive        Boolean   @default(true) @map("is_active")
   lastLoginAt     DateTime? @map("last_login_at") @db.Timestamptz(6)
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   individual                Individual?
+  address                   Address?
   employerUsers             EmployerUser[]
   invitedEmployerUsers      EmployerUser[]            @relation("EmployerUserInviter")
   sessions                  Session[]
@@ -435,6 +443,7 @@ model User {
   auditLogs                 AuditLog[]
   notifications             Notification[]
   messageEvents             MessageEvent[]
+  passwordHistory           PasswordHistory[]
 
   @@map("users")
 }
@@ -474,28 +483,60 @@ model Session {
   @@map("sessions")
 }
 
+/// Append-only log of bcrypt-hashed passwords — used to prevent reuse.
+model PasswordHistory {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)], map: "idx_pwd_history_user")
+  @@map("password_history")
+}
+
+// ── Addresses ─────────────────────────────────────────────────────────────────
+
+/// Postal / physical address — belongs to either a User or an Employer (exactly one).
+/// DB-level: CHECK (user_id IS NOT NULL OR employer_id IS NOT NULL) — added via raw migration.
+model Address {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String?  @unique @map("user_id") @db.Uuid
+  employerId   String?  @unique @map("employer_id") @db.Uuid
+  countryId    Int      @map("country_id")
+  stateId      Int?     @map("state_id")
+  cityId       Int?     @map("city_id")
+  addressLine1 String   @map("address_line_1") @db.VarChar(300)
+  addressLine2 String?  @map("address_line_2") @db.VarChar(300)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user     User?     @relation(fields: [userId], references: [id])
+  employer Employer? @relation(fields: [employerId], references: [id])
+  country  Country   @relation(fields: [countryId], references: [id])
+  state    State?    @relation(fields: [stateId], references: [id])
+  city     City?     @relation(fields: [cityId], references: [id])
+
+  @@map("addresses")
+}
+
 // ── Individual domain ─────────────────────────────────────────────────────────
 
 /// 1:1 with users where role = INDIVIDUAL
 model Individual {
   id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId               String    @unique @map("user_id") @db.Uuid
-  fullName             String    @map("full_name") @db.VarChar(200)
-  dateOfBirth          DateTime? @map("date_of_birth") @db.Date
-  gender               Gender?
-  stateId              Int       @map("state_id")
   nin                  String?   @db.VarChar(20)
-  educationLevelId     String    @map("education_level_id") @db.Uuid
+  educationLevelId     String?   @map("education_level_id") @db.Uuid
   profileCompletionPct Int       @default(0) @map("profile_completion_pct") @db.SmallInt
   vacationJobOptIn     Boolean   @default(false) @map("vacation_job_opt_in")
   vacationJobOptInAt   DateTime? @map("vacation_job_opt_in_at") @db.Timestamptz(6)
-  isActive             Boolean   @default(true) @map("is_active")
   createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   user            User                       @relation(fields: [userId], references: [id])
-  state           State                      @relation(fields: [stateId], references: [id])
-  educationLevel  EducationLevel             @relation(fields: [educationLevelId], references: [id])
+  educationLevel  EducationLevel?            @relation(fields: [educationLevelId], references: [id])
   sectorInterests IndividualSectorInterest[]
   education       IndividualEducation[]
   workHistory     IndividualWorkHistory[]
@@ -634,8 +675,8 @@ model Employer {
   id                       String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   lraRegistrationNumber    String           @unique @map("lra_registration_number") @db.VarChar(50)
   companyName              String           @map("company_name") @db.VarChar(300)
-  sectorId                 String           @map("sector_id") @db.Uuid
-  stateId                  Int              @map("state_id")
+  sectorId                 String?          @map("sector_id") @db.Uuid
+  stateId                  Int?             @map("state_id")
   primaryContactName       String           @map("primary_contact_name") @db.VarChar(200)
   primaryContactEmail      String           @map("primary_contact_email") @db.VarChar(255)
   primaryContactPhone      String           @map("primary_contact_phone") @db.VarChar(20)
@@ -648,8 +689,9 @@ model Employer {
   createdAt                DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  sector                 Sector                   @relation(fields: [sectorId], references: [id])
-  state                  State                    @relation(fields: [stateId], references: [id])
+  sector                 Sector?                  @relation(fields: [sectorId], references: [id])
+  state                  State?                   @relation(fields: [stateId], references: [id])
+  address                Address?
   employerUsers          EmployerUser[]
   vacancies              Vacancy[]
   workPermitApplications WorkPermitApplication[]
@@ -701,6 +743,7 @@ model Vacancy {
   isMandatoryAdvertised   Boolean       @default(false) @map("is_mandatory_advertised")
   status                  VacancyStatus @default(DRAFT)
   postedAt                DateTime?     @map("posted_at") @db.Timestamptz(6)
+  applicationForm         Json?         @map("application_form") @db.JsonB
   isActive                Boolean       @default(true) @map("is_active")
   createdAt               DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt               DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)

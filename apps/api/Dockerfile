@@ -22,6 +22,8 @@ WORKDIR /app
 COPY . .
 RUN pnpm --filter "@liberia-works/shared*" run build && \
     pnpm --filter @liberia-works/api run db:generate && \
+    pnpm --filter @liberia-works/api run db:seed && \
+    pnpm --filter @liberia-works/api db:seed:locations && \
     pnpm --filter @liberia-works/api run build
 
 # ── runner: production image ──────────────────────────────────────────────────

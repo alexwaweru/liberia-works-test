@@ -1,10 +1,6 @@
 import { z } from 'zod'
 
 export const UpdateIndividualProfileSchema = z.object({
-  fullName: z.string().min(2).max(200).optional(),
-  dateOfBirth: z.string().date().optional(),
-  gender: z.enum(['MALE', 'FEMALE', 'PREFER_NOT_TO_SAY']).optional(),
-  stateId: z.string().uuid().optional(),
   educationLevelId: z.string().uuid().optional(),
   vacationJobOptIn: z.boolean().optional(),
 })
@@ -12,11 +8,7 @@ export const UpdateIndividualProfileSchema = z.object({
 export const IndividualProfileResponseSchema = z.object({
   id: z.string().uuid(),
   userId: z.string().uuid(),
-  fullName: z.string(),
-  dateOfBirth: z.string().nullable(),
-  gender: z.string().nullable(),
-  stateId: z.string().uuid(),
-  educationLevelId: z.string().uuid(),
+  educationLevelId: z.string().uuid().nullable(),
   profileCompletionPct: z.number().int().min(0).max(100),
   vacationJobOptIn: z.boolean(),
   createdAt: z.string().datetime(),

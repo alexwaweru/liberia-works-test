@@ -16,13 +16,13 @@ export default async function JobsPage({
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="text-2xl font-semibold text-gray-900">Browse Jobs</h1>
+      <h1 className="text-2xl font-semibold text-foreground">Browse Jobs</h1>
 
       {/* TODO: VacancyFilter component (state, sector, type dropdowns) */}
       {/* TODO: VacancyList + VacancyCard components */}
       {/* TODO: cursor-based pagination */}
 
-      <p className="mt-4 text-sm text-gray-500">
+      <p className="mt-4 text-sm text-muted-foreground">
         Filters: state={params.state ?? 'all'}, sector={params.sector ?? 'all'}
       </p>
     </div>
