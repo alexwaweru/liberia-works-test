@@ -4,10 +4,7 @@ import type { UserRole } from '@liberia-works/shared-types'
 
 // Route group → required roles
 const PROTECTED_ROUTES: Record<string, UserRole[]> = {
-  '/profile':      ['INDIVIDUAL'],
-  '/documents':    ['INDIVIDUAL'],
-  '/applications': ['INDIVIDUAL'],
-  '/my-programs':  ['INDIVIDUAL'],
+  '/me':           ['INDIVIDUAL'],
   '/programs':     ['EMPLOYER_ADMIN', 'EMPLOYER_HR'],
   '/dashboard':    ['EMPLOYER_ADMIN', 'EMPLOYER_HR'],
   '/vacancies':    ['EMPLOYER_ADMIN', 'EMPLOYER_HR'],
@@ -44,10 +41,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/profile/:path*',
-    '/documents/:path*',
-    '/applications/:path*',
-    '/my-programs/:path*',
+    '/me/:path*',
     '/programs/:path*',
     '/dashboard/:path*',
     '/vacancies/:path*',

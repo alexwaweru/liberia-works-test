@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { ZodTypeProvider } from 'fastify-type-provider-zod'
+import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import {
   RegisterIndividualSchema,
@@ -12,6 +13,7 @@ import {
   MeResponseSchema,
 } from '@liberia-works/shared-schemas'
 import type { UserRole } from '@liberia-works/shared-types'
+import type { DeliveryType } from '../../lib/notifications/index.js'
 import { authenticate } from '../../plugins/auth.js'
 import { complexityValidator } from '../../lib/password-validation.js'
 
@@ -98,15 +100,27 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
       response: { 201: MessageResponseSchema },
     },
   }, async (req, reply) => {
-    const { phone, fullName, dateOfBirth, gender, channel } = req.body
+    const { phone, fullName, countyId, dateOfBirth, gender, channel, email, password } = req.body
+
+    const complexityErrors = complexityValidator.validate(password)
+    if (complexityErrors.length > 0) {
+      return reply.badRequest('Password must contain: ' + complexityErrors.join('; '))
+    }
+
+    const county = await app.prisma.state.findUnique({ where: { id: countyId }, select: { id: true, countryId: true } })
+    if (!county) return reply.badRequest('Invalid county selected')
 
     const existing = await app.prisma.user.findUnique({ where: { phoneNumber: phone } })
     if (existing) return reply.conflict('Phone number already registered')
+
+    const passwordHash = await bcrypt.hash(password, 12)
 
     const user = await app.prisma.$transaction(async (tx) => {
       const newUser = await tx.user.create({
         data: {
           phoneNumber: phone,
+          email: email ?? null,
+          passwordHash,
           role: 'INDIVIDUAL',
           isPhoneVerified: false,
           fullName: fullName ?? null,
@@ -117,7 +131,18 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
       await tx.individual.create({
         data: { userId: newUser.id },
       })
+      await tx.address.create({
+        data: {
+          userId: newUser.id,
+          countryId: county.countryId,
+          stateId: county.id,
+        },
+      })
       return newUser
+    })
+
+    await app.prisma.passwordHistory.create({
+      data: { userId: user.id, passwordHash },
     })
 
     const otp = String(Math.floor(100000 + Math.random() * 900000))
@@ -133,8 +158,15 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
       },
     })
 
-    app.log.info({ phone, otp }, 'OTP generated (dev only)')
-    return reply.status(201).send({ message: `OTP sent to ${phone}` })
+    const destination = channel === 'EMAIL'
+      ? (user.email ?? (() => { throw app.httpErrors.badRequest('No email address on this account') })())
+      : phone
+    await app.notify(channel as DeliveryType, {
+      to: destination,
+      body: `Your Quola verification code is ${otp}. It expires in 10 minutes.`,
+      ...(channel === 'EMAIL' && { subject: 'Your Quola verification code' }),
+    })
+    return reply.status(201).send({ message: `OTP sent via ${channel.toLowerCase()}` })
   })
 
   // POST /register/employer
@@ -200,9 +232,13 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
       response: { 200: MessageResponseSchema },
     },
   }, async (req, reply) => {
-    const { phone, channel } = req.body
+    const { phone, channel, purpose } = req.body
     const user = await app.prisma.user.findUnique({ where: { phoneNumber: phone } })
     if (!user) return reply.notFound('No account found for this phone number')
+
+    if (purpose === 'LOGIN' && !user.isPhoneVerified) {
+      return reply.badRequest('Phone number not verified. Please complete registration first.')
+    }
 
     const otp = String(Math.floor(100000 + Math.random() * 900000))
     const codeHash = await bcrypt.hash(otp, 10)
@@ -211,14 +247,21 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
         userId: user.id,
         destination: phone,
         channel,
-        purpose: 'REGISTRATION',
+        purpose,
         codeHash,
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       },
     })
 
-    app.log.info({ phone, otp }, 'OTP resent (dev only)')
-    return { message: `OTP sent to ${phone}` }
+    const destination = channel === 'EMAIL'
+      ? (user.email ?? (() => { throw app.httpErrors.badRequest('No email address on this account') })())
+      : phone
+    await app.notify(channel as DeliveryType, {
+      to: destination,
+      body: `Your Quola verification code is ${otp}. It expires in 10 minutes.`,
+      ...(channel === 'EMAIL' && { subject: 'Your Quola verification code' }),
+    })
+    return { message: `OTP sent via ${channel.toLowerCase()}` }
   })
 
   // POST /otp/verify
@@ -230,14 +273,14 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
       response: { 200: AuthTokenResponseSchema },
     },
   }, async (req, reply) => {
-    const { phone, otp } = req.body
+    const { phone, otp, purpose } = req.body
     const user = await app.prisma.user.findUnique({ where: { phoneNumber: phone } })
     if (!user) return reply.notFound('No account found for this phone number')
 
     const record = await app.prisma.otpCode.findFirst({
       where: {
         destination: phone,
-        purpose: 'REGISTRATION',
+        purpose,
         consumedAt: null,
         expiresAt: { gt: new Date() },
       },
@@ -262,7 +305,10 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
     })
     await app.prisma.user.update({
       where: { id: user.id },
-      data: { isPhoneVerified: true, lastLoginAt: new Date() },
+      data: {
+        ...(purpose === 'REGISTRATION' && { isPhoneVerified: true }),
+        lastLoginAt: new Date(),
+      },
     })
 
     return issueTokens(app, reply, req, user)
@@ -351,6 +397,93 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
     reply.clearCookie('access_token', { path: '/' })
     reply.clearCookie('refresh_token', { path: '/api/v1/auth/refresh' })
     return { message: 'Logged out successfully' }
+  })
+
+  // POST /change-password
+  server.post('/change-password', {
+    schema: {
+      tags: ['auth'],
+      summary: 'Change password for the currently authenticated user',
+      body: z.object({
+        currentPassword: z.string(),
+        newPassword: z.string(),
+      }),
+      response: { 200: MessageResponseSchema },
+    },
+    preHandler: [authenticate],
+  }, async (req, reply) => {
+    const user = await app.prisma.user.findUnique({ where: { id: req.authUser!.id } })
+    if (!user || !user.passwordHash) return reply.badRequest('No password set on this account')
+
+    const valid = await bcrypt.compare(req.body.currentPassword, user.passwordHash)
+    if (!valid) return reply.badRequest('Current password is incorrect')
+
+    const complexityErrors = complexityValidator.validate(req.body.newPassword)
+    if (complexityErrors.length > 0) {
+      return reply.badRequest('Password must contain: ' + complexityErrors.join('; '))
+    }
+
+    const newHash = await bcrypt.hash(req.body.newPassword, 12)
+    await app.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: newHash },
+    })
+    await app.prisma.passwordHistory.create({
+      data: { userId: user.id, passwordHash: newHash },
+    })
+
+    return { message: 'Password updated' }
+  })
+
+  // GET /sessions
+  server.get('/sessions', {
+    schema: {
+      tags: ['auth'],
+      summary: 'List active sessions for the current user',
+      response: {
+        200: z.array(z.object({
+          id: z.string(),
+          userAgent: z.string().nullable(),
+          ipAddress: z.string().nullable(),
+          issuedAt: z.string(),
+          expiresAt: z.string(),
+          isCurrent: z.boolean(),
+        })),
+      },
+    },
+    preHandler: [authenticate],
+  }, async (req) => {
+    const now = new Date()
+    const sessions = await app.prisma.session.findMany({
+      where: { userId: req.authUser!.id, revokedAt: null, expiresAt: { gt: now } },
+      orderBy: { issuedAt: 'desc' },
+    })
+    return sessions.map((s) => ({
+      id: s.id,
+      userAgent: s.userAgent,
+      ipAddress: s.ipAddress,
+      issuedAt: s.issuedAt.toISOString(),
+      expiresAt: s.expiresAt.toISOString(),
+      isCurrent: s.id === req.authUser!.sessionId,
+    }))
+  })
+
+  // DELETE /sessions/:id
+  server.delete('/sessions/:id', {
+    schema: {
+      tags: ['auth'],
+      summary: 'Revoke a session',
+      params: z.object({ id: z.string() }),
+      response: { 200: MessageResponseSchema },
+    },
+    preHandler: [authenticate],
+  }, async (req, reply) => {
+    const { id } = req.params
+    if (id === req.authUser!.sessionId) return reply.badRequest('Cannot revoke your current session')
+    const session = await app.prisma.session.findUnique({ where: { id } })
+    if (!session || session.userId !== req.authUser!.id) return reply.notFound('Session not found')
+    await app.prisma.session.update({ where: { id }, data: { revokedAt: new Date() } })
+    return { message: 'Session revoked' }
   })
 
   // GET /me

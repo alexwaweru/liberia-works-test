@@ -45,3 +45,4 @@ coverage/
 # ignore individual ai settings
 .agent/
 .claude/
+skills-lock.json

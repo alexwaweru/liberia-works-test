@@ -32,6 +32,16 @@ const envSchema = z.object({
   // OpenAI (CV parsing)
   OPENAI_API_KEY: z.string().optional(),
 
+  // Twilio (SMS + WhatsApp)
+  TWILIO_ACCOUNT_SID: z.string().optional(),
+  TWILIO_AUTH_TOKEN: z.string().optional(),
+  TWILIO_FROM_SMS: z.string().optional(),
+  TWILIO_FROM_WHATSAPP: z.string().optional(),
+
+  // Postmark (email)
+  POSTMARK_API_TOKEN: z.string().optional(),
+  POSTMARK_FROM_EMAIL: z.string().optional(),
+
   // Resend (email)
   RESEND_API_KEY: z.string().optional(),
 
