@@ -19,6 +19,8 @@ const MOCK_USER = {
   passwordHash: '$2a$12$hashedpassword',
 }
 
+const MOCK_COUNTY = { id: 3041, countryId: 123 }
+
 // A valid password that satisfies both Zod min(8) and the complexity validator
 // (minLength=12, uppercase, lowercase, number, special)
 const VALID_PASSWORD = 'Str0ng!Pass#1'
@@ -27,6 +29,7 @@ const VALID_PAYLOAD = {
   phone: '+231771234599',
   fullName: 'Test User',
   password: VALID_PASSWORD,
+  countyId: 3041,
 }
 
 // ── App factory ───────────────────────────────────────────────────────────────
@@ -48,14 +51,18 @@ function buildApp() {
 
   const userCreate = vi.fn().mockResolvedValue(MOCK_USER)
   const individualCreate = vi.fn().mockResolvedValue({})
+  const addressCreate = vi.fn().mockResolvedValue({})
   const passwordHistoryCreate = vi.fn().mockResolvedValue({})
   const otpCodeCreate = vi.fn().mockResolvedValue({})
   const userFindUnique = vi.fn().mockResolvedValue(null)
+  const stateFindUnique = vi.fn().mockResolvedValue(MOCK_COUNTY)
+  const sessionCreate = vi.fn().mockResolvedValue({})
 
   // $transaction calls the callback with a tx object containing the mocked methods
   const txMock = {
     user: { create: userCreate },
     individual: { create: individualCreate },
+    address: { create: addressCreate },
     passwordHistory: { create: passwordHistoryCreate },
   }
   const $transaction = vi.fn().mockImplementation((cb: (tx: typeof txMock) => Promise<unknown>) => cb(txMock))
@@ -63,8 +70,11 @@ function buildApp() {
   app.decorate('prisma', {
     user: { findUnique: userFindUnique, create: userCreate },
     individual: { create: individualCreate },
+    address: { create: addressCreate },
     passwordHistory: { create: passwordHistoryCreate },
     otpCode: { create: otpCodeCreate },
+    state: { findUnique: stateFindUnique },
+    session: { create: sessionCreate },
     $transaction,
   } as unknown as PrismaClient)
 
@@ -86,6 +96,7 @@ describe('POST /api/v1/auth/register/individual', () => {
       payload: {
         phone: '+231771234599',
         fullName: 'Test User',
+        countyId: 3041,
         // password intentionally omitted
       },
     })
@@ -103,6 +114,7 @@ describe('POST /api/v1/auth/register/individual', () => {
       payload: {
         phone: '+231771234599',
         fullName: 'Test User',
+        countyId: 3041,
         password: 'Ab1!xyz', // 7 chars
       },
     })
@@ -120,6 +132,7 @@ describe('POST /api/v1/auth/register/individual', () => {
       payload: {
         phone: '+231771234599',
         fullName: 'Test User',
+        countyId: 3041,
         password: 'alllowercaseonly', // passes min(8), fails complexity
       },
     })
