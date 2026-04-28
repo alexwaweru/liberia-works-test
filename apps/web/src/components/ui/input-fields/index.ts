@@ -31,8 +31,8 @@ export type { URLInputProps } from "./url";
 export { TelephoneInput, DEFAULT_COUNTRIES } from "./telephone";
 export type { TelephoneInputProps } from "./telephone";
 
-export { DatePicker } from "./date";
-export type { DatePickerProps } from "./date";
+export { DatePicker, DateInput } from "./date";
+export type { DatePickerProps, DateInputProps } from "./date";
 
 export { TimePicker } from "./time";
 export type { TimePickerProps } from "./time";

@@ -71,23 +71,26 @@ const generalSchema = z.object({
 })
 type GeneralForm = z.infer<typeof generalSchema>
 
+function toGeneralValues(profile: { fullName: string | null; dateOfBirth: string | null; gender: string | null; nin: string | null }): GeneralForm {
+  return {
+    fullName: profile.fullName ?? '',
+    dateOfBirth: profile.dateOfBirth ? new Date(profile.dateOfBirth) : undefined,
+    gender: profile.gender?.toLowerCase() === 'prefer_not_to_say' ? 'unspecified' : (profile.gender?.toLowerCase() ?? ''),
+    nin: profile.nin ?? '',
+  }
+}
+
 function GeneralTab() {
   const qc = useQueryClient()
   const { data: profile, isLoading } = useQuery({
     queryKey: profileKeys.me,
     queryFn: getIndividualProfile,
+    refetchOnWindowFocus: false,
   })
 
   const { control, handleSubmit, formState: { errors } } = useForm<GeneralForm>({
     resolver: zodResolver(generalSchema),
-    values: profile
-      ? {
-          fullName: profile.fullName ?? '',
-          dateOfBirth: profile.dateOfBirth ? new Date(profile.dateOfBirth) : undefined,
-          gender: profile.gender?.toLowerCase() === 'prefer_not_to_say' ? 'unspecified' : (profile.gender?.toLowerCase() ?? ''),
-          nin: profile.nin ?? '',
-        }
-      : undefined,
+    values: profile ? toGeneralValues(profile) : undefined,
   })
 
   const mutation = useMutation({

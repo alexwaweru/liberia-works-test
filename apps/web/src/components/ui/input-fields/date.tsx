@@ -109,7 +109,8 @@ function DatePicker({
                 selected={value instanceof Date ? value : undefined}
                 onSelect={handleSingleSelect}
                 numberOfMonths={numberOfMonths}
-                fromDate={fromDate}
+                captionLayout="dropdown"
+                fromDate={fromDate ?? new Date(1900, 0, 1)}
                 toDate={toDate}
                 disabled={disabled}
               />
@@ -120,7 +121,8 @@ function DatePicker({
                 selected={Array.isArray(value) ? value : undefined}
                 onSelect={handleMultipleSelect}
                 numberOfMonths={numberOfMonths}
-                fromDate={fromDate}
+                captionLayout="dropdown"
+                fromDate={fromDate ?? new Date(1900, 0, 1)}
                 toDate={toDate}
                 disabled={disabled}
               />
@@ -135,7 +137,8 @@ function DatePicker({
                 }
                 onSelect={handleRangeSelect}
                 numberOfMonths={numberOfMonths}
-                fromDate={fromDate}
+                captionLayout="dropdown"
+                fromDate={fromDate ?? new Date(1900, 0, 1)}
                 toDate={toDate}
                 disabled={disabled}
               />
@@ -149,3 +152,72 @@ function DatePicker({
 
 export { DatePicker };
 export type { DatePickerProps };
+
+// ── Native date input ─────────────────────────────────────────────────────────
+// Better UX for historical dates (DOB, education years, etc.) — users can type
+// directly or use the browser's native year-aware picker instead of scrolling
+// month by month through a calendar.
+
+interface DateInputProps extends BaseFieldProps {
+  value?: Date
+  onChange?: (date: Date | undefined) => void
+  min?: string
+  max?: string
+}
+
+function DateInput({
+  value,
+  onChange,
+  min,
+  max,
+  label,
+  error,
+  helperText,
+  required,
+  disabled,
+  id,
+  className,
+}: DateInputProps) {
+  const toInputValue = (d?: Date) =>
+    d instanceof Date && !isNaN(d.getTime())
+      ? d.toISOString().split('T')[0]
+      : ''
+
+  return (
+    <FieldWrapper
+      id={id}
+      label={label}
+      error={error}
+      helperText={helperText}
+      required={required}
+      disabled={disabled}
+      className={className}
+    >
+      {({ id: fieldId, describedBy }) => (
+        <input
+          id={fieldId}
+          type="date"
+          value={toInputValue(value)}
+          min={min}
+          max={max}
+          disabled={disabled}
+          aria-describedby={describedBy}
+          onChange={(e) => {
+            const v = e.target.value
+            onChange?.(v ? new Date(v + 'T00:00:00') : undefined)
+          }}
+          className={cn(
+            'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm',
+            'transition-colors placeholder:text-muted-foreground',
+            'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+            error && 'border-destructive focus-visible:ring-destructive',
+          )}
+        />
+      )}
+    </FieldWrapper>
+  )
+}
+
+export { DateInput };
+export type { DateInputProps };

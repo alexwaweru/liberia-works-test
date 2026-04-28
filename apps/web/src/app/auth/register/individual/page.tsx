@@ -179,9 +179,9 @@ export default function IndividualRegisterPage() {
             render={({ field }) => (
               <DatePicker
                 label="Date of birth"
-                placeholder="Select date"
+                mode="single"
                 value={field.value}
-                onChange={(date) => field.onChange(date)}
+                onChange={(date) => field.onChange(date instanceof Date ? date : undefined)}
                 toDate={new Date()}
                 error={errors.dateOfBirth?.message}
               />
