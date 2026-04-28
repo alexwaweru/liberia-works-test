@@ -9,12 +9,14 @@ const e164Phone = z
 
 export const RequestOtpSchema = z.object({
   phone: e164Phone,
-  channel: z.enum(['SMS', 'WHATSAPP']).default('SMS'),
+  channel: z.enum(['SMS', 'WHATSAPP', 'EMAIL']).default('SMS'),
+  purpose: z.enum(['REGISTRATION', 'LOGIN']).default('REGISTRATION'),
 })
 
 export const VerifyOtpSchema = z.object({
   phone: e164Phone,
   otp: z.string().length(6, 'OTP must be exactly 6 digits').regex(/^\d{6}$/),
+  purpose: z.enum(['REGISTRATION', 'LOGIN']).default('REGISTRATION'),
 })
 
 // ── Email + password auth (employers, MoL) ────────────────────────────────────
@@ -56,9 +58,12 @@ export type MeResponse = z.infer<typeof MeResponseSchema>
 export const RegisterIndividualSchema = z.object({
   phone: e164Phone,
   fullName: z.string().min(2).max(200),
+  countyId: z.number().int().positive(),
   dateOfBirth: z.string().date().optional(),
   gender: z.enum(['male', 'female', 'unspecified']).optional(),
-  channel: z.enum(['SMS', 'WHATSAPP']).default('SMS'),
+  channel: z.enum(['SMS', 'WHATSAPP', 'EMAIL']).default('SMS'),
+  email: z.string().email('Enter a valid email address').optional(),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 })
 
 export const RegisterEmployerSchema = z.object({

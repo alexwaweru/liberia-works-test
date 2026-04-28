@@ -40,6 +40,8 @@
     "fastify-type-provider-zod": "^4.0.0",
     "ioredis": "^5.3.2",
     "pg": "^8.20.0",
+    "postmark": "^4.0.7",
+    "twilio": "^6.0.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {

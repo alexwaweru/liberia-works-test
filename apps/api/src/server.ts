@@ -18,6 +18,9 @@ import idempotencyPlugin from './plugins/idempotency.js'
 import auditPlugin from './plugins/audit.js'
 import errorHandlerPlugin from './plugins/error-handler.js'
 
+// ── Notification senders ──────────────────────────────────────────────────────
+import { notifyPlugin, TwilioSender, PostmarkSender, ConsoleSender } from './lib/notifications/index.js'
+
 // ── Domain modules ────────────────────────────────────────────────────────────
 import referenceModule from './modules/reference/index.js'
 import accountsModule from './modules/accounts/index.js'
@@ -78,6 +81,25 @@ await app.register(scalarPlugin)
 await app.register(authPlugin)
 await app.register(idempotencyPlugin)
 await app.register(auditPlugin)
+await app.register(notifyPlugin)
+
+// Register real senders if credentials are present
+if (env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_FROM_SMS && env.TWILIO_FROM_WHATSAPP) {
+  app.senders.register(new TwilioSender({
+    accountSid: env.TWILIO_ACCOUNT_SID,
+    authToken: env.TWILIO_AUTH_TOKEN,
+    fromSms: env.TWILIO_FROM_SMS,
+    fromWhatsapp: env.TWILIO_FROM_WHATSAPP,
+  }))
+}
+if (env.POSTMARK_API_TOKEN && env.POSTMARK_FROM_EMAIL) {
+  app.senders.register(new PostmarkSender({
+    apiToken: env.POSTMARK_API_TOKEN,
+    from: env.POSTMARK_FROM_EMAIL,
+  }))
+}
+// ConsoleSender covers any delivery type not claimed by a real sender
+app.senders.registerFallback(new ConsoleSender())
 
 // ── Domain modules ────────────────────────────────────────────────────────────
 await app.register(referenceModule,    { prefix: '/api/v1/reference' })

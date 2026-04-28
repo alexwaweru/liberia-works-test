@@ -10,6 +10,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     const body = await res.json().catch(() => ({}))
     throw new Error((body as { message?: string }).message ?? `Request failed: ${res.status}`)
   }
+  if (res.status === 204) return undefined as T
   return res.json() as Promise<T>
 }
 
@@ -128,4 +129,93 @@ export function publishVacancy(id: string) {
 
 export function deleteVacancy(id: string) {
   return apiFetch<{ message: string }>(`/api/v1/vacancies/${id}`, { method: 'DELETE' })
+}
+
+export type IndividualProfile = {
+  id: string
+  userId: string
+  fullName: string | null
+  email: string | null
+  phoneNumber: string | null
+  dateOfBirth: string | null
+  gender: string | null
+  nin: string | null
+  address: { id: string; countryId: number; stateId: number | null; cityId: number | null; addressLine1: string | null; addressLine2: string | null } | null
+}
+
+export type EducationRecord = {
+  id: string
+  institutionName: string
+  qualification: string | null
+  fieldOfStudy: string | null
+  startDate: string | null
+  endDate: string | null
+  isCurrent: boolean
+}
+
+export type WorkHistoryRecord = {
+  id: string
+  employerName: string
+  title: string | null
+  startDate: string | null
+  endDate: string | null
+  isCurrent: boolean
+  description: string | null
+}
+
+export function getIndividualProfile() {
+  return apiFetch<IndividualProfile>('/api/v1/individuals/me')
+}
+
+export function updateIndividualProfile(body: Partial<{ fullName: string; dateOfBirth: string; gender: string; nin: string }>) {
+  return apiFetch<IndividualProfile>('/api/v1/individuals/me', { method: 'PATCH', body: JSON.stringify(body) })
+}
+
+export function getEducation() {
+  return apiFetch<EducationRecord[]>('/api/v1/individuals/me/education')
+}
+
+export function addEducation(body: object) {
+  return apiFetch<EducationRecord>('/api/v1/individuals/me/education', { method: 'POST', body: JSON.stringify(body) })
+}
+
+export function deleteEducation(id: string) {
+  return apiFetch<void>(`/api/v1/individuals/me/education/${id}`, { method: 'DELETE' })
+}
+
+export function getWorkHistory() {
+  return apiFetch<WorkHistoryRecord[]>('/api/v1/individuals/me/work-history')
+}
+
+export function addWorkHistory(body: object) {
+  return apiFetch<WorkHistoryRecord>('/api/v1/individuals/me/work-history', { method: 'POST', body: JSON.stringify(body) })
+}
+
+export function deleteWorkHistory(id: string) {
+  return apiFetch<void>(`/api/v1/individuals/me/work-history/${id}`, { method: 'DELETE' })
+}
+
+export function updateAddress(body: { countryId?: number; stateId?: number; cityId?: number; addressLine1?: string; addressLine2?: string }) {
+  return apiFetch<void>('/api/v1/individuals/me/address', { method: 'PATCH', body: JSON.stringify(body) })
+}
+
+export function changePassword(body: { currentPassword: string; newPassword: string }) {
+  return apiFetch<{ message: string }>('/api/v1/auth/change-password', { method: 'POST', body: JSON.stringify(body) })
+}
+
+export type SessionItem = {
+  id: string
+  userAgent: string | null
+  ipAddress: string | null
+  issuedAt: string
+  expiresAt: string
+  isCurrent: boolean
+}
+
+export function getSessions() {
+  return apiFetch<SessionItem[]>('/api/v1/auth/sessions')
+}
+
+export function revokeSession(id: string) {
+  return apiFetch<{ message: string }>(`/api/v1/auth/sessions/${id}`, { method: 'DELETE' })
 }

@@ -5,7 +5,9 @@ import { serverFetch } from '@/lib/server-api'
 export async function registerIndividualAction(body: {
   phone: string
   fullName: string
-  county: string
+  countyId: number
+  email?: string
+  password: string
   dateOfBirth?: string
   gender?: 'male' | 'female' | 'unspecified'
 }): Promise<{ error: string } | { success: true }> {
