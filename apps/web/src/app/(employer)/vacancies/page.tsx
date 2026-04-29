@@ -1,9 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { Plus, Loader2, Briefcase, Calendar, Users, ArrowRight } from 'lucide-react'
+import { Plus, Loader2, Briefcase, ArrowUpRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { useVacancies, usePublishVacancy, useDeleteVacancy } from '@/hooks/vacancies'
 import { toast } from '@/lib/toast'
 import type { VacancyResponse } from '@/lib/api'
@@ -13,13 +12,6 @@ const TYPE_LABELS: Record<string, string> = {
   CONTRACT: 'Contract',
   INTERNSHIP: 'Internship',
   VACATION_JOB: 'Vacation Job',
-}
-
-const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  DRAFT: 'secondary',
-  ACTIVE: 'default',
-  CLOSED: 'outline',
-  ARCHIVED: 'destructive',
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -39,6 +31,21 @@ function formatDeadline(dateStr: string) {
   return { label: formatted, urgent: false, expired: false }
 }
 
+const AVATAR_COLORS = [
+  'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
+  'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+  'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+  'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400',
+]
+
+function getInitials(title: string): string {
+  const words = title.trim().split(/\s+/)
+  if (words.length === 1) return words[0].charAt(0).toUpperCase()
+  return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase()
+}
+
 function VacancyCard({
   vacancy,
   onPublish,
@@ -54,50 +61,45 @@ function VacancyCard({
 }) {
   const deadline = formatDeadline(vacancy.deadline)
   const statusColorClass = STATUS_COLORS[vacancy.status] ?? STATUS_COLORS.CLOSED
+  const avatarColor = AVATAR_COLORS[vacancy.id.charCodeAt(0) % 6]
+  const initials = getInitials(vacancy.title)
 
   return (
-    <div className="group flex flex-col rounded-xl border border-border bg-card hover:border-border/80 hover:shadow-sm transition-all duration-200">
-      <div className="flex flex-col flex-1 p-5">
-        {/* Top row: type + status */}
-        <div className="flex items-center justify-between gap-2 mb-3">
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            {TYPE_LABELS[vacancy.vacancyType] ?? vacancy.vacancyType}
-          </span>
-          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColorClass}`}>
-            {vacancy.status.charAt(0) + vacancy.status.slice(1).toLowerCase()}
-          </span>
+    <div className="group flex flex-col rounded-xl border border-border bg-card hover:shadow-md hover:border-border/60 transition-all duration-200">
+      {/* Top section */}
+      <div className="p-5 flex flex-col gap-4 flex-1">
+        {/* Header row: avatar + title/type */}
+        <div className="flex items-start gap-3">
+          <div className={`size-11 rounded-lg font-bold text-sm flex items-center justify-center shrink-0 ${avatarColor}`}>
+            {initials}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold text-foreground leading-snug line-clamp-2 text-[15px]">
+              {vacancy.title}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {TYPE_LABELS[vacancy.vacancyType] ?? vacancy.vacancyType}
+            </p>
+          </div>
         </div>
 
-        {/* Title */}
-        <h3 className="text-base font-semibold text-foreground leading-snug mb-2 line-clamp-2">
-          {vacancy.title}
-        </h3>
-
-        {/* Description snippet */}
-        {vacancy.description && (
-          <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-4">
-            {vacancy.description}
-          </p>
-        )}
-
-        {/* Meta row */}
-        <div className="flex items-center gap-4 mt-auto text-sm text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <Users className="size-3.5 shrink-0" />
-            <span>{vacancy.slotsAvailable} {vacancy.slotsAvailable === 1 ? 'slot' : 'slots'}</span>
+        {/* Tags row: status pill + slots pill */}
+        <div className="flex flex-wrap gap-1.5 mt-1">
+          <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-medium ${statusColorClass}`}>
+            {vacancy.status.charAt(0) + vacancy.status.slice(1).toLowerCase()}
           </span>
-          <span className="flex items-center gap-1.5">
-            <Calendar className="size-3.5 shrink-0" />
-            <span className={deadline.urgent ? 'text-amber-600 dark:text-amber-400 font-medium' : deadline.expired ? 'text-destructive' : ''}>
-              {deadline.label}
-            </span>
+          <span className="bg-muted text-muted-foreground text-xs px-2 py-0.5 rounded-full">
+            {vacancy.slotsAvailable} {vacancy.slotsAvailable === 1 ? 'slot' : 'slots'}
           </span>
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Footer */}
       <div className="flex items-center justify-between gap-2 border-t border-border px-5 py-3">
-        <div className="flex items-center gap-2">
+        <span className={`text-xs text-muted-foreground ${deadline.urgent ? 'text-amber-600 dark:text-amber-400 font-medium' : deadline.expired ? 'text-destructive' : ''}`}>
+          {deadline.label}
+        </span>
+        <div className="flex items-center gap-1">
           {vacancy.status === 'DRAFT' && (
             <Button
               size="sm"
@@ -118,12 +120,12 @@ function VacancyCard({
           >
             {isArchiving ? <Loader2 className="size-3 animate-spin" /> : 'Archive'}
           </Button>
+          <Button size="sm" variant="outline" className="h-7 text-xs gap-1" asChild>
+            <Link href={`/vacancies/${vacancy.id}`}>
+              View job <ArrowUpRight className="size-3" />
+            </Link>
+          </Button>
         </div>
-        <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground" asChild>
-          <Link href={`/vacancies/${vacancy.id}`}>
-            View <ArrowRight className="size-3" />
-          </Link>
-        </Button>
       </div>
     </div>
   )
@@ -140,7 +142,7 @@ function EmptyState() {
         Post your first vacancy to start attracting qualified candidates.
       </p>
       <Button asChild>
-        <Link href="/vacancies/new">
+        <Link href="/vacancies/create">
           <Plus className="size-4" />
           New Vacancy
         </Link>
@@ -180,7 +182,7 @@ export default function EmployerVacanciesPage() {
           <p className="text-sm text-muted-foreground mt-0.5">Manage your job postings</p>
         </div>
         <Button asChild>
-          <Link href="/vacancies/new">
+          <Link href="/vacancies/create">
             <Plus className="size-4" />
             New Vacancy
           </Link>

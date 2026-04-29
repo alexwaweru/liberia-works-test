@@ -28,17 +28,21 @@ const authPlugin: FastifyPluginAsync = async (app) => {
   app.decorateRequest('authUser', null)
 }
 
+function httpError(statusCode: number, message: string): Error & { statusCode: number } {
+  return Object.assign(new Error(message), { statusCode })
+}
+
 /**
  * preHandler — verifies JWT and populates request.authUser.
  * Usage: preHandler: [authenticate]
  */
-export async function authenticate(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function authenticate(request: FastifyRequest, _reply: FastifyReply): Promise<void> {
   try {
     await request.jwtVerify()
     const { sub, role, sessionId } = request.user
     request.authUser = { id: sub, role, sessionId }
   } catch {
-    reply.unauthorized('Invalid or expired token')
+    throw httpError(401, 'Invalid or expired token')
   }
 }
 
@@ -49,10 +53,9 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
 export function requireRole(roles: UserRole[]) {
   return async function (request: FastifyRequest, reply: FastifyReply): Promise<void> {
     await authenticate(request, reply)
-    if (reply.sent) return
     const user = request.authUser
     if (!user || !roles.includes(user.role)) {
-      reply.forbidden(`Requires one of: ${roles.join(', ')}`)
+      throw httpError(403, `Requires one of: ${roles.join(', ')}`)
     }
   }
 }
