@@ -5,6 +5,7 @@ import {
   UpdateVacancySchema,
   VacancyResponseSchema,
   VacancyListResponseSchema,
+  VacancyFilterSchema,
   MessageResponseSchema,
 } from '@liberia-works/shared-schemas'
 import { EMPLOYER_ROLES } from '@liberia-works/shared-types'
@@ -13,7 +14,9 @@ import { Prisma } from '@prisma/client'
 import type { FastifyReply } from 'fastify'
 import type { Vacancy } from '@prisma/client'
 
-function formatVacancy(v: Vacancy) {
+type VacancyWithCount = Vacancy & { _count: { applications: number } }
+
+function formatVacancy(v: VacancyWithCount) {
   const deadline =
     v.deadline instanceof Date
       ? v.deadline.toISOString().split('T')[0]!
@@ -36,6 +39,7 @@ function formatVacancy(v: Vacancy) {
     postedAt: v.postedAt?.toISOString() ?? null,
     createdAt: v.createdAt.toISOString(),
     updatedAt: v.updatedAt.toISOString(),
+    applicationsCount: v._count.applications,
   }
 }
 
@@ -58,22 +62,47 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
     return eu.employerId
   }
 
-  // GET / — list current employer's vacancies
+  // GET / — list current employer's vacancies (cursor-paginated)
   server.get('/', {
     schema: {
       tags: ['vacancies'],
       summary: "List the current employer's vacancies",
+      querystring: VacancyFilterSchema,
       response: { 200: VacancyListResponseSchema },
     },
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const employerId = await getEmployerId(req.authUser!.id, reply)
     if (!employerId) return
-    const rows = await app.prisma.vacancy.findMany({
-      where: { employerId, isActive: true },
-      orderBy: { createdAt: 'desc' },
-    })
-    return rows.map(formatVacancy)
+
+    const { cursor, status, sortBy, sortDir } = req.query
+    const PAGE_SIZE = 20
+    const dir = sortDir ?? 'desc'
+
+    const orderBy = sortBy === 'deadline'
+      ? [{ deadline: dir }, { id: dir }]
+      : sortBy === 'postedAt'
+        ? [{ postedAt: dir }, { id: dir }]
+        : [{ createdAt: 'desc' as const }, { id: 'desc' as const }]
+
+    const where = { employerId, isActive: true, ...(status ? { status } : {}) }
+
+    const [total, rows] = await Promise.all([
+      app.prisma.vacancy.count({ where }),
+      app.prisma.vacancy.findMany({
+        where,
+        orderBy,
+        include: { _count: { select: { applications: true } } },
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        take: PAGE_SIZE + 1,
+      }),
+    ])
+
+    const hasMore = rows.length > PAGE_SIZE
+    const data = hasMore ? rows.slice(0, PAGE_SIZE) : rows
+    const nextCursor = hasMore ? data[data.length - 1]!.id : null
+
+    return { data: data.map(formatVacancy), pagination: { nextCursor, hasMore, total } }
   })
 
   // POST / — create vacancy
@@ -90,7 +119,7 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
     if (!employerId) return
     const b = req.body
     const appForm = toJsonInput(b.applicationForm)
-    const vacancy = await app.prisma.vacancy.create({
+    const created = await app.prisma.vacancy.create({
       data: {
         employerId,
         title: b.title,
@@ -106,7 +135,11 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
         ...(appForm !== undefined ? { applicationForm: appForm } : {}),
       },
     })
-    return reply.status(201).send(formatVacancy(vacancy))
+    const vacancy = await app.prisma.vacancy.findFirst({
+      where: { id: created.id },
+      include: { _count: { select: { applications: true } } },
+    })
+    return reply.status(201).send(formatVacancy(vacancy!))
   })
 
   // GET /:id — get single vacancy
@@ -123,6 +156,7 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
     const { id } = req.params as { id: string }
     const vacancy = await app.prisma.vacancy.findFirst({
       where: { id, employerId, isActive: true },
+      include: { _count: { select: { applications: true } } },
     })
     if (!vacancy) return reply.notFound('Vacancy not found')
     return formatVacancy(vacancy)
@@ -147,7 +181,7 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
     if (!existing) return reply.notFound('Vacancy not found')
     const b = req.body
     const appForm = toJsonInput(b.applicationForm)
-    const updated = await app.prisma.vacancy.update({
+    await app.prisma.vacancy.update({
       where: { id },
       data: {
         ...(b.title !== undefined ? { title: b.title } : {}),
@@ -163,7 +197,11 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
         ...(appForm !== undefined ? { applicationForm: appForm } : {}),
       },
     })
-    return formatVacancy(updated)
+    const updated = await app.prisma.vacancy.findFirst({
+      where: { id },
+      include: { _count: { select: { applications: true } } },
+    })
+    return formatVacancy(updated!)
   })
 
   // POST /:id/publish — publish vacancy
@@ -183,11 +221,15 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
     })
     if (!existing) return reply.notFound('Vacancy not found')
     if (existing.status !== 'DRAFT') return reply.badRequest('Only DRAFT vacancies can be published')
-    const updated = await app.prisma.vacancy.update({
+    await app.prisma.vacancy.update({
       where: { id },
       data: { status: 'ACTIVE', postedAt: new Date() },
     })
-    return formatVacancy(updated)
+    const updated = await app.prisma.vacancy.findFirst({
+      where: { id },
+      include: { _count: { select: { applications: true } } },
+    })
+    return formatVacancy(updated!)
   })
 
   // DELETE /:id — soft-delete (archive)

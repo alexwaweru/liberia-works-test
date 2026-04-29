@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { CursorQuerySchema } from './common.js'
+import { CursorQuerySchema, CursorPageSchema } from './common.js'
 
 // applicationForm is stored as a FormDefinition JSON blob
 const applicationFormSchema = z.record(z.unknown()).nullable()
@@ -40,7 +40,13 @@ export const VacancyResponseSchema = z.object({
   updatedAt: z.string().datetime(),
 })
 
-export const VacancyListResponseSchema = z.array(VacancyResponseSchema)
+export const VacancyListItemSchema = VacancyResponseSchema.extend({
+  applicationsCount: z.number().int(),
+})
+export type VacancyListItem = z.infer<typeof VacancyListItemSchema>
+
+export const VacancyListResponseSchema = CursorPageSchema(VacancyListItemSchema)
+export type VacancyListResponse = z.infer<typeof VacancyListResponseSchema>
 
 export const VacancyFilterSchema = CursorQuerySchema.extend({
   stateId: z.coerce.number().int().optional(),
@@ -48,6 +54,8 @@ export const VacancyFilterSchema = CursorQuerySchema.extend({
   vacancyType: z.enum(['VACATION_JOB', 'PERMANENT', 'CONTRACT', 'INTERNSHIP']).optional(),
   status: z.enum(['DRAFT', 'ACTIVE', 'CLOSED', 'ARCHIVED']).optional(),
   keyword: z.string().max(100).optional(),
+  sortBy: z.enum(['postedAt', 'deadline']).optional(),
+  sortDir: z.enum(['asc', 'desc']).optional(),
 })
 
 export type CreateVacancy = z.infer<typeof CreateVacancySchema>

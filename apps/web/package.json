@@ -22,6 +22,7 @@
     "@liberia-works/shared-types": "workspace:*",
     "@liberia-works/shared-utils": "workspace:*",
     "@tanstack/react-query": "^5.66.1",
+    "@tanstack/react-virtual": "^3.13.24",
     "@tiptap/extension-character-count": "^3.22.4",
     "@tiptap/extension-placeholder": "^3.22.4",
     "@tiptap/extension-text-align": "^3.22.4",
@@ -40,8 +41,10 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.0",
     "react-resizable-panels": "^4",
+    "root": "git+https://github.com/tanstack/react-virtual.git",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
+    "tanstack": "^2.0.3",
     "zod": "^3.24.1",
     "zustand": "^5.0.12"
   },

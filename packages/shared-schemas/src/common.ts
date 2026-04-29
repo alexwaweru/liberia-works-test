@@ -10,6 +10,7 @@ export const CursorQuerySchema = z.object({
 export const CursorPaginationMetaSchema = z.object({
   nextCursor: z.string().nullable(),
   hasMore: z.boolean(),
+  total: z.number().int(),
 })
 
 export function CursorPageSchema<T extends z.ZodTypeAny>(itemSchema: T) {

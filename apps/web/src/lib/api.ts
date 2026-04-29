@@ -115,8 +115,30 @@ export type CreateVacancyPayload = {
   applicationForm?: Record<string, unknown>
 }
 
-export function listVacancies() {
-  return apiFetch<VacancyResponse[]>('/api/v1/vacancies')
+export type VacancyListItem = VacancyResponse & { applicationsCount: number }
+
+export type VacancyListResponse = {
+  data: VacancyListItem[]
+  pagination: {
+    nextCursor: string | null
+    hasMore: boolean
+    total: number
+  }
+}
+
+export function listVacancies(params?: {
+  cursor?: string
+  status?: string
+  sortBy?: string
+  sortDir?: string
+}) {
+  const q = new URLSearchParams()
+  if (params?.cursor) q.set('cursor', params.cursor)
+  if (params?.status) q.set('status', params.status)
+  if (params?.sortBy) q.set('sortBy', params.sortBy)
+  if (params?.sortDir) q.set('sortDir', params.sortDir)
+  const qs = q.toString()
+  return apiFetch<VacancyListResponse>(`/api/v1/vacancies${qs ? `?${qs}` : ''}`)
 }
 
 export function createVacancy(body: CreateVacancyPayload) {
