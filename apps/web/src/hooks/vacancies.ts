@@ -2,18 +2,21 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listVacancies, createVacancy, publishVacancy, deleteVacancy } from '@/lib/api'
-import type { CreateVacancyPayload } from '@/lib/api'
+import type { CreateVacancyPayload, VacancyListResponse } from '@/lib/api'
+
+type VacancyFilters = { cursor?: string; status?: string; sortBy?: string; sortDir?: string }
 
 export const vacancyKeys = {
   all: ['vacancies'] as const,
-  list: () => [...vacancyKeys.all, 'list'] as const,
+  list: (filters?: VacancyFilters) => [...vacancyKeys.all, 'list', filters] as const,
 }
 
-export function useVacancies() {
-  return useQuery({
-    queryKey: vacancyKeys.list(),
-    queryFn: listVacancies,
+export function useVacancies(filters?: VacancyFilters) {
+  return useQuery<VacancyListResponse>({
+    queryKey: vacancyKeys.list(filters),
+    queryFn: () => listVacancies(filters),
     staleTime: 2 * 60 * 1000,
+    placeholderData: (prev) => prev,
   })
 }
 
