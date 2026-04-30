@@ -66,6 +66,9 @@ importers:
       '@scalar/fastify-api-reference':
         specifier: ^1.52.4
         version: 1.52.4
+      africastalking:
+        specifier: ^0.8.0
+        version: 0.8.0
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3
@@ -292,7 +295,7 @@ importers:
         version: 4.10.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
       root:
         specifier: git+https://github.com/tanstack/react-virtual.git
-        version: git+https://github.com/tanstack/react-virtual.git#5ae5db111ef55df137a77fe3e6fbf19174f9cd11
+        version: git+https://git@github.com:tanstack/react-virtual.git#5ae5db111ef55df137a77fe3e6fbf19174f9cd11
       sonner:
         specifier: ^2.0.7
         version: 2.0.7(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -1668,6 +1671,26 @@ packages:
 
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
+
+  '@hapi/address@5.1.1':
+    resolution: {integrity: sha512-A+po2d/dVoY7cYajycYI43ZbYMXukuopIsqCjh5QzsBCipDtdofHntljDlpccMjIfTy6UOkg+5KPriwYch2bXA==}
+    engines: {node: '>=14.0.0'}
+
+  '@hapi/formula@3.0.2':
+    resolution: {integrity: sha512-hY5YPNXzw1He7s0iqkRQi+uMGh383CGdyyIGYtB+W5N3KHPXoqychklvHhKCC9M3Xtv0OCs/IHw+r4dcHtBYWw==}
+
+  '@hapi/hoek@11.0.7':
+    resolution: {integrity: sha512-HV5undWkKzcB4RZUusqOpcgxOaq6VOAH7zhhIr2g3G8NF/MlFO75SjOr2NfuSx0Mh40+1FqCkagKLJRykUWoFQ==}
+
+  '@hapi/pinpoint@2.0.1':
+    resolution: {integrity: sha512-EKQmr16tM8s16vTT3cA5L0kZZcTMU5DUOZTuvpnY738m+jyP3JIUj+Mm1xc1rsLkGBQ/gVnfKYPwOmPg1tUR4Q==}
+
+  '@hapi/tlds@1.1.6':
+    resolution: {integrity: sha512-xdi7A/4NZokvV0ewovme3aUO5kQhW9pQ2YD1hRqZGhhSi5rBv4usHYidVocXSi9eihYsznZxLtAiEYYUL6VBGw==}
+    engines: {node: '>=14.0.0'}
+
+  '@hapi/topo@6.0.2':
+    resolution: {integrity: sha512-KR3rD5inZbGMrHmgPxsJ9dbi6zEK+C3ZwUwTa+eMwWLz7oijWUTWD2pMSNNYJAU6Qq+65NkxXjqHr/7LM2Xkqg==}
 
   '@hono/node-server@1.19.11':
     resolution: {integrity: sha512-dr8/3zEaB+p0D2n/IUrlPF1HZm586qgJNXK1a9fhg/PzdtkK7Ksd5l312tJX2yBuALqDYBlG20QEbayqPyxn+g==}
@@ -3888,6 +3911,10 @@ packages:
   aes-decrypter@4.0.2:
     resolution: {integrity: sha512-lc+/9s6iJvuaRe5qDlMTpCFjnwpkeOXp8qP3oiZ5jsj1MRg+SBVUmmICrhxHvc8OELSmc+fEyyxAuppY6hrWzw==}
 
+  africastalking@0.8.0:
+    resolution: {integrity: sha512-O7s309QvTxGt+CXs3FzA7vxHF5LgDFINmbImYctX14nOlY+zmKrwdvBYiVeCqqq1PuJTueVZQ8+JmOoRb1jLkg==}
+    engines: {node: '>=18', npm: '>=11.12.1', pnpm: '>=10.33.0'}
+
   agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
     engines: {node: '>= 6.0.0'}
@@ -4079,6 +4106,9 @@ packages:
   axe-core@4.11.3:
     resolution: {integrity: sha512-zBQouZixDTbo3jMGqHKyePxYxr1e5W8UdTmBQ7sNtaA9M2bE32daxxPLS/jojhKOHxQ7LWwPjfiwf/fhaJWzlg==}
     engines: {node: '>=4'}
+
+  axios@1.15.0:
+    resolution: {integrity: sha512-wWyJDlAatxk30ZJer+GeCWS209sA42X+N5jU2jy6oHTp7ufw8uzUTVFBX9+wTfAlhiJXGS0Bq7X6efruWjuK9Q==}
 
   axios@1.15.2:
     resolution: {integrity: sha512-wLrXxPtcrPTsNlJmKjkPnNPK2Ihe0hn0wGSaTEiHRPxwjvJwT3hKmXF4dpqxmPO9SoNb2FsYXj/xEo0gHN+D5A==}
@@ -5541,6 +5571,10 @@ packages:
     resolution: {integrity: sha512-jhIXaOzy1sb8IyocaruWSn1TjmnBVs8Ayhcy83rmxNJ8q2uWKCAj3CnJY+KpGSXCueAPc0i05kVvVKtP1t9S3g==}
     engines: {node: '>=10'}
 
+  google-libphonenumber@3.2.44:
+    resolution: {integrity: sha512-9p2TghluF2LTChFMLWsDRD5N78SZDsILdUk4gyqYxBXluCyxoPiOq+Fqt7DKM+LUd33+OgRkdrc+cPR93AypCQ==}
+    engines: {node: '>=0.10'}
+
   gopd@1.2.0:
     resolution: {integrity: sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==}
     engines: {node: '>= 0.4'}
@@ -6102,6 +6136,10 @@ packages:
   jiti@2.6.1:
     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
     hasBin: true
+
+  joi@18.1.2:
+    resolution: {integrity: sha512-rF5MAmps5esSlhCA+N1b6IYHDw9j/btzGaqfgie522jS02Ju/HXBxamlXVlKEHAxoMKQL77HWI8jlqWsFuekZA==}
+    engines: {node: '>= 20'}
 
   join-component@1.1.0:
     resolution: {integrity: sha512-bF7vcQxbODoGK1imE2P9GS9aw4zD0Sd+Hni68IMZLj7zRnquH7dXUmMw9hDI5S/Jzt7q+IyTXN0rSg2GI0IKhQ==}
@@ -7637,8 +7675,8 @@ packages:
     engines: {node: '>=18.0.0', npm: '>=8.0.0'}
     hasBin: true
 
-  root@git+https://github.com/tanstack/react-virtual.git#5ae5db111ef55df137a77fe3e6fbf19174f9cd11:
-    resolution: {commit: 5ae5db111ef55df137a77fe3e6fbf19174f9cd11, repo: https://github.com/tanstack/react-virtual.git, type: git}
+  root@git+https://git@github.com:tanstack/react-virtual.git#5ae5db111ef55df137a77fe3e6fbf19174f9cd11:
+    resolution: {commit: 5ae5db111ef55df137a77fe3e6fbf19174f9cd11, repo: git@github.com:tanstack/react-virtual.git, type: git}
     version: 0.0.0
 
   rope-sequence@1.3.4:
@@ -10405,6 +10443,22 @@ snapshots:
 
   '@floating-ui/utils@0.2.11': {}
 
+  '@hapi/address@5.1.1':
+    dependencies:
+      '@hapi/hoek': 11.0.7
+
+  '@hapi/formula@3.0.2': {}
+
+  '@hapi/hoek@11.0.7': {}
+
+  '@hapi/pinpoint@2.0.1': {}
+
+  '@hapi/tlds@1.1.6': {}
+
+  '@hapi/topo@6.0.2':
+    dependencies:
+      '@hapi/hoek': 11.0.7
+
   '@hono/node-server@1.19.11(hono@4.12.14)':
     dependencies:
       hono: 4.12.14
@@ -12924,6 +12978,15 @@ snapshots:
       global: 4.4.0
       pkcs7: 1.0.4
 
+  africastalking@0.8.0:
+    dependencies:
+      axios: 1.15.0
+      google-libphonenumber: 3.2.44
+      joi: 18.1.2
+      lodash: 4.18.1
+    transitivePeerDependencies:
+      - debug
+
   agent-base@6.0.2:
     dependencies:
       debug: 4.4.3
@@ -13121,6 +13184,14 @@ snapshots:
   aws-ssl-profiles@1.1.2: {}
 
   axe-core@4.11.3: {}
+
+  axios@1.15.0:
+    dependencies:
+      follow-redirects: 1.16.0
+      form-data: 4.0.5
+      proxy-from-env: 2.1.0
+    transitivePeerDependencies:
+      - debug
 
   axios@1.15.2:
     dependencies:
@@ -15039,6 +15110,8 @@ snapshots:
       merge2: 1.4.1
       slash: 3.0.0
 
+  google-libphonenumber@3.2.44: {}
+
   gopd@1.2.0: {}
 
   graceful-fs@4.2.11: {}
@@ -15817,6 +15890,16 @@ snapshots:
   jimp-compact@0.16.1: {}
 
   jiti@2.6.1: {}
+
+  joi@18.1.2:
+    dependencies:
+      '@hapi/address': 5.1.1
+      '@hapi/formula': 3.0.2
+      '@hapi/hoek': 11.0.7
+      '@hapi/pinpoint': 2.0.1
+      '@hapi/tlds': 1.1.6
+      '@hapi/topo': 6.0.2
+      '@standard-schema/spec': 1.1.0
 
   join-component@1.1.0: {}
 
@@ -17592,7 +17675,7 @@ snapshots:
       '@rollup/rollup-win32-x64-msvc': 4.60.2
       fsevents: 2.3.3
 
-  root@git+https://github.com/tanstack/react-virtual.git#5ae5db111ef55df137a77fe3e6fbf19174f9cd11: {}
+  root@git+https://git@github.com:tanstack/react-virtual.git#5ae5db111ef55df137a77fe3e6fbf19174f9cd11: {}
 
   rope-sequence@1.3.4: {}
 
