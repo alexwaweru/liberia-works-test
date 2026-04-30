@@ -10,7 +10,9 @@ import { WebhookSecurity } from './security.js'
 
 // Helper: Queue for outbound messages
 const outboundQueue = new Queue('outbound-messaging', {
-  connection: { url: env.REDIS_URL }
+  connection: {
+    url: env.REDIS_URL
+  }
 })
 
 // Helper: Queue for inbound processing (Bot logic)
@@ -128,7 +130,7 @@ export const messagingModule: FastifyPluginAsync = async (app) => {
 }
 
 /**
- * Internal utility to send an SMS.
+ * Internal utility to send an SMS via Africa's Talking (Primary) or Twilio (Standby).
  */
 export async function sendSms(params: { 
   to: string; 
@@ -137,6 +139,7 @@ export async function sendSms(params: {
   templateName?: string;
   prisma: any;
 }) {
+  // 1. Create MessageEvent record (Audit/Retention)
   const event = await params.prisma.messageEvent.create({
     data: {
       userId: params.userId,
@@ -146,11 +149,12 @@ export async function sendSms(params: {
       messageBody: params.body,
       templateName: params.templateName,
       deliveryStatus: MessageDeliveryStatus.QUEUED,
-      provider: 'africastalking',
-      retentionExpiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+      provider: 'africastalking', // Default expected
+      retentionExpiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
     }
   })
 
+  // 2. Enqueue BullMQ job
   await outboundQueue.add('send-sms', {
     phoneNumber: params.to,
     channel: 'SMS',
