@@ -194,6 +194,54 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
     return reply.status(201).send(tokens)
   })
 
+    // POST /otp/request
+  server.post('/otp/request', {
+    schema: {
+      tags: ['auth'],
+      summary: 'Request or resend an OTP',
+      body: RequestOtpSchema,
+      response: { 200: MessageResponseSchema },
+    },
+  }, async (req, reply) => {
+    const { phone, channel, purpose } = req.body
+    const user = await app.prisma.user.findUnique({ where: { phoneNumber: phone } })
+    if (!user) return reply.notFound('No account found for this phone number')
+
+    if (purpose === 'LOGIN' && !user.isPhoneVerified) {
+      return reply.badRequest('Phone number not verified. Please complete registration first.')
+    }
+
+    const otp = String(Math.floor(100000 + Math.random() * 900000))
+    const codeHash = await bcrypt.hash(otp, 10)
+    await app.prisma.otpCode.create({
+      data: {
+        userId: user.id,
+        destination: phone,
+        channel,
+        purpose,
+        codeHash,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      },
+    })
+
+    // AUDIT: Job Seeker Registration
+    await app.audit.record({
+      actorUserId: user.id, actorRole: 'INDIVIDUAL', action: 'INDIVIDUAL_REQUEST_OTP',
+      targetTable: 'users', targetId: user.id, ipAddress: req.ip, userAgent: req.headers['user-agent'], requestId: req.id as string
+    })
+
+    const destination = channel === 'EMAIL'
+      ? (user.email ?? (() => { throw app.httpErrors.badRequest('No email address on this account') })())
+      : phone
+
+    await app.notify(channel as DeliveryType, {
+      to: destination,
+      body: `Your Liberia Works verification code is ${otp}. It expires in 10 minutes.`,
+      ...(channel === 'EMAIL' && { subject: 'Your Liberia Works verification code' }),
+    })
+    return { message: `OTP sent via ${channel.toLowerCase()}` }
+  })
+
   // POST /otp/verify
   server.post('/otp/verify', {
     schema: {
