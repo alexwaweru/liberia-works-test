@@ -145,8 +145,8 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
 
     await app.notify(channel as DeliveryType, {
       to: channel === 'EMAIL' ? user.email! : phone,
-      body: `Your Quola verification code is ${otp}. It expires in 10 minutes.`,
-      ...(channel === 'EMAIL' && { subject: 'Your Quola verification code' }),
+      body: `Your Liberia Works verification code is ${otp}. It expires in 10 minutes.`,
+      ...(channel === 'EMAIL' && { subject: 'Your Liberia Works verification code' }),
     })
     return reply.status(201).send({ message: `OTP sent via ${channel.toLowerCase()}` })
   })
