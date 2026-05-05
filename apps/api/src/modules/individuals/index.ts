@@ -2,6 +2,8 @@ import type { FastifyPluginAsync } from 'fastify'
 import { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 import { requireRole } from '../../plugins/auth.js'
+import { CursorQuerySchema, MyApplicationListResponseSchema } from '@liberia-works/shared-schemas'
+import { encodeCursor, decodeCursor } from '../../lib/cursor.js'
 
 function formatDate(d: Date | null | undefined): string | null {
   if (!d) return null
@@ -285,6 +287,51 @@ export const individualsModule: FastifyPluginAsync = async (app) => {
     if (!record) return reply.notFound('Work history record not found')
     await app.prisma.individualWorkHistory.delete({ where: { id } })
     return reply.status(204).send()
+  })
+
+  // GET /me/applications — list individual's own applications
+  server.get('/me/applications', {
+    schema: {
+      tags: ['individuals'],
+      summary: "List the current individual's applications",
+      querystring: CursorQuerySchema,
+      response: { 200: MyApplicationListResponseSchema },
+    },
+    preHandler: [requireRole(['INDIVIDUAL'])],
+  }, async (req) => {
+    const individual = await app.prisma.individual.findUniqueOrThrow({ where: { userId: req.authUser!.id } })
+    const { cursor } = req.query
+    const PAGE_SIZE = 20
+    const where = { individualId: individual.id, isActive: true }
+    const decodedCursor = cursor ? decodeCursor(cursor) : undefined
+
+    const [total, rows] = await Promise.all([
+      app.prisma.application.count({ where }),
+      app.prisma.application.findMany({
+        where,
+        orderBy: [{ appliedAt: 'desc' }, { id: 'desc' }],
+        include: { vacancy: { include: { employer: { select: { companyName: true } } } } },
+        ...(decodedCursor ? { cursor: { id: decodedCursor }, skip: 1 } : {}),
+        take: PAGE_SIZE + 1,
+      }),
+    ])
+
+    const hasMore = rows.length > PAGE_SIZE
+    const data = hasMore ? rows.slice(0, PAGE_SIZE) : rows
+    const nextCursor = hasMore ? encodeCursor(data[data.length - 1]!.id) : null
+
+    type AppStatus = 'APPLIED' | 'SHORTLISTED' | 'REJECTED' | 'WITHDRAWN' | 'HIRED'
+    return {
+      data: data.map((a) => ({
+        id: a.id,
+        vacancyId: a.vacancyId,
+        vacancyTitle: a.vacancy.title,
+        companyName: a.vacancy.employer.companyName,
+        appliedAt: a.appliedAt.toISOString(),
+        status: a.status as AppStatus,
+      })),
+      pagination: { nextCursor, hasMore, total },
+    }
   })
 
   // PATCH /me/address

@@ -773,6 +773,8 @@ model Application {
   statusChangedByUserId String?            @map("status_changed_by_user_id") @db.Uuid
   appliedAt             DateTime           @default(now()) @map("applied_at") @db.Timestamptz(6)
   isActive              Boolean            @default(true) @map("is_active")
+  responses             Json?              @db.JsonB
+  statusNote            String?            @db.Text @map("status_note")
   createdAt             DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
 

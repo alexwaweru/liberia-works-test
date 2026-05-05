@@ -280,6 +280,25 @@ export type PublicVacancyListItem = {
   postedAt: string | null
 }
 
+export type PublicVacancyDetail = PublicVacancyListItem & {
+  description: string
+  applicationForm: Record<string, unknown> | null
+}
+
+export type MyApplicationListItem = {
+  id: string
+  vacancyId: string
+  vacancyTitle: string
+  companyName: string
+  appliedAt: string
+  status: 'APPLIED' | 'SHORTLISTED' | 'REJECTED' | 'WITHDRAWN' | 'HIRED'
+}
+
+export type MyApplicationListResponse = {
+  data: MyApplicationListItem[]
+  pagination: { nextCursor: string | null; hasMore: boolean; total: number }
+}
+
 export type PublicVacancyListResponse = {
   data: PublicVacancyListItem[]
   pagination: { nextCursor: string | null; hasMore: boolean; total: number }
@@ -307,4 +326,109 @@ export function listProgramCycles(params?: { cursor?: string; status?: string; y
   if (params?.year) q.set('year', String(params.year))
   const qs = q.toString()
   return apiFetch<ProgramCycleListResponse>(`/api/v1/programs/cycles${qs ? `?${qs}` : ''}`)
+}
+
+export type ApplicationListItem = {
+  id: string
+  applicantName: string | null
+  applicantEmail: string | null
+  appliedAt: string
+  status: 'APPLIED' | 'SHORTLISTED' | 'REJECTED' | 'WITHDRAWN' | 'HIRED'
+  statusChangedAt: string
+}
+
+export type ApplicationListResponse = {
+  data: ApplicationListItem[]
+  pagination: { nextCursor: string | null; hasMore: boolean; total: number }
+}
+
+export type ApplicationDetail = {
+  id: string
+  vacancyId: string
+  status: 'APPLIED' | 'SHORTLISTED' | 'REJECTED' | 'WITHDRAWN' | 'HIRED'
+  statusChangedAt: string
+  statusNote: string | null
+  appliedAt: string
+  responses: Record<string, unknown> | null
+  applicant: {
+    fullName: string | null
+    email: string | null
+    phoneNumber: string | null
+    dateOfBirth: string | null
+    gender: string | null
+    education: Array<{
+      id: string
+      institutionName: string
+      qualification: string | null
+      fieldOfStudy: string | null
+      startDate: string | null
+      endDate: string | null
+      isCurrent: boolean
+    }>
+    workHistory: Array<{
+      id: string
+      employerName: string
+      title: string | null
+      startDate: string | null
+      endDate: string | null
+      isCurrent: boolean
+      description: string | null
+    }>
+    skills: Array<{
+      id: string
+      skillName: string
+      proficiency: string | null
+      yearsExperience: number | null
+    }>
+  }
+}
+
+export function listApplications(vacancyId: string, params?: { cursor?: string; status?: string }) {
+  const q = new URLSearchParams()
+  if (params?.cursor) q.set('cursor', params.cursor)
+  if (params?.status) q.set('status', params.status)
+  const qs = q.toString()
+  return apiFetch<ApplicationListResponse>(`/api/v1/vacancies/${vacancyId}/applications${qs ? `?${qs}` : ''}`)
+}
+
+export function getApplication(vacancyId: string, applicationId: string) {
+  return apiFetch<ApplicationDetail>(`/api/v1/vacancies/${vacancyId}/applications/${applicationId}`)
+}
+
+export function updateApplicationStatus(applicationId: string, body: { status: string; statusNote?: string }) {
+  return apiFetch<{ message: string }>(`/api/v1/applications/${applicationId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  })
+}
+
+export function getVacancy(id: string) {
+  return apiFetch<VacancyResponse>(`/api/v1/vacancies/${id}`)
+}
+
+export type UpdateVacancyPayload = Partial<CreateVacancyPayload>
+
+export function updateVacancy(id: string, body: UpdateVacancyPayload) {
+  return apiFetch<VacancyResponse>(`/api/v1/vacancies/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  })
+}
+
+export function getPublicVacancy(id: string) {
+  return apiFetch<PublicVacancyDetail>(`/api/v1/vacancies/browse/${id}`)
+}
+
+export function createApplication(vacancyId: string, body: { responses?: Record<string, unknown> }) {
+  return apiFetch<{ message: string }>(`/api/v1/vacancies/${vacancyId}/applications`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
+export function listMyApplications(params?: { cursor?: string }) {
+  const q = new URLSearchParams()
+  if (params?.cursor) q.set('cursor', params.cursor)
+  const qs = q.toString()
+  return apiFetch<MyApplicationListResponse>(`/api/v1/individuals/me/applications${qs ? `?${qs}` : ''}`)
 }

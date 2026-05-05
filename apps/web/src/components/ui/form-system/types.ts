@@ -120,6 +120,7 @@ export interface FormBuilderProps {
   onChange: (definition: FormDefinition) => void;
   className?: string;
   showFormMeta?: boolean;
+  readOnly?: boolean;
 }
 
 // ─── Navigation State ───

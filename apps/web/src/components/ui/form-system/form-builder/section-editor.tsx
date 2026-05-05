@@ -12,6 +12,7 @@ import {
 import { NavigationRuleEditor } from "./navigation-rule-editor";
 import { FieldList } from "./field-list";
 import { FieldTypePicker } from "./field-type-picker";
+import { FIELD_TYPE_REGISTRY } from "../constants";
 import { cn } from "@/lib/utils";
 
 export interface SectionEditorProps {
@@ -19,6 +20,7 @@ export interface SectionEditorProps {
   allSections: FormSection[];
   sectionIndex?: number;
   locked?: boolean;
+  readOnly?: boolean;
   onUpdateTitle: (title: string) => void;
   onUpdateDescription: (description: string) => void;
   onUpdateNavigation: (navigation: SectionNavigation) => void;
@@ -35,6 +37,7 @@ export function SectionEditor({
   allSections,
   sectionIndex,
   locked,
+  readOnly,
   onUpdateTitle,
   onUpdateDescription,
   onUpdateNavigation,
@@ -80,6 +83,41 @@ export function SectionEditor({
               </div>
             </div>
           ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (readOnly) {
+    return (
+      <div className="rounded-lg border bg-card">
+        <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
+          {sectionIndex != null && (
+            <span className="size-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
+              {sectionIndex + 1}
+            </span>
+          )}
+          <span className="flex-1 text-[13px] font-semibold text-foreground">{section.title}</span>
+          <span className="text-xs text-muted-foreground tabular-nums">{section.fields.length}</span>
+        </div>
+        <div className="px-3 pb-3 pt-2">
+          {section.fields.length > 0 ? (
+            <div className="space-y-1.5">
+              {section.fields.map((f) => {
+                const meta = FIELD_TYPE_REGISTRY[f.type]
+                const Icon = meta.icon
+                return (
+                  <div key={f.id} className="flex items-center gap-2 rounded-md border bg-muted/30 px-2.5 py-2">
+                    <Icon className="size-3.5 text-muted-foreground/60 flex-shrink-0" />
+                    <span className="text-[13px] flex-1 truncate">{f.label || meta.label}</span>
+                    <span className="text-[11px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{meta.label}</span>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground py-2 text-center">No questions added</p>
+          )}
         </div>
       </div>
     );

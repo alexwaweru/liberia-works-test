@@ -25,6 +25,7 @@ export interface FieldListProps {
   onRemoveField: (fieldId: string) => void;
   /** Called when any field editor is expanded */
   onFieldOpen?: () => void;
+  readOnly?: boolean;
 }
 
 function FieldList({
@@ -33,6 +34,7 @@ function FieldList({
   onUpdateField,
   onRemoveField,
   onFieldOpen,
+  readOnly,
 }: FieldListProps) {
   // Accordion: only one field open at a time
   const [openFieldId, setOpenFieldId] = useState<string | null>(null);
@@ -69,6 +71,22 @@ function FieldList({
       }
     }
   };
+
+  if (readOnly) {
+    return (
+      <div className="space-y-1.5">
+        {fields.map((field) => (
+          <FieldEditor
+            key={field.id}
+            field={field}
+            onUpdate={() => {}}
+            onRemove={() => {}}
+            readOnly
+          />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <DndContext

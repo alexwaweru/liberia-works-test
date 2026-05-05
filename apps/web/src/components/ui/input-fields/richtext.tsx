@@ -495,7 +495,7 @@ function RichTextInput({
             <EditorContent
               editor={editor}
               className={cn(
-                "prose prose-sm max-w-none px-3 py-2 overflow-x-auto",
+                "prose prose-sm max-w-none px-3 py-2 overflow-x-clip",
                 "text-foreground",
                 "prose-headings:text-foreground",
                 "prose-strong:text-foreground",

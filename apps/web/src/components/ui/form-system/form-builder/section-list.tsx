@@ -28,6 +28,7 @@ export interface SectionListProps {
   onRemoveField: (sectionId: string, fieldId: string) => void;
   onMoveField: (sectionId: string, oldIndex: number, newIndex: number) => void;
   onUpdateField: (sectionId: string, fieldId: string, updates: Partial<FormField>) => void;
+  readOnly?: boolean;
 }
 
 export function SectionList({
@@ -41,6 +42,7 @@ export function SectionList({
   onRemoveField,
   onMoveField,
   onUpdateField,
+  readOnly,
 }: SectionListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -78,6 +80,7 @@ export function SectionList({
           section={section}
           allSections={sections}
           locked
+          readOnly={readOnly}
           onUpdateTitle={() => {}}
           onUpdateDescription={() => {}}
           onUpdateNavigation={() => {}}
@@ -89,39 +92,61 @@ export function SectionList({
         />
       ))}
 
-      {/* Editable sections — managed by DnD */}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={editableSections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-          <div className="space-y-3">
-            {editableSections.map((section, editableIndex) => (
-              <SortableItem key={section.id} id={section.id}>
-                {({ setNodeRef, style, listeners, attributes }) => (
-                  <div ref={setNodeRef} style={style}>
-                    <SectionEditor
-                      section={section}
-                      allSections={sections}
-                      sectionIndex={editableIndex}
-                      onUpdateTitle={(title) => onUpdateSectionTitle(section.id, title)}
-                      onUpdateDescription={(description) =>
-                        onUpdateSectionDescription(section.id, description)
-                      }
-                      onUpdateNavigation={(navigation) =>
-                        onUpdateSectionNavigation(section.id, navigation)
-                      }
-                      onAddField={(fieldType) => onAddField(section.id, fieldType)}
-                      onRemoveField={(fieldId) => onRemoveField(section.id, fieldId)}
-                      onMoveField={(oldIndex, newIndex) => onMoveField(section.id, oldIndex, newIndex)}
-                      onUpdateField={(fieldId, updates) => onUpdateField(section.id, fieldId, updates)}
-                      onRemove={() => onRemoveSection(section.id)}
-                      dragHandle={<DragHandle listeners={listeners} attributes={attributes} />}
-                    />
-                  </div>
-                )}
-              </SortableItem>
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+      {/* Editable sections */}
+      {readOnly ? (
+        <div className="space-y-3">
+          {editableSections.map((section, editableIndex) => (
+            <SectionEditor
+              key={section.id}
+              section={section}
+              allSections={sections}
+              sectionIndex={editableIndex}
+              readOnly
+              onUpdateTitle={() => {}}
+              onUpdateDescription={() => {}}
+              onUpdateNavigation={() => {}}
+              onAddField={() => {}}
+              onRemoveField={() => {}}
+              onMoveField={() => {}}
+              onUpdateField={() => {}}
+              onRemove={() => {}}
+            />
+          ))}
+        </div>
+      ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={editableSections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-3">
+              {editableSections.map((section, editableIndex) => (
+                <SortableItem key={section.id} id={section.id}>
+                  {({ setNodeRef, style, listeners, attributes }) => (
+                    <div ref={setNodeRef} style={style}>
+                      <SectionEditor
+                        section={section}
+                        allSections={sections}
+                        sectionIndex={editableIndex}
+                        onUpdateTitle={(title) => onUpdateSectionTitle(section.id, title)}
+                        onUpdateDescription={(description) =>
+                          onUpdateSectionDescription(section.id, description)
+                        }
+                        onUpdateNavigation={(navigation) =>
+                          onUpdateSectionNavigation(section.id, navigation)
+                        }
+                        onAddField={(fieldType) => onAddField(section.id, fieldType)}
+                        onRemoveField={(fieldId) => onRemoveField(section.id, fieldId)}
+                        onMoveField={(oldIndex, newIndex) => onMoveField(section.id, oldIndex, newIndex)}
+                        onUpdateField={(fieldId, updates) => onUpdateField(section.id, fieldId, updates)}
+                        onRemove={() => onRemoveSection(section.id)}
+                        dragHandle={<DragHandle listeners={listeners} attributes={attributes} />}
+                      />
+                    </div>
+                  )}
+                </SortableItem>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
     </div>
   );
 }

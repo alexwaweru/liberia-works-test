@@ -16,7 +16,7 @@ import { FormRunner } from "../form-runner/form-runner";
 import { useFormBuilder } from "./use-form-builder";
 import { cn } from "@/lib/utils";
 
-export function FormBuilder({ definition, onChange, className, showFormMeta = true, previewButtonClassName }: FormBuilderProps & { previewButtonClassName?: string }) {
+export function FormBuilder({ definition, onChange, className, showFormMeta = true, previewButtonClassName, readOnly }: FormBuilderProps & { previewButtonClassName?: string }) {
   const builder = useFormBuilder({ initialDefinition: definition, onChange });
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -88,16 +88,19 @@ export function FormBuilder({ definition, onChange, className, showFormMeta = tr
             onUpdateField={(sectionId, fieldId, updates) =>
               builder.updateField(sectionId, fieldId, updates)
             }
+            readOnly={readOnly}
           />
 
           {/* Add section button */}
-          <button
-            type="button"
-            onClick={builder.addSection}
-            className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-dashed border-muted-foreground/30 text-sm text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/[0.02] transition-colors"
-          >
-            + Add section
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={builder.addSection}
+              className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border border-dashed border-muted-foreground/30 text-sm text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/[0.02] transition-colors"
+            >
+              + Add section
+            </button>
+          )}
         </div>
       </div>
 

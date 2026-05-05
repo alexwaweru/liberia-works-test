@@ -97,9 +97,10 @@ function injectDefaultSections(definition?: FormDefinition): FormDefinition {
 interface VacancyFormBuilderProps {
   definition?: FormDefinition
   onChange: (definition: FormDefinition) => void
+  readOnly?: boolean
 }
 
-export function VacancyFormBuilder({ definition, onChange }: VacancyFormBuilderProps) {
+export function VacancyFormBuilder({ definition, onChange, readOnly }: VacancyFormBuilderProps) {
   const [initialDefinition] = useState<FormDefinition>(() => injectDefaultSections(definition))
 
   return (
@@ -107,6 +108,7 @@ export function VacancyFormBuilder({ definition, onChange }: VacancyFormBuilderP
       definition={initialDefinition}
       onChange={onChange}
       showFormMeta={false}
+      readOnly={readOnly}
     />
   )
 }

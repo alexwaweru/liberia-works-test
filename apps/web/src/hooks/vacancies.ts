@@ -1,14 +1,15 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listVacancies, createVacancy, publishVacancy, deleteVacancy } from '@/lib/api'
-import type { CreateVacancyPayload, VacancyListResponse } from '@/lib/api'
+import { listVacancies, createVacancy, publishVacancy, deleteVacancy, getVacancy, updateVacancy } from '@/lib/api'
+import type { CreateVacancyPayload, UpdateVacancyPayload, VacancyListResponse, VacancyResponse } from '@/lib/api'
 
 type VacancyFilters = { cursor?: string; status?: string; sortBy?: string; sortDir?: string }
 
 export const vacancyKeys = {
   all: ['vacancies'] as const,
   list: (filters?: VacancyFilters) => [...vacancyKeys.all, 'list', filters] as const,
+  detail: (id: string) => [...vacancyKeys.all, 'detail', id] as const,
 }
 
 export function useVacancies(filters?: VacancyFilters) {
@@ -41,5 +42,24 @@ export function useDeleteVacancy() {
   return useMutation({
     mutationFn: (id: string) => deleteVacancy(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: vacancyKeys.all }),
+  })
+}
+
+export function useVacancy(id: string) {
+  return useQuery<VacancyResponse>({
+    queryKey: vacancyKeys.detail(id),
+    queryFn: () => getVacancy(id),
+    staleTime: 2 * 60 * 1000,
+  })
+}
+
+export function useUpdateVacancy(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: UpdateVacancyPayload) => updateVacancy(id, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: vacancyKeys.detail(id) })
+      qc.invalidateQueries({ queryKey: vacancyKeys.all })
+    },
   })
 }
