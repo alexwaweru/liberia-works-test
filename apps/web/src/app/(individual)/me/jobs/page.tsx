@@ -143,7 +143,7 @@ function JobsInner() {
   const [pageOffset, setPageOffset] = useState(0)
 
   const { data: page, isLoading } = useJobListings({ cursor, vacancyType })
-  const jobs: PublicVacancyListItem[] = page?.data ?? []
+  const jobs = useMemo<PublicVacancyListItem[]>(() => page?.data ?? [], [page])
   const pagination = page?.pagination
 
   const columns: ColumnConfig[] = useMemo(

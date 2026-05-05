@@ -55,7 +55,7 @@ export function ApplicationsTab({ vacancyId }: { vacancyId: string }) {
   const [pageOffset, setPageOffset] = useState(0)
 
   const { data: page, isLoading } = useApplications(vacancyId, { cursor, status })
-  const applications: ApplicationListItem[] = page?.data ?? []
+  const applications = useMemo<ApplicationListItem[]>(() => page?.data ?? [], [page])
   const pagination = page?.pagination
 
   const columns: ColumnConfig[] = useMemo(

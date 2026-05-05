@@ -105,6 +105,7 @@ function EditForm({
   // Clear orphaned sectorId when sectors load (FK would fail if we sent a stale UUID)
   useEffect(() => {
     if (sectors.length > 0 && form.sectorId !== '' && !sectors.some((s) => s.id === form.sectorId)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm((prev) => ({ ...prev, sectorId: '' }))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -13,7 +13,6 @@ export interface SectionRendererProps {
 export function SectionRenderer({
   section,
   control,
-  errors: _errors,
   disabled,
 }: SectionRendererProps) {
   const isDisabled = disabled;

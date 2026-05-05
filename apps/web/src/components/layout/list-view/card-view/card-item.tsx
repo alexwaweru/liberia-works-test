@@ -1,4 +1,5 @@
 import type React from "react";
+import Image from "next/image";
 import { ImageIcon } from "lucide-react";
 import {
   ContextMenu,
@@ -62,12 +63,13 @@ export function CardItem({
       ) : (
         <>
           {/* Thumbnail area */}
-          <div className="aspect-square overflow-hidden rounded-md bg-muted">
+          <div className="relative aspect-square overflow-hidden rounded-md bg-muted">
             {item.thumbnail ? (
-              <img
+              <Image
                 src={item.thumbnail}
                 alt={item.name}
-                className="h-full w-full object-cover"
+                fill
+                className="object-cover"
               />
             ) : (
               <div className="flex h-full items-center justify-center text-muted-foreground" aria-hidden="true">

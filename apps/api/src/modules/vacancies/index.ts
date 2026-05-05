@@ -271,7 +271,7 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
         channel: 'WEB',
         status: 'APPLIED',
         appliedAt: new Date(),
-        responses: toJsonInput(responses ?? null),
+        responses: responses != null ? (responses as Prisma.InputJsonValue) : Prisma.JsonNull,
         statusChangedAt: new Date(),
       },
     })
