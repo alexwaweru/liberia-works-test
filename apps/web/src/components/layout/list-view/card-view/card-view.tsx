@@ -69,7 +69,7 @@ export function CardView({
       role="listbox"
       aria-label="Items grid"
       aria-multiselectable="true"
-      className={cn("grid", gridCols, gap, className)}
+      className={cn("grid", gridCols, gap, className, "m-4")}
     >
       {items.length === 0 && <div className="sr-only">No items</div>}
       {items.map((item) => (

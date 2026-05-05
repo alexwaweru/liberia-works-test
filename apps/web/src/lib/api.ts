@@ -244,3 +244,67 @@ export function getSessions() {
 export function revokeSession(id: string) {
   return apiFetch<{ message: string }>(`/api/v1/auth/sessions/${id}`, { method: 'DELETE' })
 }
+
+export type ProgramCycleListItem = {
+  id: string
+  type: string
+  name: string
+  description: string | null
+  year: number
+  startDate: string
+  endDate: string
+  status: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type ProgramCycleListResponse = {
+  data: ProgramCycleListItem[]
+  pagination: {
+    nextCursor: string | null
+    hasMore: boolean
+    total: number
+  }
+}
+
+export type PublicVacancyListItem = {
+  id: string
+  employerId: string
+  companyName: string
+  title: string
+  vacancyType: string
+  stateId: number
+  sectorId: string | null
+  slotsAvailable: number
+  deadline: string
+  postedAt: string | null
+}
+
+export type PublicVacancyListResponse = {
+  data: PublicVacancyListItem[]
+  pagination: { nextCursor: string | null; hasMore: boolean; total: number }
+}
+
+export function browseVacancies(params?: {
+  cursor?: string
+  keyword?: string
+  vacancyType?: string
+  stateId?: number
+}) {
+  const q = new URLSearchParams()
+  if (params?.cursor) q.set('cursor', params.cursor)
+  if (params?.keyword) q.set('keyword', params.keyword)
+  if (params?.vacancyType) q.set('vacancyType', params.vacancyType)
+  if (params?.stateId) q.set('stateId', String(params.stateId))
+  const qs = q.toString()
+  return apiFetch<PublicVacancyListResponse>(`/api/v1/vacancies/browse${qs ? `?${qs}` : ''}`)
+}
+
+export function listProgramCycles(params?: { cursor?: string; status?: string; year?: number }) {
+  const q = new URLSearchParams()
+  if (params?.cursor) q.set('cursor', params.cursor)
+  if (params?.status) q.set('status', params.status)
+  if (params?.year) q.set('year', String(params.year))
+  const qs = q.toString()
+  return apiFetch<ProgramCycleListResponse>(`/api/v1/programs/cycles${qs ? `?${qs}` : ''}`)
+}

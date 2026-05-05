@@ -10,7 +10,7 @@ export function ListViewSplitPane({
 }: ListViewSplitPaneProps) {
   if (!isOpen) {
     return (
-      <div data-slot="list-view-split-pane" className={className}>
+      <div data-slot="list-view-split-pane" className={cn("flex flex-col", className)}>
         {children}
       </div>
     );

@@ -16,6 +16,7 @@
     "db:migrate:reset": "dotenv -e ../../.env -- prisma migrate reset",
     "db:generate": "prisma generate",
     "db:seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
+    "db:seed:test": "dotenv -e ../../.env -- tsx prisma/seed_test_data.ts",
     "db:seed:locations": "dotenv -e ../../.env -- tsx prisma/seed-locations.ts",
     "db:studio": "dotenv -e ../../.env -- prisma studio"
   },

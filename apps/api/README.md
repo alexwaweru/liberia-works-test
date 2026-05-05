@@ -135,3 +135,49 @@ docker run --env-file .env -p 3001:3001 liberia-works-api
 ```
 
 The image runs `prisma migrate deploy` before starting the server when launched via `docker compose`.
+
+## Test credentials
+
+> These accounts are created by `pnpm --filter @liberia-works/api db:seed:test` and are for **development only**.
+
+### Employer accounts (email + password)
+
+| Company | Email | Password | Role |
+|---------|-------|----------|------|
+| Liberia Steel Corporation | employer1@test.libworks.lr | Test@1234 | EMPLOYER_ADMIN |
+| Monrovia Tech Hub | employer2@test.libworks.lr | Test@1234 | EMPLOYER_ADMIN |
+| Harbel Sugar Company | employer3@test.libworks.lr | Test@1234 | EMPLOYER_ADMIN |
+| Grand Bassa Trading Co. | employer4@test.libworks.lr | Test@1234 | EMPLOYER_ADMIN |
+| Roberts International Services | employer5@test.libworks.lr | Test@1234 | EMPLOYER_ADMIN |
+
+### Job seeker accounts (phone OTP or email + password)
+
+Authentication for individuals uses OTP sent to the phone number. In development (`NODE_ENV=development`), OTPs are printed to the console instead of being sent via SMS. All seeded seekers also have an email and password set.
+
+| # | Full Name | Phone | Email | Password |
+|---|-----------|-------|-------|----------|
+| 1 | James Kollie | +23177100001 | seeker1@test.libworks.lr | Test@1234 |
+| 2 | Mary Wleh | +23177100002 | seeker2@test.libworks.lr | Test@1234 |
+| 3 | David Togba | +23177100003 | seeker3@test.libworks.lr | Test@1234 |
+| 4 | Grace Paye | +23177100004 | seeker4@test.libworks.lr | Test@1234 |
+| 5 | Emmanuel Mulbah | +23177100005 | seeker5@test.libworks.lr | Test@1234 |
+| 6 | Rebecca Flomo | +23177100006 | seeker6@test.libworks.lr | Test@1234 |
+| 7 | Samuel Kollie | +23177100007 | seeker7@test.libworks.lr | Test@1234 |
+| 8 | Esther Nimba | +23177100008 | seeker8@test.libworks.lr | Test@1234 |
+| 9 | Moses Pewee | +23177100009 | seeker9@test.libworks.lr | Test@1234 |
+| 10 | Abigail Konneh | +23177100010 | seeker10@test.libworks.lr | Test@1234 |
+| 11 | Thomas Varney | +23177100011 | seeker11@test.libworks.lr | Test@1234 |
+| 12 | Naomi Gbor | +23177100012 | seeker12@test.libworks.lr | Test@1234 |
+| 13 | Peter Sumo | +23177100013 | seeker13@test.libworks.lr | Test@1234 |
+| 14 | Hannah Boakai | +23177100014 | seeker14@test.libworks.lr | Test@1234 |
+| 15 | John Tweah | +23177100015 | seeker15@test.libworks.lr | Test@1234 |
+| 16 | Comfort Zulu | +23177100016 | seeker16@test.libworks.lr | Test@1234 |
+| 17 | Daniel Karnga | +23177100017 | seeker17@test.libworks.lr | Test@1234 |
+| 18 | Patience Borbor | +23177100018 | seeker18@test.libworks.lr | Test@1234 |
+| 19 | Stephen Cheawe | +23177100019 | seeker19@test.libworks.lr | Test@1234 |
+| 20 | Agnes Dahn | +23177100020 | seeker20@test.libworks.lr | Test@1234 |
+| 21 | Michael Yancy | +23177100021 | seeker21@test.libworks.lr | Test@1234 |
+| 22 | Bertha Kamara | +23177100022 | seeker22@test.libworks.lr | Test@1234 |
+| 23 | Joseph Tokpah | +23177100023 | seeker23@test.libworks.lr | Test@1234 |
+| 24 | Lydia Gono | +23177100024 | seeker24@test.libworks.lr | Test@1234 |
+| 25 | Charles Gongloe | +23177100025 | seeker25@test.libworks.lr | Test@1234 |

@@ -48,12 +48,12 @@ export function TableRow({
       data-state={isSelected ? "selected" : undefined}
       aria-selected={isSelected}
       tabIndex={0}
-      className={`${isSelected ? "bg-accent" : "hover:bg-muted/50"} cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset`}
+      className={`border-b border-border/60 last:border-0 ${isSelected ? "bg-accent" : "hover:bg-muted/50"} cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset`}
       onClick={handleRowClick}
       onDoubleClick={handleRowDoubleClick}
       onKeyDown={handleRowKeyDown}
     >
-      <td className="w-10 px-2 py-2" onClick={handleCheckboxClick}>
+      <td className="w-10 px-3 py-3.5" onClick={handleCheckboxClick}>
         <Checkbox
           checked={isSelected}
           aria-label={`Select ${item.name}`}
@@ -71,7 +71,7 @@ export function TableRow({
         const content = column.render ? column.render(value, item) : String(value ?? "");
 
         return (
-          <td key={column.key} className="px-4 py-2 text-sm">
+          <td key={column.key} className="px-4 py-3.5 text-sm">
             {content}
           </td>
         );

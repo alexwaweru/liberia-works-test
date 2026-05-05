@@ -130,6 +130,7 @@ function toListItem(v: VacancyListItem): ListItem {
     name: v.title,
     metadata: {
       status: v.status,
+      vacancyType: v.vacancyType,
       postedAt: v.postedAt,
       deadline: v.deadline,
       applicationsCount: v.applicationsCount,
@@ -150,7 +151,7 @@ function VacanciesInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  const [view, setView] = useState<ViewMode>('table')
+  const [view, setView] = useState<ViewMode>('card')
   const [status, setStatus] = useState<string | undefined>(
     searchParams.get('status') ?? undefined
   )
