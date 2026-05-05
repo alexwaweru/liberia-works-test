@@ -78,6 +78,7 @@ async function issueTokens(
     userId: user.id,
     role: user.role,
     expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+    accessToken,
   }
 }
 

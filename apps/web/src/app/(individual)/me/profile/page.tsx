@@ -90,6 +90,7 @@ function GeneralTab() {
 
   const { control, handleSubmit, formState: { errors } } = useForm<GeneralForm>({
     resolver: zodResolver(generalSchema),
+    defaultValues: { fullName: '', dateOfBirth: undefined, gender: '', nin: '' },
     values: profile ? toGeneralValues(profile) : undefined,
   })
 

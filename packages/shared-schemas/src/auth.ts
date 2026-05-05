@@ -35,6 +35,7 @@ export const AuthTokenResponseSchema = z.object({
   userId: z.string().uuid(),
   role: z.string(),
   expiresAt: z.string().datetime(),
+  accessToken: z.string().optional(),
 })
 
 export const MessageResponseSchema = z.object({
