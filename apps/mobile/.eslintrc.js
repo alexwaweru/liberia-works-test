@@ -1,5 +1,5 @@
 module.exports = {
-  extends: ['expo'],
+  extends: ['expo', 'prettier'],
   rules: {
     'no-unused-vars': 'warn',
   },
