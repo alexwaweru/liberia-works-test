@@ -131,8 +131,9 @@ export function ListView({
         isOpen={isSplitViewOpen && allowSplitView}
         renderDetail={renderDetail ?? (() => null)}
         selectedItem={selectedItem}
+        className="flex-1 min-h-0"
       >
-        <div className="flex-1 overflow-auto transition-opacity duration-150">
+        <div className="flex-1 min-h-0 overflow-auto transition-opacity duration-150">
           {processedItems.length === 0 ? (
             typeof emptyState === "function"
               ? emptyState({ isFiltered: items.length > 0 && processedItems.length === 0 })

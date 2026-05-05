@@ -7,14 +7,18 @@ import {
   VacancyListResponseSchema,
   VacancyFilterSchema,
   MessageResponseSchema,
+  PublicVacancyListResponseSchema,
+  VacancyBrowseFilterSchema,
 } from '@liberia-works/shared-schemas'
 import { EMPLOYER_ROLES } from '@liberia-works/shared-types'
 import { requireRole } from '../../plugins/auth.js'
+import { encodeCursor, decodeCursor } from '../../lib/cursor.js'
 import { Prisma } from '@prisma/client'
 import type { FastifyReply } from 'fastify'
 import type { Vacancy } from '@prisma/client'
 
 type VacancyWithCount = Vacancy & { _count: { applications: number } }
+type VacancyWithEmployer = Vacancy & { employer: { companyName: string } }
 
 function formatVacancy(v: VacancyWithCount) {
   const deadline =
@@ -40,6 +44,25 @@ function formatVacancy(v: VacancyWithCount) {
     createdAt: v.createdAt.toISOString(),
     updatedAt: v.updatedAt.toISOString(),
     applicationsCount: v._count.applications,
+  }
+}
+
+function formatPublicVacancy(v: VacancyWithEmployer) {
+  const deadline =
+    v.deadline instanceof Date
+      ? v.deadline.toISOString().split('T')[0]!
+      : String(v.deadline)
+  return {
+    id: v.id,
+    employerId: v.employerId,
+    companyName: v.employer.companyName,
+    title: v.title,
+    vacancyType: v.vacancyType as string,
+    stateId: v.stateId,
+    sectorId: v.sectorId,
+    slotsAvailable: v.slotsAvailable,
+    deadline,
+    postedAt: v.postedAt?.toISOString() ?? null,
   }
 }
 
@@ -86,6 +109,7 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
         : [{ createdAt: 'desc' as const }, { id: 'desc' as const }]
 
     const where = { employerId, isActive: true, ...(status ? { status } : {}) }
+    const decodedCursor = cursor ? decodeCursor(cursor) : undefined
 
     const [total, rows] = await Promise.all([
       app.prisma.vacancy.count({ where }),
@@ -93,14 +117,14 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
         where,
         orderBy,
         include: { _count: { select: { applications: true } } },
-        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        ...(decodedCursor ? { cursor: { id: decodedCursor }, skip: 1 } : {}),
         take: PAGE_SIZE + 1,
       }),
     ])
 
     const hasMore = rows.length > PAGE_SIZE
     const data = hasMore ? rows.slice(0, PAGE_SIZE) : rows
-    const nextCursor = hasMore ? data[data.length - 1]!.id : null
+    const nextCursor = hasMore ? encodeCursor(data[data.length - 1]!.id) : null
 
     return { data: data.map(formatVacancy), pagination: { nextCursor, hasMore, total } }
   })
@@ -140,6 +164,46 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
       include: { _count: { select: { applications: true } } },
     })
     return reply.status(201).send(formatVacancy(vacancy!))
+  })
+
+  // GET /browse — public list of active vacancies for seekers (INDIVIDUAL role)
+  server.get('/browse', {
+    schema: {
+      tags: ['vacancies'],
+      summary: 'Browse active vacancies (seeker)',
+      querystring: VacancyBrowseFilterSchema,
+      response: { 200: PublicVacancyListResponseSchema },
+    },
+    preHandler: [requireRole(['INDIVIDUAL'])],
+  }, async (req) => {
+    const { cursor, limit, keyword, vacancyType, stateId } = req.query
+    const PAGE_SIZE = limit ?? 20
+
+    const where = {
+      status: 'ACTIVE' as const,
+      isActive: true,
+      ...(vacancyType ? { vacancyType } : {}),
+      ...(stateId ? { stateId } : {}),
+      ...(keyword ? { title: { contains: keyword, mode: 'insensitive' as const } } : {}),
+    }
+    const decodedCursor = cursor ? decodeCursor(cursor) : undefined
+
+    const [total, rows] = await Promise.all([
+      app.prisma.vacancy.count({ where }),
+      app.prisma.vacancy.findMany({
+        where,
+        orderBy: [{ postedAt: 'desc' }, { id: 'desc' }],
+        include: { employer: { select: { companyName: true } } },
+        ...(decodedCursor ? { cursor: { id: decodedCursor }, skip: 1 } : {}),
+        take: PAGE_SIZE + 1,
+      }),
+    ])
+
+    const hasMore = rows.length > PAGE_SIZE
+    const data = hasMore ? rows.slice(0, PAGE_SIZE) : rows
+    const nextCursor = hasMore ? encodeCursor(data[data.length - 1]!.id) : null
+
+    return { data: data.map(formatPublicVacancy), pagination: { nextCursor, hasMore, total } }
   })
 
   // GET /:id — get single vacancy

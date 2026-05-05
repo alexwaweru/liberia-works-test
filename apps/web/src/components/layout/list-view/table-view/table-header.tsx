@@ -42,7 +42,7 @@ export function TableHeader({
   return (
     <thead data-slot="table-header">
       <tr className="bg-muted/50">
-        <th scope="col" className="w-10 px-2 py-2">
+        <th scope="col" className="w-10 px-3 py-3">
           <Checkbox
             checked={allSelected ? true : someSelected ? "indeterminate" : false}
             onCheckedChange={handleSelectAll}
@@ -66,7 +66,7 @@ export function TableHeader({
             <th
               key={column.key}
               scope="col"
-              className={`px-4 py-2 text-left text-muted-foreground text-xs font-medium ${
+              className={`px-4 py-3 text-left text-muted-foreground text-xs font-medium ${
                 isSortable ? "cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" : ""
               }`}
               onClick={isSortable ? () => handleSort(column.key) : undefined}

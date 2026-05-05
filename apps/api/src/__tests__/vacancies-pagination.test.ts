@@ -94,7 +94,7 @@ describe('GET /api/v1/vacancies — pagination', () => {
     const body = res.json()
     expect(body.data).toHaveLength(20)
     expect(body.pagination.hasMore).toBe(true)
-    expect(body.pagination.nextCursor).toBe(TWENTY_ONE_ITEMS[19]!.id)
+    expect(body.pagination.nextCursor).toBe(btoa(TWENTY_ONE_ITEMS[19]!.id))
     expect(body.pagination.total).toBe(47)
   })
 
@@ -124,6 +124,7 @@ describe('GET /api/v1/vacancies — pagination', () => {
 
   it('with cursor param: calls findMany with cursor and skip:1', async () => {
     const CURSOR_ID = 'v-020'
+    const encodedCursor = btoa(CURSOR_ID)
     const app = buildApp()
     ;(app.prisma.employerUser.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ employerId: EMPLOYER_ID })
     ;(app.prisma.vacancy.count as ReturnType<typeof vi.fn>).mockResolvedValue(47)
@@ -135,7 +136,7 @@ describe('GET /api/v1/vacancies — pagination', () => {
 
     await app.inject({
       method: 'GET',
-      url: `/api/v1/vacancies?cursor=${CURSOR_ID}`,
+      url: `/api/v1/vacancies?cursor=${encodedCursor}`,
       headers: { authorization: `Bearer ${token}` },
     })
 

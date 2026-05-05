@@ -62,3 +62,24 @@ export type CreateVacancy = z.infer<typeof CreateVacancySchema>
 export type UpdateVacancy = z.infer<typeof UpdateVacancySchema>
 export type VacancyResponse = z.infer<typeof VacancyResponseSchema>
 export type VacancyFilter = z.infer<typeof VacancyFilterSchema>
+
+export const PublicVacancyListItemSchema = z.object({
+  id: z.string().uuid(),
+  employerId: z.string().uuid(),
+  companyName: z.string(),
+  title: z.string(),
+  vacancyType: z.string(),
+  stateId: z.number().int(),
+  sectorId: z.string().uuid().nullable(),
+  slotsAvailable: z.number(),
+  deadline: z.string(),
+  postedAt: z.string().datetime().nullable(),
+})
+export const PublicVacancyListResponseSchema = CursorPageSchema(PublicVacancyListItemSchema)
+export const VacancyBrowseFilterSchema = CursorQuerySchema.extend({
+  keyword: z.string().max(100).optional(),
+  vacancyType: z.enum(['VACATION_JOB', 'PERMANENT', 'CONTRACT', 'INTERNSHIP']).optional(),
+  stateId: z.coerce.number().int().optional(),
+})
+export type PublicVacancyListItem = z.infer<typeof PublicVacancyListItemSchema>
+export type PublicVacancyListResponse = z.infer<typeof PublicVacancyListResponseSchema>

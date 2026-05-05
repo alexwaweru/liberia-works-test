@@ -874,15 +874,16 @@ model Dispute {
 /// A time-bounded run of a program. The type field identifies which program this
 /// cycle belongs to, allowing different programs to coexist in the same tables.
 model ProgramCycle {
-  id        String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  type      ProgramType
-  name      String             @db.VarChar(100)
-  year      Int                @db.SmallInt
-  startDate DateTime           @map("start_date") @db.Date
-  endDate   DateTime           @map("end_date") @db.Date
-  status    ProgramCycleStatus
-  createdAt DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id          String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type        ProgramType
+  name        String             @db.VarChar(100)
+  description String?            @db.Text
+  year        Int                @db.SmallInt
+  startDate   DateTime           @map("start_date") @db.Date
+  endDate     DateTime           @map("end_date") @db.Date
+  status      ProgramCycleStatus
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   hostingCapacity ProgramHostingCapacity[]
   placements      ProgramPlacement[]
