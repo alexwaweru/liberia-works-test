@@ -83,3 +83,9 @@ export const VacancyBrowseFilterSchema = CursorQuerySchema.extend({
 })
 export type PublicVacancyListItem = z.infer<typeof PublicVacancyListItemSchema>
 export type PublicVacancyListResponse = z.infer<typeof PublicVacancyListResponseSchema>
+
+export const PublicVacancyDetailSchema = PublicVacancyListItemSchema.extend({
+  description: z.string(),
+  applicationForm: z.record(z.unknown()).nullable(),
+})
+export type PublicVacancyDetail = z.infer<typeof PublicVacancyDetailSchema>

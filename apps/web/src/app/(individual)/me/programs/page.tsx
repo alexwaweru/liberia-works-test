@@ -124,7 +124,7 @@ function ProgramsInner() {
   const [pageOffset, setPageOffset] = useState(0)
 
   const { data: page, isLoading, isError, error } = usePrograms({ cursor, status })
-  const cycles = page?.data ?? []
+  const cycles = useMemo<ProgramCycleListItem[]>(() => page?.data ?? [], [page])
   const pagination = page?.pagination
 
   const columns: ColumnConfig[] = useMemo(

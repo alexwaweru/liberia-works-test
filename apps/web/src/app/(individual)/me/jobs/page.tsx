@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
+import { Loader2, ArrowUpRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ListView } from '@/components/layout/list-view'
 import type { ListItem, ColumnConfig, ViewMode, RenderCardFn } from '@/components/layout/list-view'
@@ -55,7 +55,7 @@ function formatDate(dateStr: string): string {
   })
 }
 
-function JobCardContent({ item }: { item: ListItem }) {
+function JobCardContent({ item, onOpen }: { item: ListItem; onOpen?: () => void }) {
   const vacancyType = item.metadata.vacancyType as string
   const deadline = item.metadata.deadline as string
   const slotsAvailable = item.metadata.slotsAvailable as number
@@ -97,8 +97,19 @@ function JobCardContent({ item }: { item: ListItem }) {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center mt-auto pt-3 border-t border-border">
+      <div className="flex items-center justify-between mt-auto pt-3 border-t border-border">
         <span className="text-xs text-muted-foreground">Deadline: {formatDate(deadline)}</span>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 text-xs gap-1"
+          onClick={(e) => {
+            e.stopPropagation()
+            onOpen?.()
+          }}
+        >
+          Open <ArrowUpRight className="size-3" />
+        </Button>
       </div>
     </div>
   )
@@ -132,7 +143,7 @@ function JobsInner() {
   const [pageOffset, setPageOffset] = useState(0)
 
   const { data: page, isLoading } = useJobListings({ cursor, vacancyType })
-  const jobs: PublicVacancyListItem[] = page?.data ?? []
+  const jobs = useMemo<PublicVacancyListItem[]>(() => page?.data ?? [], [page])
   const pagination = page?.pagination
 
   const columns: ColumnConfig[] = useMemo(
@@ -180,7 +191,7 @@ function JobsInner() {
   )
 
   const renderCard: RenderCardFn = useCallback(
-    (item) => <JobCardContent item={item} />,
+    (item, { onOpen }) => <JobCardContent item={item} onOpen={onOpen} />,
     []
   )
 
@@ -270,7 +281,7 @@ function JobsInner() {
         onViewChange={setView}
         columns={columns}
         renderCard={renderCard}
-        onItemOpen={() => {}}
+        onItemOpen={(item) => router.push(`/me/jobs/${item.id}`)}
         searchPlaceholder="Search jobs..."
         emptyState={
           isLoading

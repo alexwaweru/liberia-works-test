@@ -18,9 +18,10 @@ export interface FieldEditorProps {
   /** Called when the open state should change */
   onOpenChange?: (open: boolean) => void;
   dragHandle?: React.ReactNode;
+  readOnly?: boolean;
 }
 
-function FieldEditor({ field, onUpdate, onRemove, isOpen: controlledOpen, onOpenChange, dragHandle }: FieldEditorProps) {
+function FieldEditor({ field, onUpdate, onRemove, isOpen: controlledOpen, onOpenChange, dragHandle, readOnly }: FieldEditorProps) {
   const [internalOpen, setInternalOpen] = useState(false);
 
   // Support both controlled and uncontrolled modes
@@ -36,6 +37,16 @@ function FieldEditor({ field, onUpdate, onRemove, isOpen: controlledOpen, onOpen
 
   // Determine if placeholder should be shown
   const shouldShowPlaceholder = field.type !== "checkbox" && field.type !== "rating"
+
+  if (readOnly) {
+    return (
+      <div className="flex items-center gap-2 rounded-md border bg-card px-2.5 py-2">
+        <Icon className="size-4 text-muted-foreground/60 flex-shrink-0" />
+        <span className="text-[13px] font-medium flex-1 truncate">{field.label || meta.label}</span>
+        <span className="text-[11px] text-muted-foreground">{meta.label}</span>
+      </div>
+    );
+  }
 
   return (
     <Collapsible open={isOpen} onOpenChange={handleOpenChange}>

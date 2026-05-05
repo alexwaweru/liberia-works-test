@@ -37,7 +37,7 @@ import {
 } from '@/lib/api'
 import { api } from '@/api/client'
 import { TrashIcon, PlusIcon, MonitorIcon, ShieldAlertIcon } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 // ── Tab config ────────────────────────────────────────────────────────────────
 
@@ -518,14 +518,13 @@ function ExperienceTab() {
 
 type RefItem = { id: number; name: string }
 
-const addressSchema = z.object({
-  countryId: z.string().optional(),
-  stateId: z.string().optional(),
-  cityId: z.string().optional(),
-  addressLine1: z.string().optional(),
-  addressLine2: z.string().optional(),
-})
-type AddressForm = z.infer<typeof addressSchema>
+type AddressForm = {
+  countryId?: string
+  stateId?: string
+  cityId?: string
+  addressLine1?: string
+  addressLine2?: string
+}
 
 function AddressTab() {
   const qc = useQueryClient()

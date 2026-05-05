@@ -161,8 +161,8 @@ function VacanciesInner() {
   const [cursorStack, setCursorStack] = useState<string[]>([])
   const [pageOffset, setPageOffset] = useState(0)
 
-  const { data: page, isLoading, isFetching } = useVacancies({ cursor, status })
-  const vacancies: VacancyListItem[] = page?.data ?? []
+  const { data: page, isLoading } = useVacancies({ cursor, status })
+  const vacancies = useMemo<VacancyListItem[]>(() => page?.data ?? [], [page])
   const pagination = page?.pagination
 
   const publish = usePublishVacancy()
