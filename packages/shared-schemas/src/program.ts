@@ -38,6 +38,15 @@ export const ProgramPlacementResponseSchema = z.object({
   id: z.string().uuid(),
   matchDate: z.string(),
   status: z.string(),
+  employer: z.object({
+    companyName: z.string(),
+    primaryContactName: z.string().nullable(),
+    primaryContactPhone: z.string().nullable(),
+  }).optional(),
+  cycle: z.object({
+    name: z.string(),
+    startDate: z.string(),
+  }).optional(),
   individual: z.object({
     id: z.string().uuid(),
     fullName: z.string().nullable(),

@@ -37,6 +37,7 @@ services:
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://postgres:password@postgres:5432/liberiaworks
+      JWT_SECRET: your-long-secret-key-here-that-is-at-least-32-characters
       REDIS_URL: redis://redis:6379
       HOST: 0.0.0.0
       PORT: '3001'
@@ -47,8 +48,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    # Runs migrations then starts the server on every container start.
-    # To seed: docker compose run --rm api sh -c 'node_modules/.bin/prisma db seed'
     command:
       - sh
       - -c
@@ -64,6 +63,7 @@ services:
         NEXT_PUBLIC_API_URL: http://localhost:3001
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:3001
+      API_URL: http://api:3001
     ports:
       - '3000:3000'
     depends_on:
