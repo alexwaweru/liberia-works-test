@@ -1,7 +1,10 @@
-'use client'
+"use client"
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createOptIn, getCounties, getEducationLevels, getMyOptIns, getOptInByProgram, getSectors, listProgramCycles } from '@/lib/api'
+import { 
+  createOptIn, getCounties, getEducationLevels, getMyOptIns, getOptInByProgram, getSectors, listProgramCycles,
+  getProgramCycle, listProgramMatches, optInToProgram
+} from '@/lib/api'
 import type { 
   OptInRequest, 
   ProgramCycleListResponse, 
@@ -9,13 +12,19 @@ import type {
   Sector,
   EducationLevel,
   MyOptInsResponse, 
-  MyOptIn} from '@/lib/api'
+  MyOptIn,
+  ProgramCycleListItem, 
+  ProgramPlacementListItem, 
+  ProgramOptInPayload
+} from '@/lib/api'
 
 type ProgramFilters = { cursor?: string; status?: string; year?: number }
 
 export const programKeys = {
   all: ['programs'] as const,
   list: (filters?: ProgramFilters) => [...programKeys.all, 'list', filters] as const,
+  detail: (id: string) => [...programKeys.all, "detail", id] as const,
+  matches: (id: string) => [...programKeys.all, "matches", id] as const,
   counties: () => [...programKeys.all, 'counties'] as const,
   sectors: () => [...programKeys.all, 'sectors'] as const,
   educationLevels: () => [...programKeys.all, 'education-levels'] as const,
@@ -34,6 +43,7 @@ export function usePrograms(filters?: ProgramFilters) {
   })
 }
 
+<<<<<<< HEAD
 export function useCounties() {
   return useQuery<County[]>({
     queryKey: programKeys.counties(),
@@ -101,6 +111,32 @@ export function useCreateOptIn() {
       queryClient.invalidateQueries({
         queryKey: programKeys.optInByProgram(variables.programCycleId),
       })
+    },
+  })
+}
+
+export function useProgram(id: string) {
+  return useQuery<ProgramCycleListItem>({
+    queryKey: programKeys.detail(id),
+    queryFn: () => getProgramCycle(id) as Promise<ProgramCycleListItem>,
+    enabled: !!id,
+  })
+}
+
+export function useProgramMatches(id: string) {
+  return useQuery<ProgramPlacementListItem[]>({
+    queryKey: programKeys.matches(id),
+    queryFn: () => listProgramMatches(id) as Promise<ProgramPlacementListItem[]>,
+    enabled: !!id,
+  })
+}
+
+export function useOptInMutation(id: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: ProgramOptInPayload) => optInToProgram(id, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: programKeys.detail(id) })
     },
   })
 }

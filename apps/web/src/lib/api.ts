@@ -525,6 +525,50 @@ export function createOptIn(body: OptInRequest) {
   })
 }
 
+export type ProgramOptInPayload = {
+  slotsOffered: number
+  preferredSectorIds?: string[]
+  preferredEducationLevelId?: string
+  stateId?: number
+  contactName: string
+  contactPhone: string
+  placementInstructions?: string
+}
+
+export type ProgramPlacementListItem = {
+  id: string
+  matchDate: string
+  status: string
+  individual: {
+    id: string
+    fullName: string | null
+    email: string | null
+    phoneNumber: string | null
+    dateOfBirth: string | null
+    gender: string | null
+    education: Array<{
+      institutionName: string
+      qualification: string | null
+      fieldOfStudy: string | null
+    }>
+    experience: Array<{
+      employerName: string
+      title: string | null
+    }>
+  }
+}
+
+export function getProgramCycle(id: string) {
+  return apiFetch<ProgramCycleListItem>(`/api/v1/programs/cycles/${id}`)
+}
+
+export function optInToProgram(id: string, body: ProgramOptInPayload) {
+  return apiFetch<{ success: boolean; message: string }>(`/api/v1/programs/cycles/${id}/opt-in`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  })
+}
+
 export function getMyOptIns(params?: { cursor?: string }) {
   const q = new URLSearchParams()
   if (params?.cursor) q.set('cursor', params.cursor)
@@ -534,4 +578,8 @@ export function getMyOptIns(params?: { cursor?: string }) {
 
 export function getOptInByProgram(programCycleId: string) {
   return apiFetch<MyOptIn>(`/api/v1/programs/opt-ins/by-program/${programCycleId}`)
+}
+
+export function listProgramMatches(id: string) {
+  return apiFetch<ProgramPlacementListItem[]>(`/api/v1/programs/cycles/${id}/matches`)
 }
