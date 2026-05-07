@@ -6,8 +6,11 @@ import { Loader2, CalendarDays } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ListView } from '@/components/layout/list-view'
 import type { ListItem, ColumnConfig, ViewMode, RenderCardFn } from '@/components/layout/list-view'
+import type { ProgramCycleListItem, MyOptIn } from '@/lib/api'
+import { OptInDialog } from '@/components/programs/opt-in-dialog'
+import { useMyOptIns } from '@/hooks/programs'
+import { StatusBadge } from '@/components/ui/status-badge'
 import { usePrograms } from '@/hooks/programs'
-import type { ProgramCycleListItem } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
 const STATUS_TABS = [
@@ -45,7 +48,8 @@ function formatDate(dateStr: string): string {
   })
 }
 
-function ProgramCardContent({ item }: { item: ListItem }) {
+function ProgramCardContent({ item, myOptIns }: { item: ListItem; myOptIns: MyOptIn[] }) {
+  const [optInDialogOpen, setOptInDialogOpen] = useState(false)
   const status = item.metadata.status as string
   const type = item.metadata.type as string
   const year = item.metadata.year as number
@@ -53,7 +57,10 @@ function ProgramCardContent({ item }: { item: ListItem }) {
   const endDate = item.metadata.endDate as string
   const avatarColor = CYCLE_COLORS[item.id.charCodeAt(0) % CYCLE_COLORS.length]!
 
+  const optIn = myOptIns.find(opt => opt.programCycleId === item.id)
+
   return (
+    <>
     <div className="flex flex-col gap-3 p-4 h-full min-h-[160px]">
       {/* Header */}
       <div className="flex items-start gap-3">
@@ -83,14 +90,55 @@ function ProgramCardContent({ item }: { item: ListItem }) {
         >
           {status.charAt(0) + status.slice(1).toLowerCase()}
         </span>
+
+        {optIn && (
+          <StatusBadge
+            label="Opted In"
+            variant="pending"
+          />
+        )}
       </div>
 
       {/* Footer */}
-      <div className="flex items-center gap-1.5 mt-auto pt-3 border-t border-border text-xs text-muted-foreground">
-        <CalendarDays className="size-3 shrink-0" />
-        <span>{formatDate(startDate)} – {formatDate(endDate)}</span>
+      <div className="flex flex-col gap-2 mt-auto pt-3 border-t border-border">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <CalendarDays className="size-3 shrink-0" />
+            <span>{formatDate(startDate)} – {formatDate(endDate)}</span>
+          </div>
+
+          {/* Opt-In Button */}
+          {status === 'OPEN' && !optIn && (
+            <Button
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation()
+                setOptInDialogOpen(true)
+              }}
+              className="w-full"
+            >
+              Opt In
+            </Button>
+          )}
+        </div>
       </div>
-    </div>
+
+    <OptInDialog
+    program={{
+      id: item.id,
+      name: item.name,
+      type: type,
+      year: year,
+      startDate: startDate,
+      endDate: endDate,
+      status: status,
+      description: item.metadata.description as string | null,
+      createdAt: '',
+      updatedAt: '',
+    }}
+    open={optInDialogOpen}
+    onOpenChange={setOptInDialogOpen}
+    />
+   </>
   )
 }
 
@@ -126,6 +174,9 @@ function ProgramsInner() {
   const { data: page, isLoading, isError, error } = usePrograms({ cursor, status })
   const cycles = useMemo<ProgramCycleListItem[]>(() => page?.data ?? [], [page])
   const pagination = page?.pagination
+
+  const { data: myOptInsData } = useMyOptIns()
+const myOptIns = useMemo(() => myOptInsData?.data ?? [], [myOptInsData])
 
   const columns: ColumnConfig[] = useMemo(
     () => [
@@ -173,8 +224,8 @@ function ProgramsInner() {
   )
 
   const renderCard: RenderCardFn = useCallback(
-    (item) => <ProgramCardContent item={item} />,
-    []
+    (item) => <ProgramCardContent item={item} myOptIns={myOptIns} />,
+    [myOptIns]
   )
 
   function navigate(newStatus?: string, newCursor?: string) {

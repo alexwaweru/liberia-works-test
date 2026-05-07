@@ -138,6 +138,13 @@ enum ProgramPlacementStatus {
   CANCELLED
 }
 
+enum ProgramOptInStatus {
+  PENDING
+  MATCHED
+  DECLINED
+  WITHDRAWN
+}
+
 enum WorkforceReturnStatus {
   DRAFT
   SUBMITTED
@@ -399,6 +406,7 @@ model EducationLevel {
   individualEducation    IndividualEducation[]
   vacancies              Vacancy[]
   programHostingCapacity ProgramHostingCapacity[]
+  programOptInsPreferred ProgramOptIn[]
 
   @@map("education_levels")
 }
@@ -545,6 +553,7 @@ model Individual {
   cvParseJobs     CvParseJob[]
   applications    Application[]
   placements      ProgramPlacement[]
+  programOptIns   ProgramOptIn[]
 
   @@map("individuals")
 }
@@ -701,6 +710,7 @@ model Employer {
   complianceCertificates ComplianceCertificate[]
   placements             ProgramPlacement[]
   programHostingCapacity ProgramHostingCapacity[]
+  matchedProgramOptIns   ProgramOptIn[]
 
   @@map("employers")
 }
@@ -889,6 +899,7 @@ model ProgramCycle {
 
   hostingCapacity ProgramHostingCapacity[]
   placements      ProgramPlacement[]
+  optIns          ProgramOptIn[]
 
   @@map("program_cycles")
 }
@@ -940,6 +951,30 @@ model ProgramPlacement {
   cycle      ProgramCycle @relation(fields: [cycleId], references: [id])
 
   @@map("program_placements")
+}
+
+/// Individual interest / registration for an open program cycle (before placement).
+model ProgramOptIn {
+  id                        String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  individualId              String             @map("individual_id") @db.Uuid
+  programCycleId            String             @map("program_cycle_id") @db.Uuid
+  status                    ProgramOptInStatus @default(PENDING)
+  preferredSectors          String[]           @default([]) @map("preferred_sectors") @db.Uuid
+  preferredCounties         Int[]              @default([]) @map("preferred_counties")
+  preferredEducationLevelId String?            @map("preferred_education_level_id") @db.Uuid
+  additionalNotes           String?            @map("additional_notes") @db.Text
+  matchedEmployerId         String?            @map("matched_employer_id") @db.Uuid
+  matchedAt                 DateTime?          @map("matched_at") @db.Timestamptz(6)
+  createdAt                 DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                 DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  individual              Individual      @relation(fields: [individualId], references: [id])
+  programCycle            ProgramCycle    @relation(fields: [programCycleId], references: [id])
+  preferredEducationLevel EducationLevel? @relation(fields: [preferredEducationLevelId], references: [id])
+  matchedEmployer         Employer?       @relation(fields: [matchedEmployerId], references: [id])
+
+  @@unique([individualId, programCycleId])
+  @@map("program_opt_ins")
 }
 
 // ── Workforce returns & compliance (Phase 2 models) ───────────────────────────

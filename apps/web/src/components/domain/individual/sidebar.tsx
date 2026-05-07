@@ -15,6 +15,7 @@ import {
   ChevronDownIcon,
   MoreHorizontalIcon,
   LogOutIcon,
+  CheckCircle2Icon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -30,6 +31,7 @@ const TOP_NAV = [
   { href: '/me/jobs',         label: 'Jobs',         icon: BriefcaseIcon },
   { href: '/me/applications', label: 'Applications', icon: FileTextIcon },
   { href: '/me/programs',     label: 'Programs',     icon: LayersIcon },
+  { href: '/me/opt-ins',      label: 'My Opt-Ins',   icon: CheckCircle2Icon },
 ]
 
 const PROFILE_TABS = [
