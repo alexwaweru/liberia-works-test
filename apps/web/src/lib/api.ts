@@ -30,6 +30,79 @@ export type MeResponse = {
   gender: 'MALE' | 'FEMALE' | 'PREFER_NOT_TO_SAY' | null
 }
 
+export type County = {
+  id: number
+  name: string
+  code: string | null
+}
+
+export type Sector = {
+  id: string
+  name: string
+  code: string
+}
+
+export type EducationLevel = {
+  id: string
+  name: string
+  code: string
+}
+
+export type OptInRequest = {
+  programCycleId: string
+  preferredSectors: string[]
+  preferredCounties: number[]
+  preferredEducationLevelId?: string
+  additionalNotes?: string
+}
+
+export type OptInResponse = {
+  id: string
+  individualId: string
+  programCycleId: string
+  status: 'PENDING' | 'MATCHED' | 'DECLINED' | 'WITHDRAWN'
+  preferredSectors: string[]
+  preferredCounties: number[]
+  preferredEducationLevelId: string | null
+  additionalNotes: string | null
+  matchedEmployerId: string | null
+  matchedAt: string | null
+  createdAt: string
+}
+
+export type MyOptIn = {
+  id: string
+  individualId: string
+  programCycleId: string
+  status: 'PENDING' | 'MATCHED' | 'DECLINED' | 'WITHDRAWN'
+  preferredSectors: Array<{ id: string; name: string; code: string | null }>
+  preferredCounties: Array<{ id: number; name: string; code: string | null }>
+  preferredEducationLevel: { id: string; name: string; code: string } | null
+  additionalNotes: string | null
+  matchedEmployerId: string | null
+  matchedAt: string | null
+  createdAt: string
+  programCycle: {
+    id: string
+    name: string
+    year: number
+    status: string
+  }
+  matchedEmployer: {
+    id: string
+    companyName: string
+  } | null
+}
+
+export type MyOptInsResponse = {
+  data: MyOptIn[]
+  pagination: {
+    nextCursor: string | null
+    hasMore: boolean
+    total: number
+  }
+}
+
 export function registerIndividual(body: {
   phone: string
   fullName: string
@@ -431,4 +504,34 @@ export function listMyApplications(params?: { cursor?: string }) {
   if (params?.cursor) q.set('cursor', params.cursor)
   const qs = q.toString()
   return apiFetch<MyApplicationListResponse>(`/api/v1/individuals/me/applications${qs ? `?${qs}` : ''}`)
+}
+
+export function getCounties() {
+  return apiFetch<{ data: County[] }>('/api/v1/programs/counties')
+}
+
+export function getSectors() {
+  return apiFetch<{ data: Sector[] }>('/api/v1/programs/sectors')
+}
+
+export function getEducationLevels() {
+  return apiFetch<EducationLevel[]>('/api/v1/reference/education-levels')
+}
+
+export function createOptIn(body: OptInRequest) {
+  return apiFetch<OptInResponse>('/api/v1/programs/opt-in', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
+export function getMyOptIns(params?: { cursor?: string }) {
+  const q = new URLSearchParams()
+  if (params?.cursor) q.set('cursor', params.cursor)
+  const qs = q.toString()
+  return apiFetch<MyOptInsResponse>(`/api/v1/programs/my-opt-ins${qs ? `?${qs}` : ''}`)
+}
+
+export function getOptInByProgram(programCycleId: string) {
+  return apiFetch<MyOptIn>(`/api/v1/programs/opt-ins/by-program/${programCycleId}`)
 }
