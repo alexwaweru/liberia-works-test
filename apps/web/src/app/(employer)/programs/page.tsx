@@ -279,7 +279,7 @@ function ProgramsInner() {
         onViewChange={setView}
         columns={columns}
         renderCard={renderCard}
-        onItemOpen={(item) => router.push(`/programs/${item.id}`)}
+        onItemOpen={(item) => router.push(`/programs/cycles/${item.id}`)}
         searchPlaceholder="Search programs..."
         emptyState={
           isLoading
