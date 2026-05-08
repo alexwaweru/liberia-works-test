@@ -525,6 +525,7 @@ export function createOptIn(body: OptInRequest) {
   })
 }
 
+
 export type ProgramOptInPayload = {
   slotsOffered: number
   preferredSectorIds?: string[]
@@ -535,35 +536,29 @@ export type ProgramOptInPayload = {
   placementInstructions?: string
 }
 
-export type ProgramPlacementListItem = {
+export type ProgramPlacementListItem = any;
+
+export type MyPlacementResponse = {
   id: string
   matchDate: string
   status: string
-  individual: {
-    id: string
-    fullName: string | null
-    email: string | null
-    phoneNumber: string | null
-    dateOfBirth: string | null
-    gender: string | null
-    education: Array<{
-      institutionName: string
-      qualification: string | null
-      fieldOfStudy: string | null
-    }>
-    experience: Array<{
-      employerName: string
-      title: string | null
-    }>
+  employer: {
+    companyName: string
+    primaryContactName: string
+    primaryContactPhone: string
+  }
+  cycle: {
+    name: string
+    startDate: string
   }
 }
 
 export function getProgramCycle(id: string) {
-  return apiFetch<ProgramCycleListItem>(`/api/v1/programs/cycles/${id}`)
+  return apiFetch(`/api/v1/programs/cycles/${id}`)
 }
 
 export function optInToProgram(id: string, body: ProgramOptInPayload) {
-  return apiFetch<{ success: boolean; message: string }>(`/api/v1/programs/cycles/${id}/opt-in`, {
+  return apiFetch(`/api/v1/programs/cycles/${id}/opt-in`, {
     method: "POST",
     body: JSON.stringify(body),
   })
@@ -581,5 +576,16 @@ export function getOptInByProgram(programCycleId: string) {
 }
 
 export function listProgramMatches(id: string) {
-  return apiFetch<ProgramPlacementListItem[]>(`/api/v1/programs/cycles/${id}/matches`)
+  return apiFetch(`/api/v1/programs/cycles/${id}/matches`)
+}
+
+export function confirmPlacement(code: string) {
+  return apiFetch("/api/v1/vacation-job/confirm", {
+    method: "POST",
+    body: JSON.stringify({ code }),
+  })
+}
+
+export function getMyPlacement() {
+  return apiFetch("/api/v1/vacation-job/my-placement")
 }

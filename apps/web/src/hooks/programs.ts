@@ -43,7 +43,6 @@ export function usePrograms(filters?: ProgramFilters) {
   })
 }
 
-<<<<<<< HEAD
 export function useCounties() {
   return useQuery<County[]>({
     queryKey: programKeys.counties(),

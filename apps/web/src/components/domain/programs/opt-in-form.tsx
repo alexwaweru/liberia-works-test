@@ -16,16 +16,36 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"
+
 export function OptInForm({ cycleId }: { cycleId: string }) {
   const mutation = useOptInMutation(cycleId)
   const [handled, setHandled] = useState(false)
 
   const { data: counties } = useQuery({
-    queryKey: ['counties', 'LR'],
+    queryKey: ['reference', 'counties'],
     queryFn: async () => {
-      const res = await fetch('/api/v1/reference/states?countryCode=LR')
+      const res = await fetch(`${API_BASE}/api/v1/reference/states?countryCode=LR`)
       if (!res.ok) throw new Error('Failed to fetch counties')
       return res.json() as Promise<Array<{ id: number; name: string }>>
+    },
+  })
+
+  const { data: sectors } = useQuery({
+    queryKey: ['reference', 'sectors'],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE}/api/v1/reference/sectors`)
+      if (!res.ok) throw new Error('Failed to fetch sectors')
+      return res.json() as Promise<Array<{ id: string; name: string }>>
+    },
+  })
+
+  const { data: educationLevels } = useQuery({
+    queryKey: ['reference', 'education-levels'],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE}/api/v1/reference/education-levels`)
+      if (!res.ok) throw new Error('Failed to fetch education levels')
+      return res.json() as Promise<Array<{ id: string; name: string }>>
     },
   })
 
@@ -85,14 +105,36 @@ export function OptInForm({ cycleId }: { cycleId: string }) {
           </Select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="preferredSectorId">Preferred Sector ID</Label>
-          <Input id="preferredSectorId" name="preferredSectorId" type="text" placeholder="UUID..." />
+          <Label htmlFor="preferredSectorId">Preferred Sector</Label>
+          <Select name="preferredSectorId">
+            <SelectTrigger>
+              <SelectValue placeholder="Select a sector" />
+            </SelectTrigger>
+            <SelectContent>
+              {sectors?.map((sector) => (
+                <SelectItem key={sector.id} value={sector.id}>
+                  {sector.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="preferredEducationLevelId">Preferred Education Level ID</Label>
-        <Input id="preferredEducationLevelId" name="preferredEducationLevelId" type="text" placeholder="UUID..." />
+        <Label htmlFor="preferredEducationLevelId">Preferred Education Level</Label>
+        <Select name="preferredEducationLevelId">
+          <SelectTrigger>
+            <SelectValue placeholder="Select an education level" />
+          </SelectTrigger>
+          <SelectContent>
+            {educationLevels?.map((level) => (
+              <SelectItem key={level.id} value={level.id}>
+                {level.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

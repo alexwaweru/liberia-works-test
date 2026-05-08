@@ -32,6 +32,7 @@ import applicationsModule from './modules/applications/index.js'
 import workPermitsModule from './modules/work-permits/index.js'
 import disputesModule from './modules/disputes/index.js'
 import programsModule from './modules/programs/index.js'
+import vacationJobsModule from './modules/vacation-jobs/index.js'
 import messagingModule from './modules/messaging/index.js'
 import notificationsModule from './modules/notifications/index.js'
 import aiModule from './modules/ai/index.js'
@@ -112,6 +113,7 @@ await app.register(applicationsModule, { prefix: '/api/v1/applications' })
 await app.register(workPermitsModule,  { prefix: '/api/v1/work-permits' })
 await app.register(disputesModule,     { prefix: '/api/v1/disputes' })
 await app.register(programsModule,     { prefix: '/api/v1/programs' })
+await app.register(vacationJobsModule, { prefix: '/api/v1/vacation-job' })
 await app.register(messagingModule,    { prefix: '/api/v1/webhooks' })
 await app.register(notificationsModule,{ prefix: '/api/v1/notifications' })
 await app.register(aiModule,           { prefix: '/api/v1/cv-parse-jobs' })
@@ -126,6 +128,10 @@ app.get('/health', { schema: { hide: true } }, async () => ({
 }))
 
 // ── Start ─────────────────────────────────────────────────────────────────────
+// Start background workers
+import "./workers/matching.worker.js"
+import "./workers/outbound-messaging.worker.js"
+
 try {
   await app.listen({ port: env.PORT, host: env.HOST })
 } catch (err) {

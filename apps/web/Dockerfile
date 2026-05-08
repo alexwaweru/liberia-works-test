@@ -1,6 +1,7 @@
 # Build context must be the monorepo root:
 #   docker build -f apps/web/Dockerfile .
 FROM node:20-alpine AS base
+
 RUN apk add --no-cache git
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
