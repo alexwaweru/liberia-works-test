@@ -2,7 +2,14 @@ import { PrismaClient } from '@prisma/client'
 import { SessionManager, BotSession } from './session.js'
 import { sendWhatsApp } from '../index.js'
 
-const prisma = new PrismaClient()
+import { env } from '../../../config/env.js'
+
+import { PrismaPg } from '@prisma/adapter-pg'
+import pg from 'pg'
+
+const pool = new pg.Pool({ connectionString: env.DATABASE_URL })
+const adapter = new PrismaPg(pool)
+const prisma = new PrismaClient({ adapter })
 
 export class BotRouter {
   static async handle(phone: string, text: string) {
