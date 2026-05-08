@@ -1,14 +1,17 @@
-import type { FastifyPluginAsync } from 'fastify'
-import { ZodTypeProvider } from 'fastify-type-provider-zod'
+import type { FastifyPluginAsync } from "fastify"
+import { ZodTypeProvider } from "fastify-type-provider-zod"
+import { z } from "zod"
 import {
   ProgramCycleListResponseSchema,
   ProgramCycleFilterSchema,
-} from '@liberia-works/shared-schemas'
-import { EMPLOYER_ROLES } from '@liberia-works/shared-types'
-import { requireRole } from '../../plugins/auth.js'
-import { encodeCursor, decodeCursor } from '../../lib/cursor.js'
-import type { ProgramCycle } from '@prisma/client'
-import z from 'zod'
+  ProgramCycleResponseSchema,
+  ProgramOptInSchema,
+  ProgramPlacementListResponseSchema,
+} from "@liberia-works/shared-schemas"
+import { EMPLOYER_ROLES } from "@liberia-works/shared-types"
+import { requireRole } from "../../plugins/auth.js"
+import { encodeCursor, decodeCursor } from "../../lib/cursor.js"
+import type { ProgramCycle } from "@prisma/client"
 
 function formatCycle(c: ProgramCycle) {
   return {
@@ -17,8 +20,8 @@ function formatCycle(c: ProgramCycle) {
     name: c.name,
     description: c.description ?? null,
     year: c.year,
-    startDate: c.startDate instanceof Date ? c.startDate.toISOString().split('T')[0]! : String(c.startDate),
-    endDate: c.endDate instanceof Date ? c.endDate.toISOString().split('T')[0]! : String(c.endDate),
+    startDate: c.startDate instanceof Date ? c.startDate.toISOString().split("T")[0]! : String(c.startDate),
+    endDate: c.endDate instanceof Date ? c.endDate.toISOString().split("T")[0]! : String(c.endDate),
     status: c.status as string,
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
@@ -94,14 +97,14 @@ export const programsModule: FastifyPluginAsync = async (app) => {
   const server = app.withTypeProvider<ZodTypeProvider>()
 
   // GET /cycles — list all program cycles (paginated)
-  server.get('/cycles', {
+  server.get("/cycles", {
     schema: {
-      tags: ['programs'],
-      summary: 'List program cycles',
+      tags: ["programs"],
+      summary: "List program cycles",
       querystring: ProgramCycleFilterSchema,
       response: { 200: ProgramCycleListResponseSchema },
     },
-    preHandler: [requireRole([...EMPLOYER_ROLES, 'INDIVIDUAL'])],
+    preHandler: [requireRole([...EMPLOYER_ROLES, "INDIVIDUAL"])],
   }, async (req) => {
     const { cursor, status, type, year } = req.query
     const PAGE_SIZE = 20
@@ -118,7 +121,7 @@ export const programsModule: FastifyPluginAsync = async (app) => {
       app.prisma.programCycle.count({ where }),
       app.prisma.programCycle.findMany({
         where,
-        orderBy: [{ year: 'desc' }, { startDate: 'desc' }, { id: 'desc' }],
+        orderBy: [{ year: "desc" }, { startDate: "desc" }, { id: "desc" }],
         ...(decodedCursor ? { cursor: { id: decodedCursor }, skip: 1 } : {}),
         take: PAGE_SIZE + 1,
       }),
@@ -291,12 +294,12 @@ export const programsModule: FastifyPluginAsync = async (app) => {
     ])
   
     const hasMore = rows.length > PAGE_SIZE
-    const data = hasMore ? rows.slice(0, PAGE_SIZE) : rows
+    const data: typeof rows = hasMore ? rows.slice(0, PAGE_SIZE) : rows
     const nextCursor = hasMore ? encodeCursor(data[data.length - 1]!.id) : null
-  
+
     // Collect all unique sector and county IDs to fetch in batch
-    const allSectorIds = [...new Set(data.flatMap(opt => opt.preferredSectors as string[]))]
-    const allCountyIds = [...new Set(data.flatMap(opt => opt.preferredCounties as number[]))]
+    const allSectorIds = [...new Set(data.flatMap((opt: any) => opt.preferredSectors as string[]))] as string[]
+    const allCountyIds = [...new Set(data.flatMap((opt: any) => opt.preferredCounties as number[]))] as number[]
   
     const [sectors, counties] = await Promise.all([
       app.prisma.sector.findMany({
@@ -313,7 +316,7 @@ export const programsModule: FastifyPluginAsync = async (app) => {
     const countyMap = new Map(counties.map(c => [c.id, c]))
   
     return {
-      data: data.map((optIn) => ({
+      data: data.map((optIn: any) => ({
         id: optIn.id,
         individualId: optIn.individualId,
         programCycleId: optIn.programCycleId,
@@ -417,6 +420,146 @@ export const programsModule: FastifyPluginAsync = async (app) => {
         code: s.isicCode,
       }))
     }
+  })
+
+  // GET /cycles/:id — get specific program cycle details
+  server.get("/cycles/:id", {
+    schema: {
+      tags: ["programs"],
+      summary: "Get program cycle details",
+      params: z.object({ id: z.string().uuid() }),
+      response: { 200: ProgramCycleResponseSchema },
+    },
+    preHandler: [requireRole([...EMPLOYER_ROLES, "INDIVIDUAL"])],
+  }, async (req, reply) => {
+    const cycle = await app.prisma.programCycle.findUnique({ where: { id: req.params.id } })
+    if (!cycle) return reply.notFound("Program cycle not found")
+    return formatCycle(cycle)
+  })
+
+  // POST /cycles/:id/opt-in — employer opt-in to a cycle
+  server.post("/cycles/:id/opt-in", {
+    schema: {
+      tags: ["programs"],
+      summary: "Opt-in to a program cycle (Employers only)",
+      params: z.object({ id: z.string().uuid() }),
+      body: ProgramOptInSchema,
+    },
+    preHandler: [requireRole(EMPLOYER_ROLES)],
+  }, async (req, reply) => {
+    const { id } = req.params
+    const { id: userId } = req.authUser!
+
+    const cycle = await app.prisma.programCycle.findUnique({ where: { id } })
+    if (!cycle) return reply.notFound("Program cycle not found")
+    if (cycle.status !== "OPEN") return reply.badRequest("Registration is not open for this program cycle")
+
+    const employerUser = await app.prisma.employerUser.findFirst({
+        where: { userId },
+        select: { employerId: true }
+    })
+    if (!employerUser) return reply.forbidden("User is not associated with an employer")
+
+    const hosting = await app.prisma.programHostingCapacity.upsert({
+      where: {
+        employerId_cycleId: {
+          employerId: employerUser.employerId,
+          cycleId: id,
+        }
+      },
+      update: {
+        slotsOffered: req.body.slotsOffered,
+        preferredEducationLevelId: req.body.preferredEducationLevelId || null,
+        stateId: req.body.stateId || 1,
+        contactName: req.body.contactName,
+        contactPhone: req.body.contactPhone,
+        placementInstructions: req.body.placementInstructions || null,
+      },
+      create: {
+        employerId: employerUser.employerId,
+        cycleId: id,
+        slotsOffered: req.body.slotsOffered,
+        preferredEducationLevelId: req.body.preferredEducationLevelId || null,
+        stateId: req.body.stateId || 1,
+        contactName: req.body.contactName,
+        contactPhone: req.body.contactPhone,
+        placementInstructions: req.body.placementInstructions || null,
+      }
+    })
+
+    // AUDIT
+    await app.audit.record({
+      actorUserId: userId,
+      actorRole: req.authUser!.role,
+      action: "EMPLOYER_PROGRAM_OPT_IN",
+      targetTable: "program_hosting_capacity",
+      targetId: hosting.id,
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"] || "",
+      requestId: req.id as string,
+    })
+
+    return { success: true, message: "Opt-in successful" }
+  })
+
+  // GET /cycles/:id/matches — list matches for the employer
+  server.get("/cycles/:id/matches", {
+    schema: {
+      tags: ["programs"],
+      summary: "List matched job seekers for this cycle",
+      params: z.object({ id: z.string().uuid() }),
+      response: { 200: ProgramPlacementListResponseSchema },
+    },
+    preHandler: [requireRole(EMPLOYER_ROLES)],
+  }, async (req, reply) => {
+    const { id } = req.params
+    const { id: userId } = req.authUser!
+
+    const employerUser = await app.prisma.employerUser.findFirst({
+        where: { userId },
+        select: { employerId: true }
+    })
+    if (!employerUser) return reply.forbidden("User is not associated with an employer")
+
+    const placements = await app.prisma.programPlacement.findMany({
+      where: {
+        cycleId: id,
+        employerId: employerUser.employerId,
+      },
+      include: {
+        individual: {
+          include: {
+            user: true,
+            education: true,
+            workHistory: true,
+          }
+        }
+      }
+    })
+
+    return placements.map(p => ({
+      id: p.id,
+      matchDate: p.matchDate.toISOString(),
+      status: p.status,
+      individual: {
+        id: p.individual.id,
+        fullName: p.individual.user.fullName,
+        email: p.individual.user.email,
+        phoneNumber: p.individual.user.phoneNumber,
+        dateOfBirth: p.individual.user.dateOfBirth?.toISOString() ?? null,
+        gender: p.individual.user.gender,
+        education: p.individual.education.map(e => ({
+            institutionName: e.institutionName,
+            qualification: e.qualification,
+            fieldOfStudy: e.fieldOfStudy,
+        })),
+        experience: p.individual.workHistory.map(w => ({
+            employerName: w.employerName,
+            title: w.title,
+        }))
+      }
+    }))
+
   })
 }
 

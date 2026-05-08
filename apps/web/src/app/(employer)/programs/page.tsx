@@ -45,7 +45,7 @@ function formatDate(dateStr: string): string {
   })
 }
 
-function ProgramCardContent({ item }: { item: ListItem }) {
+function ProgramCardContent({ item, onOpen }: { item: ListItem; onOpen?: () => void }) {
   const status = item.metadata.status as string
   const type = item.metadata.type as string
   const year = item.metadata.year as number
@@ -54,7 +54,7 @@ function ProgramCardContent({ item }: { item: ListItem }) {
   const avatarColor = CYCLE_COLORS[item.id.charCodeAt(0) % CYCLE_COLORS.length]!
 
   return (
-    <div className="flex flex-col gap-3 p-4 h-full min-h-[160px]">
+    <div onClick={onOpen} className="flex flex-col gap-3 p-4 h-full min-h-[160px] cursor-pointer">
       {/* Header */}
       <div className="flex items-start gap-3">
         <div
@@ -173,7 +173,7 @@ function ProgramsInner() {
   )
 
   const renderCard: RenderCardFn = useCallback(
-    (item) => <ProgramCardContent item={item} />,
+    (item, { onOpen }) => <ProgramCardContent item={item} onOpen={onOpen} />,
     []
   )
 
@@ -279,7 +279,7 @@ function ProgramsInner() {
         onViewChange={setView}
         columns={columns}
         renderCard={renderCard}
-        onItemOpen={() => {}}
+        onItemOpen={(item) => router.push(`/programs/cycles/${item.id}`)}
         searchPlaceholder="Search programs..."
         emptyState={
           isLoading
