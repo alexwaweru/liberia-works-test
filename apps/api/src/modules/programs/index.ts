@@ -294,12 +294,12 @@ export const programsModule: FastifyPluginAsync = async (app) => {
     ])
   
     const hasMore = rows.length > PAGE_SIZE
-    const data = hasMore ? rows.slice(0, PAGE_SIZE) : rows
+    const data: typeof rows = hasMore ? rows.slice(0, PAGE_SIZE) : rows
     const nextCursor = hasMore ? encodeCursor(data[data.length - 1]!.id) : null
-  
+
     // Collect all unique sector and county IDs to fetch in batch
-    const allSectorIds = [...new Set(data.flatMap(opt => opt.preferredSectors as string[]))]
-    const allCountyIds = [...new Set(data.flatMap(opt => opt.preferredCounties as number[]))]
+    const allSectorIds = [...new Set(data.flatMap((opt: any) => opt.preferredSectors as string[]))] as string[]
+    const allCountyIds = [...new Set(data.flatMap((opt: any) => opt.preferredCounties as number[]))] as number[]
   
     const [sectors, counties] = await Promise.all([
       app.prisma.sector.findMany({
@@ -316,7 +316,7 @@ export const programsModule: FastifyPluginAsync = async (app) => {
     const countyMap = new Map(counties.map(c => [c.id, c]))
   
     return {
-      data: data.map((optIn) => ({
+      data: data.map((optIn: any) => ({
         id: optIn.id,
         individualId: optIn.individualId,
         programCycleId: optIn.programCycleId,
@@ -420,6 +420,8 @@ export const programsModule: FastifyPluginAsync = async (app) => {
         code: s.isicCode,
       }))
     }
+  })
+
   // GET /cycles/:id — get specific program cycle details
   server.get("/cycles/:id", {
     schema: {
