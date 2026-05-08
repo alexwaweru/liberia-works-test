@@ -21,7 +21,8 @@ const redis = new Redis(process.env['REDIS_URL'] ?? 'redis://localhost:6379', {
 })
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL })
-const prisma = new PrismaClient({ adapter: new PrismaPg(pool) })
+const adapter = new PrismaPg(pool)
+const prisma = new PrismaClient({ adapter })
 
 export interface CvParseJobData {
   cvParseJobId: string

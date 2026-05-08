@@ -3,6 +3,7 @@
 FROM node:20-alpine AS base
 
 RUN apk add --no-cache git
+RUN git config --global url."https://github.com/".insteadOf "git@github.com:"
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
