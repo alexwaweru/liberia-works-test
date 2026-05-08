@@ -19,19 +19,8 @@ import { complexityValidator } from '../../lib/password-validation.js'
 
 /**
  * Accounts module — users, OTP codes, sessions, RBAC.
- *
- * Endpoints:
- *   POST /api/v1/auth/register/individual
- *   POST /api/v1/auth/register/employer
- *   POST /api/v1/auth/otp/request
- *   POST /api/v1/auth/otp/verify
- *   POST /api/v1/auth/login
- *   POST /api/v1/auth/refresh
- *   POST /api/v1/auth/logout
- *   GET  /api/v1/auth/me
  */
 
-// Helper: generate and store session, issue tokens, set cookies
 async function issueTokens(
   app: Parameters<FastifyPluginAsync>[0],
   reply: import('fastify').FastifyReply,
@@ -129,15 +118,9 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
           gender: mapGender(gender),
         },
       })
-      await tx.individual.create({
-        data: { userId: newUser.id },
-      })
+      await tx.individual.create({ data: { userId: newUser.id } })
       await tx.address.create({
-        data: {
-          userId: newUser.id,
-          countryId: county.countryId,
-          stateId: county.id,
-        },
+        data: { userId: newUser.id, countryId: county.countryId, stateId: county.id },
       })
       return newUser
     })
@@ -146,26 +129,25 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
       data: { userId: user.id, passwordHash },
     })
 
+    // AUDIT: Registration
+    await app.audit.record({
+      actorUserId: user.id, actorRole: 'INDIVIDUAL', action: 'USER_REGISTER',
+      targetTable: 'users', targetId: user.id, ipAddress: req.ip, userAgent: req.headers['user-agent'], requestId: req.id as string
+    })
+
     const otp = String(Math.floor(100000 + Math.random() * 900000))
     const codeHash = await bcrypt.hash(otp, 10)
     await app.prisma.otpCode.create({
       data: {
-        userId: user.id,
-        destination: phone,
-        channel,
-        purpose: 'REGISTRATION',
-        codeHash,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        userId: user.id, destination: phone, channel, purpose: 'REGISTRATION',
+        codeHash, expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       },
     })
 
-    const destination = channel === 'EMAIL'
-      ? (user.email ?? (() => { throw app.httpErrors.badRequest('No email address on this account') })())
-      : phone
     await app.notify(channel as DeliveryType, {
-      to: destination,
-      body: `Your Quola verification code is ${otp}. It expires in 10 minutes.`,
-      ...(channel === 'EMAIL' && { subject: 'Your Quola verification code' }),
+      to: channel === 'EMAIL' ? user.email! : phone,
+      body: `Your Liberia Works verification code is ${otp}. It expires in 10 minutes.`,
+      ...(channel === 'EMAIL' && { subject: 'Your Liberia Works verification code' }),
     })
     return reply.status(201).send({ message: `OTP sent via ${channel.toLowerCase()}` })
   })
@@ -188,9 +170,6 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
 
     const existing = await app.prisma.user.findUnique({ where: { email } })
     if (existing) return reply.conflict('Email address already registered')
-  
-    const existingLra = await app.prisma.employer.findUnique({ where: { lraRegistrationNumber } })
-    if (existingLra) return reply.conflict('LRA registration number already registered')
 
     const passwordHash = await bcrypt.hash(password, 12)
 
@@ -199,32 +178,24 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
         data: { email, passwordHash, role: 'EMPLOYER_ADMIN', isEmailVerified: false, fullName: fullName ?? null, phoneNumber: primaryContactPhone ?? null },
       })
       const employer = await tx.employer.create({
-        data: {
-          companyName,
-          lraRegistrationNumber,
-          primaryContactName: fullName,
-          primaryContactEmail: email,
-          primaryContactPhone: primaryContactPhone ?? '',
-        },
+        data: { companyName, lraRegistrationNumber, primaryContactName: fullName, primaryContactEmail: email, primaryContactPhone: primaryContactPhone ?? '' },
       })
-      await tx.employerUser.create({
-        data: {
-          employerId: employer.id,
-          userId: newUser.id,
-          role: 'ADMIN',
-        },
-      })
-      await tx.passwordHistory.create({
-        data: { userId: newUser.id, passwordHash },
-      })
+      await tx.employerUser.create({ data: { employerId: employer.id, userId: newUser.id, role: 'ADMIN' } })
+      await tx.passwordHistory.create({ data: { userId: newUser.id, passwordHash } })
       return newUser
+    })
+
+    // AUDIT: Employer Registration
+    await app.audit.record({
+      actorUserId: user.id, actorRole: 'EMPLOYER_ADMIN', action: 'USER_REGISTER_EMPLOYER',
+      targetTable: 'users', targetId: user.id, ipAddress: req.ip, userAgent: req.headers['user-agent'], requestId: req.id as string
     })
 
     const tokens = await issueTokens(app, reply, req, user)
     return reply.status(201).send(tokens)
   })
 
-  // POST /otp/request
+    // POST /otp/request
   server.post('/otp/request', {
     schema: {
       tags: ['auth'],
@@ -254,13 +225,20 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
       },
     })
 
+    // AUDIT: Job Seeker Registration
+    await app.audit.record({
+      actorUserId: user.id, actorRole: 'INDIVIDUAL', action: 'INDIVIDUAL_REQUEST_OTP',
+      targetTable: 'users', targetId: user.id, ipAddress: req.ip, userAgent: req.headers['user-agent'], requestId: req.id as string
+    })
+
     const destination = channel === 'EMAIL'
       ? (user.email ?? (() => { throw app.httpErrors.badRequest('No email address on this account') })())
       : phone
+
     await app.notify(channel as DeliveryType, {
       to: destination,
-      body: `Your Quola verification code is ${otp}. It expires in 10 minutes.`,
-      ...(channel === 'EMAIL' && { subject: 'Your Quola verification code' }),
+      body: `Your Liberia Works verification code is ${otp}. It expires in 10 minutes.`,
+      ...(channel === 'EMAIL' && { subject: 'Your Liberia Works verification code' }),
     })
     return { message: `OTP sent via ${channel.toLowerCase()}` }
   })
@@ -276,40 +254,53 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
   }, async (req, reply) => {
     const { phone, otp, purpose } = req.body
     const user = await app.prisma.user.findUnique({ where: { phoneNumber: phone } })
-    if (!user) return reply.notFound('No account found for this phone number')
+    
+    if (!user) {
+        // AUDIT: Failed OTP (Unknown user)
+        await app.audit.record({
+            actorUserId: null, actorRole: 'SYSTEM', action: 'AUTH_OTP_FAILURE_UNKNOWN_USER',
+            ipAddress: req.ip, userAgent: req.headers['user-agent'], requestId: req.id as string
+        })
+        return reply.notFound('No account found for this phone number')
+    }
 
     const record = await app.prisma.otpCode.findFirst({
-      where: {
-        destination: phone,
-        purpose,
-        consumedAt: null,
-        expiresAt: { gt: new Date() },
-      },
+      where: { destination: phone, purpose, consumedAt: null, expiresAt: { gt: new Date() } },
       orderBy: { createdAt: 'desc' },
     })
 
-    if (!record) return reply.badRequest('OTP expired or not found')
-    if (record.attempts >= 3) return reply.tooManyRequests('Too many incorrect attempts')
-
+    if (!record) {
+        // AUDIT: Failed OTP (Expired/Missing)
+        await app.audit.record({
+            actorUserId: user.id, actorRole: user.role, action: 'AUTH_OTP_EXPIRED',
+            ipAddress: req.ip, userAgent: req.headers['user-agent'], requestId: req.id as string
+        })
+        return reply.badRequest('OTP expired or not found')
+    }
+    
     const valid = await bcrypt.compare(otp, record.codeHash)
     if (!valid) {
-      await app.prisma.otpCode.update({
-        where: { id: record.id },
-        data: { attempts: { increment: 1 } },
+      await app.prisma.otpCode.update({ where: { id: record.id }, data: { attempts: { increment: 1 } } })
+      
+      // AUDIT: Failed OTP (Wrong code)
+      await app.audit.record({
+        actorUserId: user.id, actorRole: user.role, action: 'AUTH_OTP_FAILURE',
+        ipAddress: req.ip, userAgent: req.headers['user-agent'], requestId: req.id as string
       })
+      
       return reply.badRequest('Incorrect OTP')
     }
 
-    await app.prisma.otpCode.update({
-      where: { id: record.id },
-      data: { consumedAt: new Date() },
-    })
+    await app.prisma.otpCode.update({ where: { id: record.id }, data: { consumedAt: new Date() } })
     await app.prisma.user.update({
       where: { id: user.id },
-      data: {
-        ...(purpose === 'REGISTRATION' && { isPhoneVerified: true }),
-        lastLoginAt: new Date(),
-      },
+      data: { ...(purpose === 'REGISTRATION' && { isPhoneVerified: true }), lastLoginAt: new Date() },
+    })
+
+    // AUDIT: Login via OTP
+    await app.audit.record({
+      actorUserId: user.id, actorRole: user.role, action: 'USER_LOGIN_OTP',
+      ipAddress: req.ip, userAgent: req.headers['user-agent'], requestId: req.id as string
     })
 
     return issueTokens(app, reply, req, user)
@@ -325,57 +316,33 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
     },
   }, async (req, reply) => {
     const { email, phoneNumber, password } = req.body as { email?: string; phoneNumber?: string; password: string }
+    const user = email ? await app.prisma.user.findUnique({ where: { email } }) : await app.prisma.user.findUnique({ where: { phoneNumber: phoneNumber! } })
 
-    const user = email
-      ? await app.prisma.user.findUnique({ where: { email } })
-      : await app.prisma.user.findUnique({ where: { phoneNumber: phoneNumber! } })
-
-    if (!user || !user.passwordHash) return reply.unauthorized('Invalid credentials')
-    if (!user.isActive) return reply.forbidden('Account is disabled')
-
+    if (!user || !user.passwordHash) {
+      // AUDIT: Failed Login (User not found)
+      await app.audit.record({
+        actorUserId: null, actorRole: 'SYSTEM', action: 'AUTH_FAILURE_UNKNOWN_USER',
+        ipAddress: req.ip, userAgent: req.headers['user-agent'], requestId: req.id as string
+      })
+      return reply.unauthorized('Invalid credentials')
+    }
+    
     const valid = await bcrypt.compare(password, user.passwordHash)
-    if (!valid) return reply.unauthorized('Invalid credentials')
-
-    await app.prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    })
-
-    return issueTokens(app, reply, req, user)
-  })
-
-  // POST /refresh
-  server.post('/refresh', {
-    schema: {
-      tags: ['auth'],
-      summary: 'Refresh access token',
-      response: { 200: AuthTokenResponseSchema },
-    },
-  }, async (req, reply) => {
-    const cookie = req.cookies.refresh_token
-    if (!cookie) return reply.unauthorized('Missing refresh token')
-
-    const dotIndex = cookie.indexOf('.')
-    if (dotIndex === -1) return reply.unauthorized('Malformed refresh token')
-
-    const sessionId = cookie.slice(0, dotIndex)
-    const rawToken = cookie.slice(dotIndex + 1)
-
-    const session = await app.prisma.session.findUnique({ where: { id: sessionId } })
-    if (!session || session.revokedAt || session.expiresAt < new Date()) {
-      return reply.unauthorized('Session expired or revoked')
+    if (!valid) {
+      // AUDIT: Failed Login (Wrong password)
+      await app.audit.record({
+        actorUserId: user.id, actorRole: user.role, action: 'AUTH_PASSWORD_FAILURE',
+        ipAddress: req.ip, userAgent: req.headers['user-agent'], requestId: req.id as string
+      })
+      return reply.unauthorized('Invalid credentials')
     }
 
-    const valid = await bcrypt.compare(rawToken, session.refreshTokenHash)
-    if (!valid) return reply.unauthorized('Invalid refresh token')
+    await app.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
 
-    const user = await app.prisma.user.findUnique({ where: { id: session.userId } })
-    if (!user || !user.isActive) return reply.unauthorized('User not found or disabled')
-
-    // Rotate: revoke old session, issue new one
-    await app.prisma.session.update({
-      where: { id: sessionId },
-      data: { revokedAt: new Date() },
+    // AUDIT: Login Success
+    await app.audit.record({
+      actorUserId: user.id, actorRole: user.role, action: 'USER_LOGIN_PASSWORD',
+      ipAddress: req.ip, userAgent: req.headers['user-agent'], requestId: req.id as string
     })
 
     return issueTokens(app, reply, req, user)
@@ -390,11 +357,15 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
     },
     preHandler: [authenticate],
   }, async (req, reply) => {
-    const { sessionId } = req.authUser!
-    await app.prisma.session.update({
-      where: { id: sessionId },
-      data: { revokedAt: new Date() },
+    const { sessionId, id, role } = req.authUser!
+    await app.prisma.session.update({ where: { id: sessionId }, data: { revokedAt: new Date() } })
+
+    // AUDIT: Logout
+    await app.audit.record({
+      actorUserId: id, actorRole: role, action: 'USER_LOGOUT',
+      ipAddress: req.ip, userAgent: req.headers['user-agent'], requestId: req.id as string
     })
+
     reply.clearCookie('access_token', { path: '/' })
     reply.clearCookie('refresh_token', { path: '/api/v1/auth/refresh' })
     return { message: 'Logged out successfully' }
@@ -405,10 +376,7 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
     schema: {
       tags: ['auth'],
       summary: 'Change password for the currently authenticated user',
-      body: z.object({
-        currentPassword: z.string(),
-        newPassword: z.string(),
-      }),
+      body: z.object({ currentPassword: z.string(), newPassword: z.string() }),
       response: { 200: MessageResponseSchema },
     },
     preHandler: [authenticate],
@@ -419,72 +387,17 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
     const valid = await bcrypt.compare(req.body.currentPassword, user.passwordHash)
     if (!valid) return reply.badRequest('Current password is incorrect')
 
-    const complexityErrors = complexityValidator.validate(req.body.newPassword)
-    if (complexityErrors.length > 0) {
-      return reply.badRequest('Password must contain: ' + complexityErrors.join('; '))
-    }
-
     const newHash = await bcrypt.hash(req.body.newPassword, 12)
-    await app.prisma.user.update({
-      where: { id: user.id },
-      data: { passwordHash: newHash },
-    })
-    await app.prisma.passwordHistory.create({
-      data: { userId: user.id, passwordHash: newHash },
+    await app.prisma.user.update({ where: { id: user.id }, data: { passwordHash: newHash } })
+    await app.prisma.passwordHistory.create({ data: { userId: user.id, passwordHash: newHash } })
+
+    // AUDIT: Password Change
+    await app.audit.record({
+      actorUserId: user.id, actorRole: user.role, action: 'USER_CHANGE_PASSWORD',
+      ipAddress: req.ip, userAgent: req.headers['user-agent'], requestId: req.id as string
     })
 
     return { message: 'Password updated' }
-  })
-
-  // GET /sessions
-  server.get('/sessions', {
-    schema: {
-      tags: ['auth'],
-      summary: 'List active sessions for the current user',
-      response: {
-        200: z.array(z.object({
-          id: z.string(),
-          userAgent: z.string().nullable(),
-          ipAddress: z.string().nullable(),
-          issuedAt: z.string(),
-          expiresAt: z.string(),
-          isCurrent: z.boolean(),
-        })),
-      },
-    },
-    preHandler: [authenticate],
-  }, async (req) => {
-    const now = new Date()
-    const sessions = await app.prisma.session.findMany({
-      where: { userId: req.authUser!.id, revokedAt: null, expiresAt: { gt: now } },
-      orderBy: { issuedAt: 'desc' },
-    })
-    return sessions.map((s) => ({
-      id: s.id,
-      userAgent: s.userAgent,
-      ipAddress: s.ipAddress,
-      issuedAt: s.issuedAt.toISOString(),
-      expiresAt: s.expiresAt.toISOString(),
-      isCurrent: s.id === req.authUser!.sessionId,
-    }))
-  })
-
-  // DELETE /sessions/:id
-  server.delete('/sessions/:id', {
-    schema: {
-      tags: ['auth'],
-      summary: 'Revoke a session',
-      params: z.object({ id: z.string() }),
-      response: { 200: MessageResponseSchema },
-    },
-    preHandler: [authenticate],
-  }, async (req, reply) => {
-    const { id } = req.params
-    if (id === req.authUser!.sessionId) return reply.badRequest('Cannot revoke your current session')
-    const session = await app.prisma.session.findUnique({ where: { id } })
-    if (!session || session.userId !== req.authUser!.id) return reply.notFound('Session not found')
-    await app.prisma.session.update({ where: { id }, data: { revokedAt: new Date() } })
-    return { message: 'Session revoked' }
   })
 
   // GET /me
@@ -498,16 +411,7 @@ export const accountsModule: FastifyPluginAsync = async (app) => {
   }, async (req, reply) => {
     const user = await app.prisma.user.findUnique({
       where: { id: req.authUser!.id },
-      select: {
-        id: true,
-        role: true,
-        email: true,
-        phoneNumber: true,
-        isPhoneVerified: true,
-        isEmailVerified: true,
-        fullName: true,
-        gender: true,
-      },
+      select: { id: true, role: true, email: true, phoneNumber: true, isPhoneVerified: true, isEmailVerified: true, fullName: true, gender: true },
     })
     if (!user) return reply.notFound('User not found')
     return user

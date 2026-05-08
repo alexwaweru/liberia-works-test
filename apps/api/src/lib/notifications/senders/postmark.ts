@@ -3,7 +3,7 @@ import type { Sender, DeliveryType, Message } from '../types.js'
 
 export interface PostmarkConfig {
   apiToken: string
-  from: string  // e.g. noreply@quola.lr
+  from: string  // e.g. noreply@liberiaworks.org
 }
 
 export class PostmarkSender implements Sender {

@@ -7,13 +7,13 @@ export interface AuditRecordParams {
   actorUserId: string | null
   actorRole: UserRole | 'SYSTEM'
   action: string
-  targetTable?: string
-  targetId?: string
-  beforeData?: Record<string, unknown>
-  afterData?: Record<string, unknown>
-  ipAddress?: string
-  userAgent?: string
-  requestId?: string
+  targetTable?: string | undefined
+  targetId?: string | undefined
+  beforeData?: Record<string, unknown> | undefined
+  afterData?: Record<string, unknown> | undefined
+  ipAddress?: string | undefined
+  userAgent?: string | undefined
+  requestId?: string | undefined
 }
 
 declare module 'fastify' {
