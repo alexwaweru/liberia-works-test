@@ -41,7 +41,6 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.0",
     "react-resizable-panels": "^4",
-    "root": "git+https://github.com/tanstack/react-virtual.git",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "tanstack": "^2.0.3",
