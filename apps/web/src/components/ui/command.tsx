@@ -24,6 +24,7 @@ function Command({
         "flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground",
         className
       )}
+      shouldFilter={false}
       {...props}
     />
   )
