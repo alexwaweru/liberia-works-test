@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Loader2 } from 'lucide-react'
@@ -39,6 +39,7 @@ export function OptInForm({ programId, onSuccess }: OptInFormProps) {
     handleSubmit,
     setValue,
     watch,
+    control,
     formState: { errors },
   } = useForm<OptInFormData>({
     resolver: zodResolver(optInSchema),
@@ -96,7 +97,6 @@ export function OptInForm({ programId, onSuccess }: OptInFormProps) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Preferred Sectors */}
       <div className="space-y-2">
         <Label>
           Preferred Sectors <span className="text-destructive">*</span>
@@ -112,7 +112,6 @@ export function OptInForm({ programId, onSuccess }: OptInFormProps) {
         )}
       </div>
 
-      {/* Preferred Counties */}
       <div className="space-y-2">
         <Label>
           Preferred Counties <span className="text-destructive">*</span>
@@ -128,7 +127,6 @@ export function OptInForm({ programId, onSuccess }: OptInFormProps) {
         )}
       </div>
 
-      {/* Education Level */}
       <div className="space-y-2">
         <Label>Education Level (Optional)</Label>
         <Select
@@ -148,17 +146,23 @@ export function OptInForm({ programId, onSuccess }: OptInFormProps) {
         </Select>
       </div>
 
-      {/* Additional Notes */}
       <div className="space-y-2">
         <Label>Additional Notes (Optional)</Label>
-        <Textarea
-          placeholder="Any additional information about your preferences..."
-          className="min-h-[100px]"
-          {...register('additionalNotes')}
+        <Controller
+            name="additionalNotes"
+            control={control}
+            render={({ field }) => (
+            <Textarea
+                placeholder="Any additional information about your preferences..."
+                className="min-h-[100px]"
+                value={field.value || ''}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+            />
+            )}
         />
-      </div>
+        </div>
 
-      {/* Submit Button */}
       <div className="flex justify-end gap-3 pt-4">
         <Button type="submit" disabled={isSubmitting} className="min-w-[120px]">
           {isSubmitting ? (
