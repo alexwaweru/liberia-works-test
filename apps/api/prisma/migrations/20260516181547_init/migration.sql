@@ -56,6 +56,9 @@ CREATE TYPE "ProgramCycleStatus" AS ENUM ('PLANNED', 'OPEN', 'MATCHING', 'COMPLE
 CREATE TYPE "ProgramPlacementStatus" AS ENUM ('MATCHED', 'CONFIRMED', 'COMPLETED', 'NO_SHOW', 'CANCELLED');
 
 -- CreateEnum
+CREATE TYPE "ProgramOptInStatus" AS ENUM ('PENDING', 'MATCHED', 'DECLINED', 'WITHDRAWN');
+
+-- CreateEnum
 CREATE TYPE "WorkforceReturnStatus" AS ENUM ('DRAFT', 'SUBMITTED', 'VALIDATED', 'DISPUTED');
 
 -- CreateEnum
@@ -75,6 +78,9 @@ CREATE TYPE "OtpPurpose" AS ENUM ('REGISTRATION', 'LOGIN', 'PHONE_CHANGE', 'EMAI
 
 -- CreateEnum
 CREATE TYPE "EmployerUserRole" AS ENUM ('ADMIN', 'HR', 'MEMBER');
+
+-- CreateEnum
+CREATE TYPE "EmploymentType" AS ENUM ('PERMANENT', 'CONTRACT', 'CASUAL', 'INTERN');
 
 -- CreateTable
 CREATE TABLE "sectors" (
@@ -301,7 +307,7 @@ CREATE TABLE "addresses" (
     "country_id" INTEGER NOT NULL,
     "state_id" INTEGER,
     "city_id" INTEGER,
-    "address_line_1" VARCHAR(300) NOT NULL,
+    "address_line_1" VARCHAR(300),
     "address_line_2" VARCHAR(300),
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
@@ -463,6 +469,44 @@ CREATE TABLE "employer_users" (
 );
 
 -- CreateTable
+CREATE TABLE "employer_invite_tokens" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "employer_id" UUID NOT NULL,
+    "email" VARCHAR(255) NOT NULL,
+    "role" "EmployerUserRole" NOT NULL,
+    "token_hash" VARCHAR(255) NOT NULL,
+    "expires_at" TIMESTAMPTZ(6) NOT NULL,
+    "accepted_at" TIMESTAMPTZ(6),
+    "invited_by_user_id" UUID,
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(6) NOT NULL,
+
+    CONSTRAINT "employer_invite_tokens_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "workforce_employees" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "employer_id" UUID NOT NULL,
+    "full_name" VARCHAR(200) NOT NULL,
+    "gender" "Gender",
+    "nationality" VARCHAR(100) NOT NULL,
+    "position" VARCHAR(200) NOT NULL,
+    "department" VARCHAR(200),
+    "employment_type" "EmploymentType" NOT NULL,
+    "hire_date" DATE NOT NULL,
+    "termination_date" DATE,
+    "email" VARCHAR(255),
+    "phone" VARCHAR(20),
+    "salary" DECIMAL(12,2),
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(6) NOT NULL,
+
+    CONSTRAINT "workforce_employees_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "vacancies" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "employer_id" UUID NOT NULL,
@@ -478,6 +522,7 @@ CREATE TABLE "vacancies" (
     "is_mandatory_advertised" BOOLEAN NOT NULL DEFAULT false,
     "status" "VacancyStatus" NOT NULL DEFAULT 'DRAFT',
     "posted_at" TIMESTAMPTZ(6),
+    "application_form" JSONB,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
@@ -496,6 +541,8 @@ CREATE TABLE "applications" (
     "status_changed_by_user_id" UUID,
     "applied_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "responses" JSONB,
+    "status_note" TEXT,
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
@@ -571,6 +618,7 @@ CREATE TABLE "program_cycles" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "type" "ProgramType" NOT NULL,
     "name" VARCHAR(100) NOT NULL,
+    "description" TEXT,
     "year" SMALLINT NOT NULL,
     "start_date" DATE NOT NULL,
     "end_date" DATE NOT NULL,
@@ -587,7 +635,7 @@ CREATE TABLE "program_hosting_capacity" (
     "employer_id" UUID NOT NULL,
     "cycle_id" UUID NOT NULL,
     "slots_offered" SMALLINT NOT NULL,
-    "preferred_sector_id" UUID,
+    "preferred_sectors" UUID[] DEFAULT ARRAY[]::UUID[],
     "preferred_education_level_id" UUID,
     "state_id" INTEGER NOT NULL,
     "contact_name" VARCHAR(200) NOT NULL,
@@ -617,6 +665,24 @@ CREATE TABLE "program_placements" (
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
     CONSTRAINT "program_placements_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "program_opt_ins" (
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "individual_id" UUID NOT NULL,
+    "program_cycle_id" UUID NOT NULL,
+    "status" "ProgramOptInStatus" NOT NULL DEFAULT 'PENDING',
+    "preferred_sectors" UUID[] DEFAULT ARRAY[]::UUID[],
+    "preferred_counties" INTEGER[] DEFAULT ARRAY[]::INTEGER[],
+    "preferred_education_level_id" UUID,
+    "additional_notes" TEXT,
+    "matched_employer_id" UUID,
+    "matched_at" TIMESTAMPTZ(6),
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(6) NOT NULL,
+
+    CONSTRAINT "program_opt_ins_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -798,6 +864,15 @@ CREATE UNIQUE INDEX "employers_lra_registration_number_key" ON "employers"("lra_
 CREATE UNIQUE INDEX "employer_users_employer_id_user_id_key" ON "employer_users"("employer_id", "user_id");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "employer_invite_tokens_token_hash_key" ON "employer_invite_tokens"("token_hash");
+
+-- CreateIndex
+CREATE INDEX "idx_invite_token_employer_email" ON "employer_invite_tokens"("employer_id", "email");
+
+-- CreateIndex
+CREATE INDEX "idx_workforce_employee_employer_active" ON "workforce_employees"("employer_id", "is_active");
+
+-- CreateIndex
 CREATE INDEX "idx_vacancy_status_deadline" ON "vacancies"("status", "deadline");
 
 -- CreateIndex
@@ -825,10 +900,13 @@ CREATE UNIQUE INDEX "disputes_reference_number_key" ON "disputes"("reference_num
 CREATE INDEX "idx_dispute_status_sla" ON "disputes"("status", "sla_due_at");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "program_hosting_capacity_employer_id_cycle_id_key" ON "program_hosting_capacity"("employer_id", "cycle_id");
+CREATE UNIQUE INDEX "program_hosting_capacity_employer_id_cycle_id_state_id_key" ON "program_hosting_capacity"("employer_id", "cycle_id", "state_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "program_placements_confirmation_code_key" ON "program_placements"("confirmation_code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "program_opt_ins_individual_id_program_cycle_id_key" ON "program_opt_ins"("individual_id", "program_cycle_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "workforce_returns_employer_id_return_period_key" ON "workforce_returns"("employer_id", "return_period");
@@ -969,6 +1047,15 @@ ALTER TABLE "employer_users" ADD CONSTRAINT "employer_users_user_id_fkey" FOREIG
 ALTER TABLE "employer_users" ADD CONSTRAINT "employer_users_invited_by_user_id_fkey" FOREIGN KEY ("invited_by_user_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "employer_invite_tokens" ADD CONSTRAINT "employer_invite_tokens_employer_id_fkey" FOREIGN KEY ("employer_id") REFERENCES "employers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "employer_invite_tokens" ADD CONSTRAINT "employer_invite_tokens_invited_by_user_id_fkey" FOREIGN KEY ("invited_by_user_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "workforce_employees" ADD CONSTRAINT "workforce_employees_employer_id_fkey" FOREIGN KEY ("employer_id") REFERENCES "employers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "vacancies" ADD CONSTRAINT "vacancies_employer_id_fkey" FOREIGN KEY ("employer_id") REFERENCES "employers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -1032,9 +1119,6 @@ ALTER TABLE "program_hosting_capacity" ADD CONSTRAINT "program_hosting_capacity_
 ALTER TABLE "program_hosting_capacity" ADD CONSTRAINT "program_hosting_capacity_cycle_id_fkey" FOREIGN KEY ("cycle_id") REFERENCES "program_cycles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "program_hosting_capacity" ADD CONSTRAINT "program_hosting_capacity_preferred_sector_id_fkey" FOREIGN KEY ("preferred_sector_id") REFERENCES "sectors"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "program_hosting_capacity" ADD CONSTRAINT "program_hosting_capacity_preferred_education_level_id_fkey" FOREIGN KEY ("preferred_education_level_id") REFERENCES "education_levels"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -1048,6 +1132,18 @@ ALTER TABLE "program_placements" ADD CONSTRAINT "program_placements_employer_id_
 
 -- AddForeignKey
 ALTER TABLE "program_placements" ADD CONSTRAINT "program_placements_cycle_id_fkey" FOREIGN KEY ("cycle_id") REFERENCES "program_cycles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "program_opt_ins" ADD CONSTRAINT "program_opt_ins_individual_id_fkey" FOREIGN KEY ("individual_id") REFERENCES "individuals"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "program_opt_ins" ADD CONSTRAINT "program_opt_ins_program_cycle_id_fkey" FOREIGN KEY ("program_cycle_id") REFERENCES "program_cycles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "program_opt_ins" ADD CONSTRAINT "program_opt_ins_preferred_education_level_id_fkey" FOREIGN KEY ("preferred_education_level_id") REFERENCES "education_levels"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "program_opt_ins" ADD CONSTRAINT "program_opt_ins_matched_employer_id_fkey" FOREIGN KEY ("matched_employer_id") REFERENCES "employers"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "workforce_returns" ADD CONSTRAINT "workforce_returns_employer_id_fkey" FOREIGN KEY ("employer_id") REFERENCES "employers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
