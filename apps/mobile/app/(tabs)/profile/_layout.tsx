@@ -1,13 +1,14 @@
 import React from 'react'
 import { Stack } from 'expo-router'
+import { lwColors, lwFont } from '@/lib/theme'
 
 export default function ProfileLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: '#FFFFFF' },
-        headerTintColor: '#E84A1F',
-        headerTitleStyle: { fontWeight: '700', color: '#111827' },
+        headerStyle: { backgroundColor: lwColors.surface },
+        headerTintColor: lwColors.navy,
+        headerTitleStyle: { fontFamily: lwFont.familyBold, color: lwColors.foreground },
         headerShadowVisible: false,
         headerBackTitle: 'Back',
       }}

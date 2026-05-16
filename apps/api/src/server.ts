@@ -25,7 +25,8 @@ import { notifyPlugin, TwilioSender, PostmarkSender, ConsoleSender } from './lib
 import referenceModule from './modules/reference/index.js'
 import accountsModule from './modules/accounts/index.js'
 import individualsModule from './modules/individuals/index.js'
-import employersModule from './modules/employers/index.js'
+import employersModule, { inviteAcceptModule } from './modules/employers/index.js'
+import workforceEmployeesModule from './modules/workforce-employees/index.js'
 import documentsModule from './modules/documents/index.js'
 import vacanciesModule from './modules/vacancies/index.js'
 import applicationsModule from './modules/applications/index.js'
@@ -38,6 +39,7 @@ import notificationsModule from './modules/notifications/index.js'
 import aiModule from './modules/ai/index.js'
 import auditModule from './modules/audit/index.js'
 import molModule from './modules/mol/index.js'
+import publicModule from './modules/public/index.js'
 
 const app = Fastify({
   logger: {
@@ -106,7 +108,9 @@ app.senders.registerFallback(new ConsoleSender())
 await app.register(referenceModule,    { prefix: '/api/v1/reference' })
 await app.register(accountsModule,     { prefix: '/api/v1/auth' })
 await app.register(individualsModule,  { prefix: '/api/v1/individuals' })
-await app.register(employersModule,    { prefix: '/api/v1/employers' })
+await app.register(employersModule,         { prefix: '/api/v1/employers' })
+await app.register(inviteAcceptModule,      { prefix: '/api/v1/invites' })
+await app.register(workforceEmployeesModule, { prefix: '/api/v1/workforce-employees' })
 await app.register(documentsModule,    { prefix: '/api/v1/documents' })
 await app.register(vacanciesModule,    { prefix: '/api/v1/vacancies' })
 await app.register(applicationsModule, { prefix: '/api/v1/applications' })
@@ -119,6 +123,7 @@ await app.register(notificationsModule,{ prefix: '/api/v1/notifications' })
 await app.register(aiModule,           { prefix: '/api/v1/cv-parse-jobs' })
 await app.register(auditModule,        { prefix: '/api/v1/audit-log' })
 await app.register(molModule,          { prefix: '/api/v1/mol' })
+await app.register(publicModule,       { prefix: '/api/v1/public' })
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/health', { schema: { hide: true } }, async () => ({

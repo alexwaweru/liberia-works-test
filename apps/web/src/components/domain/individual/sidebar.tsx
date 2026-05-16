@@ -149,15 +149,18 @@ export function IndividualSidebar() {
       <div className="border-t border-border p-3">
         <Popover>
           <PopoverTrigger asChild>
-            <button className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-sidebar-accent/50 transition-colors text-left">
+            <button
+              aria-label={`${displayName}, ${subtitle}, open user menu`}
+              className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-sidebar-accent/50 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+            >
               <Avatar className="size-7 shrink-0">
                 <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{initials}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-sidebar-foreground truncate">{displayName}</p>
-                <p className="text-[11px] text-sidebar-muted truncate">{subtitle}</p>
+                <p className="text-xs font-semibold text-foreground truncate">{displayName}</p>
+                <p className="text-[11px] text-foreground/70 truncate">{subtitle}</p>
               </div>
-              <MoreHorizontalIcon className="size-4 shrink-0 text-sidebar-muted" />
+              <MoreHorizontalIcon className="size-4 shrink-0 text-foreground/50" />
             </button>
           </PopoverTrigger>
           <PopoverContent side="top" align="start" className="w-72 p-0 overflow-hidden">

@@ -7,6 +7,9 @@ import {
   BriefcaseIcon,
   ScaleIcon,
   BarChart2Icon,
+  UsersIcon,
+  UserPlusIcon,
+  Settings2Icon,
 } from 'lucide-react'
 import {
   CommandDialog,
@@ -18,10 +21,16 @@ import {
 } from '@/components/ui/command'
 
 const ACTIONS = [
-  { label: 'File for work permit', icon: FileCheckIcon, href: '/work-permits' },
-  { label: 'Create vacancy',        icon: BriefcaseIcon,  href: '/vacancies' },
-  { label: 'Raise a dispute',       icon: ScaleIcon,      href: '/disputes' },
-  { label: 'Add report',            icon: BarChart2Icon,  href: '/reports' },
+  { label: 'File for work permit',    icon: FileCheckIcon,  href: '/work-permits' },
+  { label: 'Create vacancy',          icon: BriefcaseIcon,  href: '/vacancies' },
+  { label: 'Raise a dispute',         icon: ScaleIcon,      href: '/disputes' },
+  { label: 'Add report',              icon: BarChart2Icon,  href: '/reports' },
+]
+
+const COMPANY_ACTIONS = [
+  { label: 'Invite team member',       icon: UserPlusIcon,   href: '/employees?tab=team&action=invite' },
+  { label: 'Add workforce employee',   icon: UsersIcon,      href: '/employees?tab=workforce' },
+  { label: 'Open company settings',    icon: Settings2Icon,  href: '/settings' },
 ]
 
 interface CommandPaletteProps {
@@ -57,7 +66,15 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         <CommandGroup heading="Actions">
           {ACTIONS.map(({ label, icon: Icon, href }) => (
             <CommandItem key={label} onSelect={() => run(href)}>
-              <Icon className="size-4 bg-foreground" />
+              <Icon className="size-4 text-muted-foreground" />
+              {label}
+            </CommandItem>
+          ))}
+        </CommandGroup>
+        <CommandGroup heading="Company">
+          {COMPANY_ACTIONS.map(({ label, icon: Icon, href }) => (
+            <CommandItem key={label} onSelect={() => run(href)}>
+              <Icon className="size-4 text-muted-foreground" />
               {label}
             </CommandItem>
           ))}

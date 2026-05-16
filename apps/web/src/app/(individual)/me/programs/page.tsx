@@ -289,7 +289,7 @@ const myOptIns = useMemo(() => myOptInsData?.data ?? [], [myOptInsData])
       <div className="flex flex-col h-full min-h-0">
         <div className="mb-4">
           <h1 className="text-2xl font-semibold">Programs</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Employment programs managed by the Ministry of Labour</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Employment programs managed by the Ministry of Labor</p>
         </div>
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
           Failed to load programs: {error instanceof Error ? error.message : 'Unknown error'}
@@ -302,7 +302,7 @@ const myOptIns = useMemo(() => myOptInsData?.data ?? [], [myOptInsData])
     <div className="flex flex-col h-full min-h-0">
       <div className="mb-4">
         <h1 className="text-2xl font-semibold">Programs</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Employment programs managed by the Ministry of Labour</p>
+        <p className="text-sm text-muted-foreground mt-0.5">Employment programs managed by the Ministry of Labor</p>
       </div>
 
       <div className="flex gap-1 border-b border-border mb-2">
@@ -328,7 +328,7 @@ const myOptIns = useMemo(() => myOptInsData?.data ?? [], [myOptInsData])
         onViewChange={setView}
         columns={columns}
         renderCard={renderCard}
-        onItemOpen={() => {}}
+        onItemOpen={(item) => router.push(`/me/programs/${item.id}`)}
         searchPlaceholder="Search programs..."
         emptyState={
           isLoading

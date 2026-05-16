@@ -17,7 +17,9 @@ import {
   CityListResponseSchema,
 } from '@liberia-works/shared-schemas'
 
-const CACHE_CONTROL = 'public, max-age=86400, stale-while-revalidate=3600'
+// Reference IDs are UUIDs generated at seed time, so a `db:seed` after a reset
+// changes them. Tell the browser to revalidate every request (no stale IDs).
+const CACHE_CONTROL = 'no-cache'
 
 export const referenceModule: FastifyPluginAsync = async (app) => {
   const server = app.withTypeProvider<ZodTypeProvider>()

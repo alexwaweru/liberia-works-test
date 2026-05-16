@@ -1,11 +1,12 @@
 import React from 'react'
 import { Tabs } from 'expo-router'
 import { Ionicons } from '@expo/vector-icons'
+import { lwColors, lwFont } from '@/lib/theme'
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name']
 
 function tabIcon(focused: boolean, name: IoniconsName, nameOutline: IoniconsName) {
-  return <Ionicons name={focused ? name : nameOutline} size={24} color={focused ? '#E84A1F' : '#9CA3AF'} />
+  return <Ionicons name={focused ? name : nameOutline} size={24} color={focused ? lwColors.navy : lwColors.mutedFg} />
 }
 
 export default function TabsLayout() {
@@ -13,11 +14,11 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#E84A1F',
-        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarActiveTintColor: lwColors.navy,
+        tabBarInactiveTintColor: lwColors.mutedFg,
         tabBarStyle: {
-          borderTopColor: '#F3F4F6',
-          backgroundColor: '#FFFFFF',
+          borderTopColor: lwColors.muted,
+          backgroundColor: lwColors.surface,
           elevation: 8,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -2 },
@@ -26,7 +27,7 @@ export default function TabsLayout() {
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '500',
+          fontFamily: lwFont.family,
         },
       }}
     >

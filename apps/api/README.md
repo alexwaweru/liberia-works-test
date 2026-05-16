@@ -140,6 +140,17 @@ The image runs `prisma migrate deploy` before starting the server when launched 
 
 > These accounts are created by `pnpm --filter @liberia-works/api db:seed:test` and are for **development only**.
 
+### MoL staff accounts (email + password)
+
+| Full Name | Email | Password | Role |
+|-----------|-------|----------|------|
+| Sarah Doe | mol-officer1@test.libworks.lr | Test@1234 | MOL_OFFICER |
+| Emmanuel Wesseh | mol-officer2@test.libworks.lr | Test@1234 | MOL_OFFICER |
+| Patricia Karngbeae | mol-director1@test.libworks.lr | Test@1234 | MOL_DIRECTOR |
+| Joseph Tubman | mol-director2@test.libworks.lr | Test@1234 | MOL_DIRECTOR |
+
+MoL staff can access the `/mol/*` admin area, including the program-cycle editor at `/mol/programs` (MOL_OFFICER and MOL_DIRECTOR can edit; `PATCH /api/v1/programs/cycles/:id` enforces these roles).
+
 ### Employer accounts (email + password)
 
 | Company | Email | Password | Role |

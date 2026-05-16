@@ -79,6 +79,7 @@ function buildApp() {
   } as unknown as PrismaClient)
 
   app.decorate('notify', vi.fn().mockResolvedValue(undefined))
+  app.decorate('audit', { record: vi.fn().mockResolvedValue(undefined) })
 
   return app
 }

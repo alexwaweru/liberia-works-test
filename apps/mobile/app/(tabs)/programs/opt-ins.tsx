@@ -11,7 +11,9 @@ import { useQuery } from '@tanstack/react-query'
 import { getMyOptIns, ProgramOptIn } from '@/lib/api'
 import LoadingView from '@/components/LoadingView'
 import ErrorView from '@/components/ErrorView'
+import { lwColors, lwFont, lwRadius } from '@/lib/theme'
 
+// Informational status color pairs — left as-is, not brand colors
 const CYCLE_COLORS = [
   { bg: '#EDE9FE', text: '#6D28D9' },
   { bg: '#DBEAFE', text: '#1D4ED8' },
@@ -20,6 +22,7 @@ const CYCLE_COLORS = [
   { bg: '#FFE4E6', text: '#9F1239' },
 ]
 
+// Informational status color pairs — left as-is, not brand colors
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   PENDING:   { bg: '#DBEAFE', text: '#1D4ED8' },
   MATCHED:   { bg: '#D1FAE5', text: '#065F46' },
@@ -89,7 +92,7 @@ function OptInCard({ item }: { item: ProgramOptIn }) {
       <View style={styles.details}>
         {sectorNames ? (
           <View style={styles.detailRow}>
-            <Ionicons name="briefcase-outline" size={14} color="#9CA3AF" style={styles.detailIcon} />
+            <Ionicons name="briefcase-outline" size={14} color={lwColors.mutedFg} style={styles.detailIcon} />
             <View style={styles.detailContent}>
               <Text style={styles.detailLabel}>Sectors</Text>
               <Text style={styles.detailValue} numberOfLines={2}>{sectorNames}</Text>
@@ -99,7 +102,7 @@ function OptInCard({ item }: { item: ProgramOptIn }) {
 
         {countyNames ? (
           <View style={styles.detailRow}>
-            <Ionicons name="location-outline" size={14} color="#9CA3AF" style={styles.detailIcon} />
+            <Ionicons name="location-outline" size={14} color={lwColors.mutedFg} style={styles.detailIcon} />
             <View style={styles.detailContent}>
               <Text style={styles.detailLabel}>Counties</Text>
               <Text style={styles.detailValue}>{countyNames}</Text>
@@ -109,7 +112,7 @@ function OptInCard({ item }: { item: ProgramOptIn }) {
 
         {educationName ? (
           <View style={styles.detailRow}>
-            <Ionicons name="school-outline" size={14} color="#9CA3AF" style={styles.detailIcon} />
+            <Ionicons name="school-outline" size={14} color={lwColors.mutedFg} style={styles.detailIcon} />
             <View style={styles.detailContent}>
               <Text style={styles.detailLabel}>Education</Text>
               <Text style={styles.detailValue}>{educationName}</Text>
@@ -119,7 +122,7 @@ function OptInCard({ item }: { item: ProgramOptIn }) {
 
         {item.additionalNotes ? (
           <View style={styles.detailRow}>
-            <Ionicons name="document-text-outline" size={14} color="#9CA3AF" style={styles.detailIcon} />
+            <Ionicons name="document-text-outline" size={14} color={lwColors.mutedFg} style={styles.detailIcon} />
             <View style={styles.detailContent}>
               <Text style={styles.detailLabel}>Notes</Text>
               <Text style={styles.detailValue} numberOfLines={3}>{item.additionalNotes}</Text>
@@ -160,7 +163,7 @@ export default function MyOptInsScreen() {
         renderItem={({ item }) => <OptInCard item={item} />}
         contentContainerStyle={styles.list}
         refreshControl={
-          <RefreshControl refreshing={false} onRefresh={onRefresh} tintColor="#E84A1F" />
+          <RefreshControl refreshing={false} onRefresh={onRefresh} tintColor={lwColors.navy} />
         }
         ListHeaderComponent={
           <Text style={styles.countText}>
@@ -169,10 +172,10 @@ export default function MyOptInsScreen() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Ionicons name="layers-outline" size={40} color="#D1D5DB" />
+            <Ionicons name="layers-outline" size={40} color={lwColors.border} />
             <Text style={styles.emptyTitle}>No opt-ins yet</Text>
             <Text style={styles.emptySubtitle}>
-              Go to Programs to opt in to an open programme.
+              Go to Programs to opt in to an open program.
             </Text>
           </View>
         }
@@ -182,19 +185,19 @@ export default function MyOptInsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: lwColors.background },
   list: { padding: 16, paddingBottom: 40 },
   countText: {
     fontSize: 13,
-    color: '#6B7280',
+    fontFamily: lwFont.family,
+    color: lwColors.mutedFg,
     marginBottom: 12,
-    fontWeight: '500',
   },
 
   // Card
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    backgroundColor: lwColors.surface,
+    borderRadius: lwRadius.default,
     padding: 16,
     marginBottom: 12,
     shadowColor: '#000',
@@ -212,15 +215,15 @@ const styles = StyleSheet.create({
   yearBadge: {
     width: 44,
     height: 44,
-    borderRadius: 10,
+    borderRadius: lwRadius.default,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
-  yearBadgeText: { fontSize: 13, fontWeight: '700' },
+  yearBadgeText: { fontSize: 13, fontFamily: lwFont.familyBold },
   cardTitleBlock: { flex: 1 },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: '#111827', lineHeight: 20 },
-  cardSubtitle: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
+  cardTitle: { fontSize: 15, fontFamily: lwFont.familyBold, color: lwColors.foreground, lineHeight: 20 },
+  cardSubtitle: { fontSize: 12, fontFamily: lwFont.family, color: lwColors.mutedFg, marginTop: 2 },
 
   // Status
   statusRow: {
@@ -232,21 +235,21 @@ const styles = StyleSheet.create({
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 20,
+    borderRadius: lwRadius.full,
   },
-  statusText: { fontSize: 12, fontWeight: '600' },
-  employerText: { fontSize: 12, color: '#6B7280', flex: 1 },
+  statusText: { fontSize: 12, fontFamily: lwFont.familyBold },
+  employerText: { fontSize: 12, fontFamily: lwFont.family, color: lwColors.mutedFg, flex: 1 },
 
   // Details
   details: { gap: 10 },
   detailRow: { flexDirection: 'row', gap: 8 },
   detailIcon: { marginTop: 1, flexShrink: 0 },
   detailContent: { flex: 1 },
-  detailLabel: { fontSize: 11, color: '#9CA3AF', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 1 },
-  detailValue: { fontSize: 13, color: '#374151', lineHeight: 18 },
+  detailLabel: { fontSize: 11, fontFamily: lwFont.familyBold, color: lwColors.mutedFg, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 1 },
+  detailValue: { fontSize: 13, fontFamily: lwFont.family, color: lwColors.foreground, lineHeight: 18 },
 
   // Empty
   empty: { paddingTop: 80, alignItems: 'center', gap: 8 },
-  emptyTitle: { fontSize: 16, fontWeight: '600', color: '#374151' },
-  emptySubtitle: { fontSize: 14, color: '#9CA3AF', textAlign: 'center', paddingHorizontal: 32 },
+  emptyTitle: { fontSize: 16, fontFamily: lwFont.familyBold, color: lwColors.foreground },
+  emptySubtitle: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.mutedFg, textAlign: 'center', paddingHorizontal: 32 },
 })

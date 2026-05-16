@@ -15,6 +15,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getIndividualProfile, updateIndividualProfile } from '@/lib/api'
 import LoadingView from '@/components/LoadingView'
 import ErrorView from '@/components/ErrorView'
+import { lwColors, lwFont, lwRadius } from '@/lib/theme'
 
 const GENDER_OPTIONS = ['MALE', 'FEMALE', 'PREFER_NOT_TO_SAY'] as const
 type Gender = (typeof GENDER_OPTIONS)[number]
@@ -83,7 +84,7 @@ export default function GeneralScreen() {
             value={fullName}
             onChangeText={setFullName}
             placeholder="Your full name"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={lwColors.mutedFg}
             autoCapitalize="words"
           />
         </View>
@@ -95,7 +96,7 @@ export default function GeneralScreen() {
             value={dateOfBirth}
             onChangeText={setDateOfBirth}
             placeholder="YYYY-MM-DD"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={lwColors.mutedFg}
             keyboardType="numbers-and-punctuation"
           />
         </View>
@@ -124,7 +125,7 @@ export default function GeneralScreen() {
             value={nin}
             onChangeText={setNin}
             placeholder="Your NIN"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={lwColors.mutedFg}
             autoCapitalize="characters"
           />
         </View>
@@ -150,7 +151,7 @@ export default function GeneralScreen() {
           disabled={updateMutation.isPending}
         >
           {updateMutation.isPending ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color={lwColors.white} />
           ) : (
             <Text style={styles.saveButtonText}>Save Changes</Text>
           )}
@@ -161,44 +162,45 @@ export default function GeneralScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#FFFFFF' },
+  flex: { flex: 1, backgroundColor: lwColors.surface },
   container: { padding: 20, paddingBottom: 40 },
   field: { marginBottom: 18 },
-  label: { fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 6 },
+  label: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.foreground, marginBottom: 6 },
   input: {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
+    borderColor: lwColors.border,
+    borderRadius: lwRadius.default,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#111827',
-    backgroundColor: '#FAFAFA',
+    fontFamily: lwFont.family,
+    color: lwColors.foreground,
+    backgroundColor: lwColors.surface,
   },
-  readOnly: { backgroundColor: '#F3F4F6', borderColor: '#E5E7EB' },
-  readOnlyText: { fontSize: 15, color: '#6B7280' },
+  readOnly: { backgroundColor: lwColors.muted, borderColor: lwColors.border },
+  readOnlyText: { fontSize: 15, fontFamily: lwFont.family, color: lwColors.mutedFg },
   optionGroup: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   optionChip: {
-    borderRadius: 20,
+    borderRadius: lwRadius.default,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: lwColors.muted,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: lwColors.border,
   },
   optionChipActive: {
-    backgroundColor: '#E84A1F',
-    borderColor: '#E84A1F',
+    backgroundColor: lwColors.navy,
+    borderColor: lwColors.navy,
   },
-  optionChipText: { fontSize: 14, color: '#374151', fontWeight: '500' },
-  optionChipTextActive: { color: '#FFFFFF' },
+  optionChipText: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.foreground },
+  optionChipTextActive: { color: lwColors.white, fontFamily: lwFont.familyBold },
   saveButton: {
-    backgroundColor: '#E84A1F',
-    borderRadius: 8,
+    backgroundColor: lwColors.crimson,
+    borderRadius: lwRadius.default,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 8,
   },
   saveButtonDisabled: { opacity: 0.6 },
-  saveButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 16 },
+  saveButtonText: { color: lwColors.white, fontFamily: lwFont.familyBold, fontSize: 16 },
 })

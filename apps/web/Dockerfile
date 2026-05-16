@@ -6,7 +6,9 @@ RUN apk add --no-cache git
 RUN git config --global url."https://github.com/".insteadOf "git@github.com:"
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+# Install pnpm directly via npm (more reliable than corepack's lazy fetch,
+# which has a short timeout and fails on slow networks).
+RUN npm install -g pnpm@9.15.4
 
 # ── deps: install all workspace dependencies ──────────────────────────────────
 FROM base AS deps

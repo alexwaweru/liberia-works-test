@@ -71,8 +71,13 @@ export type OtpPurpose = 'REGISTRATION' | 'LOGIN' | 'PHONE_CHANGE' | 'EMAIL_CHAN
 
 export type EmployerUserRole = 'ADMIN' | 'HR'
 
+export type EmploymentType = 'PERMANENT' | 'CONTRACT' | 'CASUAL' | 'INTERN'
+
 // Convenience: all roles that can access the employer portal
 export const EMPLOYER_ROLES: UserRole[] = ['EMPLOYER_ADMIN', 'EMPLOYER_HR']
 
 // Convenience: all MoL roles
 export const MOL_ROLES: UserRole[] = ['MOL_OFFICER', 'MOL_DIRECTOR']
+
+// Convenience: all EmploymentType values
+export const EMPLOYMENT_TYPES: EmploymentType[] = ['PERMANENT', 'CONTRACT', 'CASUAL', 'INTERN']

@@ -238,7 +238,7 @@ function ProgramsInner() {
       <div className="flex flex-col h-full min-h-0">
         <div className="mb-4">
           <h1 className="text-2xl font-semibold">Programs</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Employment programs managed by the Ministry of Labour</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Employment programs managed by the Ministry of Labor</p>
         </div>
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
           Failed to load programs: {error instanceof Error ? error.message : 'Unknown error'}
@@ -252,7 +252,7 @@ function ProgramsInner() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-semibold">Programs</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Employment programs managed by the Ministry of Labour</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Employment programs managed by the Ministry of Labor</p>
         </div>
       </div>
 
@@ -279,7 +279,7 @@ function ProgramsInner() {
         onViewChange={setView}
         columns={columns}
         renderCard={renderCard}
-        onItemOpen={(item) => router.push(`/programs/cycles/${item.id}`)}
+        onItemOpen={(item) => router.push(`/host-programs/cycles/${item.id}`)}
         searchPlaceholder="Search programs..."
         emptyState={
           isLoading

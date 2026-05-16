@@ -118,9 +118,10 @@ export const messagingModule: FastifyPluginAsync = async (app) => {
    * Webhook verification for Meta.
    */
   app.get('/meta/waba', async (req, reply) => {
-    const mode = req.query['hub.mode']
-    const token = req.query['hub.verify_token']
-    const challenge = req.query['hub.challenge']
+    const query = req.query as Record<string, string | undefined>
+    const mode = query['hub.mode']
+    const token = query['hub.verify_token']
+    const challenge = query['hub.challenge']
 
     if (mode === 'subscribe' && token === env.JWT_SECRET) {
       return reply.status(200).send(challenge)

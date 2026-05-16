@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { getEducation, addEducation, deleteEducation, EducationRecord } from '@/lib/api'
 import LoadingView from '@/components/LoadingView'
 import ErrorView from '@/components/ErrorView'
+import { lwColors, lwFont, lwRadius } from '@/lib/theme'
 
 type AddForm = {
   institutionName: string
@@ -82,7 +83,7 @@ function EducationItem({
           )
         }}
       >
-        <Ionicons name="trash-outline" size={18} color="#DC2626" />
+        <Ionicons name="trash-outline" size={18} color={lwColors.danger} />
       </TouchableOpacity>
     </View>
   )
@@ -159,7 +160,7 @@ export default function EducationScreen() {
           }
           ListFooterComponent={
             <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
-              <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />
+              <Ionicons name="add-circle-outline" size={20} color={lwColors.white} />
               <Text style={styles.addButtonText}>Add Education</Text>
             </TouchableOpacity>
           }
@@ -195,7 +196,7 @@ export default function EducationScreen() {
                 value={form.institutionName}
                 onChangeText={(v) => setForm((f) => ({ ...f, institutionName: v }))}
                 placeholder="e.g. University of Liberia"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={lwColors.mutedFg}
                 autoCapitalize="words"
               />
             </View>
@@ -207,7 +208,7 @@ export default function EducationScreen() {
                 value={form.qualification}
                 onChangeText={(v) => setForm((f) => ({ ...f, qualification: v }))}
                 placeholder="e.g. Bachelor's Degree"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={lwColors.mutedFg}
                 autoCapitalize="words"
               />
             </View>
@@ -219,7 +220,7 @@ export default function EducationScreen() {
                 value={form.fieldOfStudy}
                 onChangeText={(v) => setForm((f) => ({ ...f, fieldOfStudy: v }))}
                 placeholder="e.g. Computer Science"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={lwColors.mutedFg}
                 autoCapitalize="words"
               />
             </View>
@@ -231,7 +232,7 @@ export default function EducationScreen() {
                 value={form.startDate}
                 onChangeText={(v) => setForm((f) => ({ ...f, startDate: v }))}
                 placeholder="YYYY-MM-DD"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={lwColors.mutedFg}
                 keyboardType="numbers-and-punctuation"
               />
             </View>
@@ -241,8 +242,8 @@ export default function EducationScreen() {
               <Switch
                 value={form.isCurrent}
                 onValueChange={(v) => setForm((f) => ({ ...f, isCurrent: v }))}
-                trackColor={{ true: '#E84A1F', false: '#D1D5DB' }}
-                thumbColor="#FFFFFF"
+                trackColor={{ true: lwColors.navy, false: lwColors.border }}
+                thumbColor={lwColors.white}
               />
             </View>
 
@@ -254,7 +255,7 @@ export default function EducationScreen() {
                   value={form.endDate}
                   onChangeText={(v) => setForm((f) => ({ ...f, endDate: v }))}
                   placeholder="YYYY-MM-DD"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={lwColors.mutedFg}
                   keyboardType="numbers-and-punctuation"
                 />
               </View>
@@ -266,7 +267,7 @@ export default function EducationScreen() {
               disabled={addMutation.isPending}
             >
               {addMutation.isPending ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={lwColors.white} />
               ) : (
                 <Text style={styles.saveButtonText}>Save</Text>
               )}
@@ -279,13 +280,13 @@ export default function EducationScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#FFFFFF' },
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  flex: { flex: 1, backgroundColor: lwColors.surface },
+  container: { flex: 1, backgroundColor: lwColors.background },
   list: { padding: 16, paddingBottom: 32 },
   item: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
+    backgroundColor: lwColors.surface,
+    borderRadius: lwRadius.default,
     padding: 14,
     marginBottom: 10,
     alignItems: 'flex-start',
@@ -296,51 +297,52 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   itemContent: { flex: 1 },
-  itemTitle: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 2 },
-  itemSubtitle: { fontSize: 13, color: '#374151', marginBottom: 2 },
-  itemMeta: { fontSize: 13, color: '#6B7280', marginBottom: 2 },
-  itemDates: { fontSize: 12, color: '#9CA3AF', marginTop: 4 },
+  itemTitle: { fontSize: 15, fontFamily: lwFont.familyBold, color: lwColors.foreground, marginBottom: 2 },
+  itemSubtitle: { fontSize: 13, fontFamily: lwFont.family, color: lwColors.foreground, marginBottom: 2 },
+  itemMeta: { fontSize: 13, fontFamily: lwFont.family, color: lwColors.mutedFg, marginBottom: 2 },
+  itemDates: { fontSize: 12, fontFamily: lwFont.family, color: lwColors.mutedFg, marginTop: 4 },
   deleteButton: {
     padding: 4,
     marginLeft: 8,
   },
   empty: { paddingTop: 40, alignItems: 'center' },
-  emptyText: { fontSize: 14, color: '#9CA3AF' },
+  emptyText: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.mutedFg },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#E84A1F',
-    borderRadius: 10,
+    backgroundColor: lwColors.crimson,
+    borderRadius: lwRadius.default,
     paddingVertical: 14,
     marginTop: 16,
   },
-  addButtonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 15 },
+  addButtonText: { color: lwColors.white, fontFamily: lwFont.familyBold, fontSize: 15 },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: lwColors.muted,
+    backgroundColor: lwColors.surface,
   },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
-  modalClose: { fontSize: 15, color: '#E84A1F', fontWeight: '600' },
+  modalTitle: { fontSize: 18, fontFamily: lwFont.familyBold, color: lwColors.foreground },
+  modalClose: { fontSize: 15, fontFamily: lwFont.familyBold, color: lwColors.crimson },
   modalScroll: { flex: 1 },
   modalContent: { padding: 20, paddingBottom: 40 },
   field: { marginBottom: 16 },
-  label: { fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 6 },
+  label: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.foreground, marginBottom: 6 },
   input: {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
+    borderColor: lwColors.border,
+    borderRadius: lwRadius.default,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#111827',
-    backgroundColor: '#FAFAFA',
+    fontFamily: lwFont.family,
+    color: lwColors.foreground,
+    backgroundColor: lwColors.surface,
   },
   switchRow: {
     flexDirection: 'row',
@@ -349,12 +351,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   saveButton: {
-    backgroundColor: '#E84A1F',
-    borderRadius: 8,
+    backgroundColor: lwColors.crimson,
+    borderRadius: lwRadius.default,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 8,
   },
   saveButtonDisabled: { opacity: 0.6 },
-  saveButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 16 },
+  saveButtonText: { color: lwColors.white, fontFamily: lwFont.familyBold, fontSize: 16 },
 })

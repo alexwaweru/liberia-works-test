@@ -25,13 +25,15 @@ export const ProgramCycleFilterSchema = CursorQuerySchema.extend({
 // --- NEW SCHEMAS ---
 
 export const ProgramOptInSchema = z.object({
-  slotsOffered: z.number().int().min(1, "Must offer at least 1 slot"),
-  preferredSectorIds: z.array(z.string().uuid()).optional(),
-  preferredEducationLevelId: z.string().uuid().optional(),
-  stateId: z.number().int().optional(),
   contactName: z.string().min(2, "Contact name required"),
   contactPhone: z.string().min(5, "Valid contact phone required"),
+  preferredSectors: z.array(z.string().uuid()).min(1, "Select at least one sector"),
+  preferredEducationLevelId: z.string().uuid().optional(),
   placementInstructions: z.string().optional(),
+  capacities: z.array(z.object({
+    stateId: z.number().int(),
+    slotsOffered: z.number().int().min(1, "Must offer at least 1 slot"),
+  })).min(1, "At least one county capacity required"),
 })
 
 export const ProgramPlacementResponseSchema = z.object({
@@ -67,6 +69,29 @@ export const ProgramPlacementResponseSchema = z.object({
 })
 
 export const ProgramPlacementListResponseSchema = z.array(ProgramPlacementResponseSchema)
+
+export const UpdateProgramCycleSchema = z.object({
+  name: z.string().min(1).optional(),
+  year: z.number().int().min(2000).max(2100).optional(),
+  type: z.enum(['VACATION_JOB']).optional(),
+  status: z.enum(['PLANNED', 'OPEN', 'MATCHING', 'COMPLETED']).optional(),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+  description: z.string().optional(),
+})
+
+export const CreateProgramCycleSchema = z.object({
+  name: z.string().min(1),
+  year: z.number().int().min(2000).max(2100),
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
+  type: z.enum(['VACATION_JOB']).optional().default('VACATION_JOB'),
+  status: z.enum(['PLANNED', 'OPEN', 'MATCHING', 'COMPLETED']).optional().default('PLANNED'),
+  description: z.string().optional(),
+})
+
+export type UpdateProgramCycle = z.infer<typeof UpdateProgramCycleSchema>
+export type CreateProgramCycle = z.infer<typeof CreateProgramCycleSchema>
 
 export type ProgramCycleResponse = z.infer<typeof ProgramCycleResponseSchema>
 export type ProgramCycleListResponse = z.infer<typeof ProgramCycleListResponseSchema>

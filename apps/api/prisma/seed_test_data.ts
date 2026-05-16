@@ -1,6 +1,6 @@
 /**
  * Test data seeder — idempotent, skips records that already exist.
- * Creates: 5 employers + admin users, 50 vacancies, 25 job seekers, 30 program cycles.
+ * Creates: 5 employers + admin users, 4 MoL staff users, 50 vacancies, 25 job seekers, 30 program cycles.
  * Run: pnpm --filter @liberia-works/api db:seed:test
  */
 
@@ -43,6 +43,33 @@ const EMPLOYERS = [
     lraRegistrationNumber: 'LRA-005-2023',
     email: 'employer5@test.libworks.lr',
     phone: '+2317700005',
+  },
+]
+
+const MOL_USERS = [
+  {
+    email: 'mol-officer1@test.libworks.lr',
+    fullName: 'Sarah Doe',
+    phone: '+2317720001',
+    role: 'MOL_OFFICER' as const,
+  },
+  {
+    email: 'mol-officer2@test.libworks.lr',
+    fullName: 'Emmanuel Wesseh',
+    phone: '+2317720002',
+    role: 'MOL_OFFICER' as const,
+  },
+  {
+    email: 'mol-director1@test.libworks.lr',
+    fullName: 'Patricia Karngbeae',
+    phone: '+2317720003',
+    role: 'MOL_DIRECTOR' as const,
+  },
+  {
+    email: 'mol-director2@test.libworks.lr',
+    fullName: 'Joseph Tubman',
+    phone: '+2317720004',
+    role: 'MOL_DIRECTOR' as const,
   },
 ]
 
@@ -834,6 +861,65 @@ function buildProgramCycles(): ProgramSpec[] {
   return cycles
 }
 
+function buildProgramDescription(cycle: ProgramSpec): string {
+  const statusNote =
+    cycle.status === 'PLANNED'
+      ? 'This cycle is coming soon. Registration will open shortly.'
+      : cycle.status === 'COMPLETED'
+        ? 'This cycle has concluded. All placements have been finalised.'
+        : cycle.status === 'MATCHING'
+          ? 'Applications are closed. Employer matching is currently underway.'
+          : 'Registration is now open. Eligible individuals and employers can apply.'
+
+  const eligibilityItems = [
+    '<li><p>Current university or TVET students in their final or penultimate year</p></li>',
+    '<li><p>Liberian nationals aged 18–35</p></li>',
+    '<li><p>Have not previously completed a Vacation Job placement with the same employer</p></li>',
+    '<li><p>In good academic standing at their registered institution</p></li>',
+  ].join('')
+
+  const activityItems = [
+    '<li><p>Rotate through business units and gain hands-on experience in your field of study</p></li>',
+    '<li><p>Work on a supervised project aligned to the employer\'s operational needs</p></li>',
+    '<li><p>Attend structured learning sessions and employer-led workshops</p></li>',
+    '<li><p>Contribute to team objectives under the guidance of a designated mentor</p></li>',
+  ].join('')
+
+  const benefitItems = [
+    '<li><p>A stipend for the duration of the placement</p></li>',
+    '<li><p>A certificate of completion issued by the Ministry of Labour</p></li>',
+    '<li><p>Practical skills and a professional reference from your host employer</p></li>',
+    '<li><p>Priority consideration for future employment opportunities at the host organisation</p></li>',
+  ].join('')
+
+  const matchingSteps = [
+    '<li><p>Eligible individuals opt in and indicate their county and sector preferences</p></li>',
+    '<li><p>Registered employers declare available slots by county and preferred candidate profile</p></li>',
+    '<li><p>The platform runs an automated matching algorithm to align candidates with employers</p></li>',
+    '<li><p>Both parties are notified of their match and confirm participation</p></li>',
+    '<li><p>Placements begin on the cycle start date</p></li>',
+  ].join('')
+
+  const startStr = cycle.startDate.toISOString().split('T')[0]
+  const endStr = cycle.endDate.toISOString().split('T')[0]
+
+  return [
+    `<h2><strong>About the programme</strong></h2>`,
+    `<p>The ${cycle.name} is a Ministry of Labour initiative that connects eligible Liberian students with private sector employers for structured short-term work experience. ${statusNote}</p>`,
+    `<h2><strong>Who can participate</strong></h2>`,
+    `<ul>${eligibilityItems}</ul>`,
+    `<h2><strong>What you'll do</strong></h2>`,
+    `<ul>${activityItems}</ul>`,
+    `<h2><strong>What you'll gain</strong></h2>`,
+    `<ul>${benefitItems}</ul>`,
+    `<h2><strong>How matching works</strong></h2>`,
+    `<p>Placements are allocated through a structured matching process managed by the Ministry of Labour platform:</p>`,
+    `<ol>${matchingSteps}</ol>`,
+    `<h2><strong>Timeline</strong></h2>`,
+    `<p>This cycle runs from <strong>${startStr}</strong> to <strong>${endStr}</strong> (${cycle.year} cohort). Ensure all opt-ins and hosting declarations are submitted before the registration deadline.</p>`,
+  ].join('')
+}
+
 // ── Application form builder ──────────────────────────────────────────────────
 
 const APPLICATION_QUESTIONS: Record<string, { label: string; placeholder: string }[]> = {
@@ -1069,6 +1155,24 @@ async function main() {
   }
   console.log(`  ${EMPLOYERS.length} employers + admin users`)
 
+  // ── MoL staff users ─────────────────────────────────────────────────────────
+  for (const spec of MOL_USERS) {
+    await prisma.user.upsert({
+      where: { email: spec.email },
+      update: {},
+      create: {
+        email: spec.email,
+        phoneNumber: spec.phone,
+        passwordHash,
+        role: spec.role,
+        fullName: spec.fullName,
+        isEmailVerified: true,
+        isPhoneVerified: true,
+      },
+    })
+  }
+  console.log(`  ${MOL_USERS.length} MoL staff users`)
+
   // ── Vacancies ───────────────────────────────────────────────────────────────
   if (states.length === 0) {
     console.warn('  WARNING: Skipping vacancy creation — no Liberian states found (stateId is required).')
@@ -1242,7 +1346,7 @@ async function main() {
       data: {
         type: 'VACATION_JOB',
         name: cycle.name,
-        description: `The ${cycle.year} ${cycle.name} connects university and vocational students with private sector employers across Liberia for short-term work experience opportunities.`,
+        description: buildProgramDescription(cycle),
         year: cycle.year,
         startDate: cycle.startDate,
         endDate: cycle.endDate,

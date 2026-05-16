@@ -11,6 +11,7 @@ import { listMyApplications } from '@/lib/api'
 import LoadingView from '@/components/LoadingView'
 import ErrorView from '@/components/ErrorView'
 import Badge from '@/components/Badge'
+import { lwColors, lwFont, lwRadius } from '@/lib/theme'
 
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString('en-US', {
@@ -84,19 +85,19 @@ export default function ApplicationDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1, backgroundColor: lwColors.surface },
   content: { padding: 20, paddingBottom: 40 },
   statusRow: { marginBottom: 20 },
   section: {
     marginBottom: 24,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
+    backgroundColor: lwColors.background,
+    borderRadius: lwRadius.default,
     padding: 16,
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#9CA3AF',
+    fontFamily: lwFont.familyBold,
+    color: lwColors.mutedFg,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 12,
@@ -106,8 +107,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: lwColors.border,
   },
-  rowLabel: { fontSize: 14, color: '#6B7280', flex: 1 },
-  rowValue: { fontSize: 14, fontWeight: '500', color: '#111827', flex: 2, textAlign: 'right' },
+  rowLabel: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.mutedFg, flex: 1 },
+  rowValue: { fontSize: 14, fontFamily: lwFont.familyBold, color: lwColors.foreground, flex: 2, textAlign: 'right' },
 })

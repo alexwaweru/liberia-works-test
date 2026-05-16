@@ -1,10 +1,11 @@
 import React from 'react'
 import { View, ActivityIndicator, StyleSheet } from 'react-native'
+import { lwColors } from '@/lib/theme'
 
 export default function LoadingView() {
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#E84A1F" />
+      <ActivityIndicator size="large" color={lwColors.navy} />
     </View>
   )
 }
@@ -14,6 +15,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: lwColors.surface,
   },
 })

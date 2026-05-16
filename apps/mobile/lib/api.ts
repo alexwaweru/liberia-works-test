@@ -415,6 +415,15 @@ export function listProgramCycles(params?: { cursor?: string; status?: string; y
   return apiFetch<ProgramCycleListResponse>(`/api/v1/programs/cycles${qs ? `?${qs}` : ''}`)
 }
 
+export type ProgramCycleDetail = ProgramCycleListItem & {
+  createdAt: string
+  updatedAt: string
+}
+
+export function getProgramCycle(id: string) {
+  return apiFetch<ProgramCycleDetail>(`/api/v1/programs/cycles/${id}`)
+}
+
 export type ProgramOptIn = {
   id: string
   programCycleId: string

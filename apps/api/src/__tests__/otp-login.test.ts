@@ -66,6 +66,9 @@ function buildApp() {
   // Mock notify (accounts module calls app.notify() for OTP delivery)
   app.decorate('notify', vi.fn().mockResolvedValue(undefined))
 
+  // Mock audit (accounts module calls app.audit.record() for audit logging)
+  app.decorate('audit', { record: vi.fn().mockResolvedValue(undefined) })
+
   return app
 }
 

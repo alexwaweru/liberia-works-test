@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { loginWithPassword } from '@/lib/api'
 import { storeTokens, useAuth } from '@/lib/auth'
 import { Logo } from '@/components/Logo'
+import { lwColors, lwFont, lwRadius } from '@/lib/theme'
 
 type LoginMethod = 'email' | 'phone'
 
@@ -109,7 +110,7 @@ export default function LoginScreen() {
                   value={email}
                   onChangeText={setEmail}
                   placeholder="you@example.com"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={lwColors.mutedFg}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -128,7 +129,7 @@ export default function LoginScreen() {
                   value={phone}
                   onChangeText={setPhone}
                   placeholder="XX XXX XXXX"
-                  placeholderTextColor="#9CA3AF"
+                  placeholderTextColor={lwColors.mutedFg}
                   keyboardType="phone-pad"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -145,11 +146,11 @@ export default function LoginScreen() {
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={lwColors.mutedFg}
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword((v) => !v)}>
-                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#6B7280" />
+                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={lwColors.mutedFg} />
               </TouchableOpacity>
             </View>
             <TouchableOpacity style={styles.forgotRow}>
@@ -178,11 +179,11 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#F3F4F6' },
+  flex: { flex: 1, backgroundColor: lwColors.background },
   container: { flexGrow: 1, justifyContent: 'center', padding: 20 },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    backgroundColor: lwColors.surface,
+    borderRadius: lwRadius.default,
     padding: 28,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -191,65 +192,67 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   logoRow: { alignItems: 'center', marginBottom: 24 },
-  title: { fontSize: 24, fontWeight: '800', color: '#111827', textAlign: 'center', marginBottom: 6 },
-  subtitle: { fontSize: 14, color: '#6B7280', textAlign: 'center', marginBottom: 24, lineHeight: 20 },
+  title: { fontSize: 24, fontFamily: lwFont.familyBold, color: lwColors.foreground, textAlign: 'center', marginBottom: 6 },
+  subtitle: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.mutedFg, textAlign: 'center', marginBottom: 24, lineHeight: 20 },
   tabs: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
+    backgroundColor: lwColors.muted,
+    borderRadius: lwRadius.default,
     padding: 4,
     marginBottom: 24,
   },
   tab: {
     flex: 1,
     paddingVertical: 10,
-    borderRadius: 9,
+    borderRadius: lwRadius.default,
     alignItems: 'center',
   },
   tabActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: lwColors.surface,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
   },
-  tabText: { fontSize: 14, fontWeight: '500', color: '#6B7280' },
-  tabTextActive: { color: '#111827', fontWeight: '700' },
+  tabText: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.mutedFg },
+  tabTextActive: { color: lwColors.foreground, fontFamily: lwFont.familyBold },
   field: { marginBottom: 18 },
-  label: { fontSize: 14, fontWeight: '600', color: '#111827', marginBottom: 7 },
-  required: { color: '#C0392B' },
+  label: { fontSize: 14, fontFamily: lwFont.familyBold, color: lwColors.foreground, marginBottom: 7 },
+  required: { color: lwColors.crimson },
   input: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 10,
+    borderColor: lwColors.border,
+    borderRadius: lwRadius.default,
     paddingHorizontal: 14,
     paddingVertical: 13,
     fontSize: 15,
-    color: '#111827',
-    backgroundColor: '#FFFFFF',
+    fontFamily: lwFont.family,
+    color: lwColors.foreground,
+    backgroundColor: lwColors.surface,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    borderColor: lwColors.border,
+    borderRadius: lwRadius.default,
+    backgroundColor: lwColors.surface,
     overflow: 'hidden',
   },
   inputIcon: {
     paddingLeft: 14,
     fontSize: 16,
-    color: '#9CA3AF',
+    color: lwColors.mutedFg,
   },
   inputWithIcon: {
     flex: 1,
     paddingHorizontal: 12,
     paddingVertical: 13,
     fontSize: 15,
-    color: '#111827',
-    backgroundColor: '#FFFFFF',
+    fontFamily: lwFont.family,
+    color: lwColors.foreground,
+    backgroundColor: lwColors.surface,
   },
   eyeButton: {
     paddingHorizontal: 14,
@@ -260,28 +263,28 @@ const styles = StyleSheet.create({
   phoneRow: { flexDirection: 'row', gap: 8 },
   dialCode: {
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 10,
+    borderColor: lwColors.border,
+    borderRadius: lwRadius.default,
     paddingHorizontal: 12,
     paddingVertical: 13,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: lwColors.muted,
     justifyContent: 'center',
   },
-  dialCodeText: { fontSize: 14, color: '#374151', fontWeight: '500' },
+  dialCodeText: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.foreground },
   phoneInput: { flex: 1 },
   forgotRow: { alignItems: 'flex-end', marginTop: 8 },
-  forgotText: { fontSize: 14, color: '#C0392B', fontWeight: '500' },
+  forgotText: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.crimson },
   button: {
-    backgroundColor: '#C0392B',
-    borderRadius: 10,
+    backgroundColor: lwColors.crimson,
+    borderRadius: lwRadius.default,
     paddingVertical: 15,
     alignItems: 'center',
     marginTop: 4,
     marginBottom: 20,
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 16 },
+  buttonText: { color: lwColors.white, fontFamily: lwFont.familyBold, fontSize: 16 },
   signupRow: { flexDirection: 'row', justifyContent: 'center' },
-  signupText: { fontSize: 14, color: '#6B7280' },
-  signupLink: { fontSize: 14, color: '#C0392B', fontWeight: '700' },
+  signupText: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.mutedFg },
+  signupLink: { fontSize: 14, fontFamily: lwFont.familyBold, color: lwColors.crimson },
 })

@@ -24,6 +24,7 @@ import {
 import LoadingView from '@/components/LoadingView'
 import ErrorView from '@/components/ErrorView'
 import Badge from '@/components/Badge'
+import { lwColors, lwFont, lwRadius } from '@/lib/theme'
 
 const STATUSES = ['All', 'PLANNED', 'OPEN', 'MATCHING', 'COMPLETED'] as const
 type StatusFilter = (typeof STATUSES)[number]
@@ -43,6 +44,7 @@ const OPT_IN_STATUS_LABELS: Record<string, string> = {
   WITHDRAWN: 'Withdrawn',
 }
 
+// Informational status colors — left as-is, not brand colors
 const OPT_IN_STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   PENDING: { bg: '#ECFDF5', text: '#065F46' },
   MATCHED: { bg: '#EFF6FF', text: '#1D4ED8' },
@@ -113,7 +115,7 @@ function OptInModal({
             value={notes}
             onChangeText={setNotes}
             placeholder="Any additional information you'd like to share..."
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={lwColors.mutedFg}
             multiline
             numberOfLines={4}
             textAlignVertical="top"
@@ -126,7 +128,7 @@ function OptInModal({
             disabled={mutation.isPending}
           >
             {mutation.isPending ? (
-              <ActivityIndicator color="#FFF" size="small" />
+              <ActivityIndicator color={lwColors.white} size="small" />
             ) : (
               <Text style={styles.submitBtnText}>Confirm opt-in</Text>
             )}
@@ -147,16 +149,18 @@ function ProgramCard({
   item,
   optIn,
   onOptInPress,
+  onPress,
 }: {
   item: ProgramCycleListItem
   optIn: ProgramOptIn | undefined
   onOptInPress: (program: ProgramCycleListItem) => void
+  onPress: (program: ProgramCycleListItem) => void
 }) {
   const statusStyle = optIn ? OPT_IN_STATUS_COLORS[optIn.status] : null
   const isOpen = item.status === 'OPEN'
 
   return (
-    <View style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={() => onPress(item)} activeOpacity={0.7}>
       <View style={styles.cardHeader}>
         <Text style={styles.cardTitle} numberOfLines={2}>
           {item.name}
@@ -186,7 +190,13 @@ function ProgramCard({
           </Text>
         </View>
       ) : isOpen ? (
-        <TouchableOpacity style={styles.optInBtn} onPress={() => onOptInPress(item)}>
+        <TouchableOpacity
+          style={styles.optInBtn}
+          onPress={(e) => {
+            e.stopPropagation()
+            onOptInPress(item)
+          }}
+        >
           <Text style={styles.optInBtnText}>Opt in</Text>
         </TouchableOpacity>
       ) : (
@@ -196,7 +206,7 @@ function ProgramCard({
           </Text>
         </View>
       )}
-    </View>
+    </TouchableOpacity>
   )
 }
 
@@ -262,9 +272,9 @@ export default function ProgramsScreen() {
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.myOptInsBtn} onPress={() => router.push('/(tabs)/programs/opt-ins')}>
-        <Ionicons name="checkmark-circle-outline" size={18} color="#E84A1F" />
+        <Ionicons name="checkmark-circle-outline" size={18} color={lwColors.navy} />
         <Text style={styles.myOptInsBtnText}>My Opt-Ins</Text>
-        <Ionicons name="chevron-forward" size={16} color="#9CA3AF" style={{ marginLeft: 'auto' }} />
+        <Ionicons name="chevron-forward" size={16} color={lwColors.mutedFg} style={{ marginLeft: 'auto' }} />
       </TouchableOpacity>
 
       <View style={styles.searchContainer}>
@@ -273,7 +283,7 @@ export default function ProgramsScreen() {
           value={keyword}
           onChangeText={handleKeywordChange}
           placeholder="Search programs..."
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={lwColors.mutedFg}
           autoCapitalize="none"
           autoCorrect={false}
           clearButtonMode="while-editing"
@@ -303,11 +313,12 @@ export default function ProgramsScreen() {
             item={item}
             optIn={optInMap.get(item.id)}
             onOptInPress={setSelectedProgram}
+            onPress={(p) => router.push(`/(tabs)/programs/${p.id}`)}
           />
         )}
         contentContainerStyle={styles.list}
         refreshControl={
-          <RefreshControl refreshing={false} onRefresh={onRefresh} tintColor="#E84A1F" />
+          <RefreshControl refreshing={false} onRefresh={onRefresh} tintColor={lwColors.navy} />
         }
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -329,57 +340,58 @@ export default function ProgramsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: lwColors.background },
   myOptInsBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: lwColors.surface,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: lwColors.muted,
   },
-  myOptInsBtnText: { fontSize: 14, fontWeight: '600', color: '#111827' },
+  myOptInsBtnText: { fontSize: 14, fontFamily: lwFont.familyBold, color: lwColors.foreground },
   searchContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: lwColors.surface,
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 8,
   },
   searchInput: {
-    backgroundColor: '#F3F4F6',
-    borderRadius: 10,
+    backgroundColor: lwColors.muted,
+    borderRadius: lwRadius.default,
     paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: 15,
-    color: '#111827',
+    fontFamily: lwFont.family,
+    color: lwColors.foreground,
   },
   filterRow: {
     flexDirection: 'row',
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: lwColors.surface,
     gap: 6,
     flexWrap: 'wrap',
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: lwColors.muted,
   },
   chip: {
-    borderRadius: 20,
+    borderRadius: lwRadius.default,
     paddingHorizontal: 14,
     paddingVertical: 6,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: lwColors.muted,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: lwColors.border,
   },
-  chipActive: { backgroundColor: '#E84A1F', borderColor: '#E84A1F' },
-  chipText: { fontSize: 13, color: '#374151', fontWeight: '500' },
-  chipTextActive: { color: '#FFFFFF' },
+  chipActive: { backgroundColor: lwColors.navy, borderColor: lwColors.navy },
+  chipText: { fontSize: 13, fontFamily: lwFont.family, color: lwColors.foreground },
+  chipTextActive: { color: lwColors.white, fontFamily: lwFont.familyBold },
   list: { padding: 16, paddingBottom: 32 },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: lwColors.surface,
+    borderRadius: lwRadius.default,
     padding: 16,
     marginBottom: 12,
     shadowColor: '#000',
@@ -395,40 +407,40 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 6,
   },
-  cardTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: '#111827' },
-  cardType: { fontSize: 13, color: '#6B7280', marginBottom: 8, fontWeight: '500' },
-  cardDescription: { fontSize: 14, color: '#374151', lineHeight: 20, marginBottom: 12 },
+  cardTitle: { flex: 1, fontSize: 16, fontFamily: lwFont.familyBold, color: lwColors.foreground },
+  cardType: { fontSize: 13, fontFamily: lwFont.familyBold, color: lwColors.mutedFg, marginBottom: 8 },
+  cardDescription: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.foreground, lineHeight: 20, marginBottom: 12 },
   cardDates: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-  dateText: { fontSize: 13, color: '#9CA3AF' },
-  yearText: { fontSize: 13, color: '#9CA3AF' },
+  dateText: { fontSize: 13, fontFamily: lwFont.family, color: lwColors.mutedFg },
+  yearText: { fontSize: 13, fontFamily: lwFont.family, color: lwColors.mutedFg },
   optInBtn: {
-    backgroundColor: '#E84A1F',
-    borderRadius: 8,
+    backgroundColor: lwColors.crimson,
+    borderRadius: lwRadius.default,
     paddingVertical: 10,
     alignItems: 'center',
   },
-  optInBtnText: { fontSize: 14, color: '#FFFFFF', fontWeight: '600' },
+  optInBtnText: { fontSize: 14, fontFamily: lwFont.familyBold, color: lwColors.white },
   optInBadge: {
-    borderRadius: 8,
+    borderRadius: lwRadius.default,
     paddingVertical: 8,
     alignItems: 'center',
   },
-  optInBadgeText: { fontSize: 13, fontWeight: '600' },
+  optInBadgeText: { fontSize: 13, fontFamily: lwFont.familyBold },
   notOpenBadge: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
+    backgroundColor: lwColors.background,
+    borderRadius: lwRadius.default,
     paddingVertical: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: lwColors.border,
   },
-  notOpenText: { fontSize: 13, color: '#9CA3AF', fontWeight: '500' },
+  notOpenText: { fontSize: 13, fontFamily: lwFont.family, color: lwColors.mutedFg },
   empty: { paddingTop: 60, alignItems: 'center' },
-  emptyText: { fontSize: 15, color: '#9CA3AF' },
+  emptyText: { fontSize: 15, fontFamily: lwFont.family, color: lwColors.mutedFg },
   // Modal
   modalOverlay: {
     flex: 1,
@@ -436,46 +448,47 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalSheet: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: lwColors.surface,
+    borderTopLeftRadius: lwRadius.default,
+    borderTopRightRadius: lwRadius.default,
     padding: 24,
     paddingBottom: 40,
   },
   modalHandle: {
     width: 40,
     height: 4,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 2,
+    backgroundColor: lwColors.border,
+    borderRadius: lwRadius.full,
     alignSelf: 'center',
     marginBottom: 20,
   },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 4 },
-  modalSubtitle: { fontSize: 14, color: '#6B7280', marginBottom: 20 },
-  fieldLabel: { fontSize: 13, fontWeight: '600', color: '#374151', marginBottom: 8 },
+  modalTitle: { fontSize: 18, fontFamily: lwFont.familyBold, color: lwColors.foreground, marginBottom: 4 },
+  modalSubtitle: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.mutedFg, marginBottom: 20 },
+  fieldLabel: { fontSize: 13, fontFamily: lwFont.familyBold, color: lwColors.foreground, marginBottom: 8 },
   notesInput: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: lwColors.background,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 10,
+    borderColor: lwColors.border,
+    borderRadius: lwRadius.default,
     padding: 12,
     fontSize: 14,
-    color: '#111827',
+    fontFamily: lwFont.family,
+    color: lwColors.foreground,
     minHeight: 100,
     marginBottom: 20,
   },
   submitBtn: {
-    backgroundColor: '#E84A1F',
-    borderRadius: 10,
+    backgroundColor: lwColors.crimson,
+    borderRadius: lwRadius.default,
     paddingVertical: 14,
     alignItems: 'center',
     marginBottom: 12,
   },
   submitBtnDisabled: { opacity: 0.6 },
-  submitBtnText: { fontSize: 15, color: '#FFFFFF', fontWeight: '700' },
+  submitBtnText: { fontSize: 15, fontFamily: lwFont.familyBold, color: lwColors.white },
   cancelBtn: {
     paddingVertical: 12,
     alignItems: 'center',
   },
-  cancelBtnText: { fontSize: 15, color: '#6B7280', fontWeight: '500' },
+  cancelBtnText: { fontSize: 15, fontFamily: lwFont.family, color: lwColors.mutedFg },
 })

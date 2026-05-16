@@ -13,6 +13,7 @@ import { listMyApplications, MyApplicationListItem } from '@/lib/api'
 import LoadingView from '@/components/LoadingView'
 import ErrorView from '@/components/ErrorView'
 import Badge from '@/components/Badge'
+import { lwColors, lwFont, lwRadius } from '@/lib/theme'
 
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString('en-US', {
@@ -72,7 +73,7 @@ export default function ApplicationsScreen() {
         renderItem={({ item }) => <ApplicationCard item={item} />}
         contentContainerStyle={styles.list}
         refreshControl={
-          <RefreshControl refreshing={false} onRefresh={onRefresh} tintColor="#E84A1F" />
+          <RefreshControl refreshing={false} onRefresh={onRefresh} tintColor={lwColors.navy} />
         }
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -94,11 +95,11 @@ export default function ApplicationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: lwColors.background },
   list: { padding: 16, paddingBottom: 32 },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: lwColors.surface,
+    borderRadius: lwRadius.default,
     padding: 16,
     marginBottom: 12,
     shadowColor: '#000',
@@ -117,23 +118,23 @@ const styles = StyleSheet.create({
   cardTitle: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontFamily: lwFont.familyBold,
+    color: lwColors.foreground,
   },
-  cardCompany: { fontSize: 14, color: '#6B7280', marginBottom: 6 },
-  cardDate: { fontSize: 13, color: '#9CA3AF' },
+  cardCompany: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.mutedFg, marginBottom: 6 },
+  cardDate: { fontSize: 13, fontFamily: lwFont.family, color: lwColors.mutedFg },
   empty: {
     paddingTop: 80,
     alignItems: 'center',
     paddingHorizontal: 32,
   },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#374151', marginBottom: 8 },
-  emptyText: { fontSize: 14, color: '#9CA3AF', textAlign: 'center', marginBottom: 20 },
+  emptyTitle: { fontSize: 18, fontFamily: lwFont.familyBold, color: lwColors.foreground, marginBottom: 8 },
+  emptyText: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.mutedFg, textAlign: 'center', marginBottom: 20 },
   browseButton: {
-    backgroundColor: '#E84A1F',
-    borderRadius: 8,
+    backgroundColor: lwColors.crimson,
+    borderRadius: lwRadius.default,
     paddingHorizontal: 24,
     paddingVertical: 12,
   },
-  browseButtonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 14 },
+  browseButtonText: { color: lwColors.white, fontFamily: lwFont.familyBold, fontSize: 14 },
 })

@@ -7,8 +7,10 @@ import {
   ProgramCycleResponseSchema,
   ProgramOptInSchema,
   ProgramPlacementListResponseSchema,
+  UpdateProgramCycleSchema,
+  CreateProgramCycleSchema,
 } from "@liberia-works/shared-schemas"
-import { EMPLOYER_ROLES } from "@liberia-works/shared-types"
+import { EMPLOYER_ROLES, MOL_ROLES } from "@liberia-works/shared-types"
 import { requireRole } from "../../plugins/auth.js"
 import { encodeCursor, decodeCursor } from "../../lib/cursor.js"
 import type { ProgramCycle } from "@prisma/client"
@@ -108,7 +110,7 @@ export const programsModule: FastifyPluginAsync = async (app) => {
       querystring: ProgramCycleFilterSchema,
       response: { 200: ProgramCycleListResponseSchema },
     },
-    preHandler: [requireRole([...EMPLOYER_ROLES, "INDIVIDUAL"])],
+    preHandler: [requireRole([...EMPLOYER_ROLES, ...MOL_ROLES, "INDIVIDUAL"])],
   }, async (req) => {
     const { cursor, status, type, year } = req.query
     const PAGE_SIZE = 20
@@ -457,33 +459,34 @@ export const programsModule: FastifyPluginAsync = async (app) => {
 
   const HostingCapacityBodySchema = z.object({
     cycleId: z.string(),
-    slotsOffered: z.number().int().min(1),
-    stateId: z.number().int(),
     contactName: z.string().min(1),
     contactPhone: z.string().min(1),
-    preferredSectorId: z.string().optional(),
+    preferredSectors: z.array(z.string()).min(1, 'Select at least one sector'),
     preferredEducationLevelId: z.string().optional(),
     placementInstructions: z.string().optional(),
+    capacities: z.array(z.object({
+      stateId: z.number().int(),
+      slotsOffered: z.number().int().min(1),
+    })).min(1, 'At least one county capacity required'),
+  })
+
+  const CapacityRowSchema = z.object({
+    id: z.string(),
+    stateId: z.number(),
+    slotsOffered: z.number(),
+    state: z.object({ id: z.number(), name: z.string(), code: z.string().nullable() }),
   })
 
   const HostingCapacityItemSchema = z.object({
-    id: z.string(),
-    employerId: z.string(),
     cycleId: z.string(),
-    slotsOffered: z.number(),
-    stateId: z.number(),
     contactName: z.string(),
     contactPhone: z.string(),
-    preferredSectorId: z.string().nullable(),
+    preferredSectors: z.array(z.string()),
     preferredEducationLevelId: z.string().nullable(),
     placementInstructions: z.string().nullable(),
-    createdAt: z.string(),
-    cycle: z.object({
-      id: z.string(),
-      name: z.string(),
-      year: z.number(),
-      status: z.string(),
-    }),
+    capacities: z.array(CapacityRowSchema),
+    totalSlots: z.number(),
+    cycle: z.object({ id: z.string(), name: z.string(), year: z.number(), status: z.string() }),
   })
 
   const MyHostingCapacityResponseSchema = z.object({
@@ -495,66 +498,55 @@ export const programsModule: FastifyPluginAsync = async (app) => {
     }),
   })
 
-  const HostingCapacityCreateResponseSchema = z.object({
-    id: z.string(),
-    employerId: z.string(),
-    cycleId: z.string(),
-    slotsOffered: z.number(),
-    stateId: z.number(),
-    contactName: z.string(),
-    contactPhone: z.string(),
-    preferredSectorId: z.string().nullable(),
-    preferredEducationLevelId: z.string().nullable(),
-    placementInstructions: z.string().nullable(),
-    createdAt: z.string(),
-  })
-
-  function formatCapacity(c: {
+  // Takes all rows for a single (employer, cycle) and returns the grouped shape
+  function formatCapacityGroup(rows: Array<{
     id: string
-    employerId: string
     cycleId: string
     slotsOffered: number
     stateId: number
     contactName: string
     contactPhone: string
-    preferredSectorId: string | null
+    preferredSectors: string[]
     preferredEducationLevelId: string | null
     placementInstructions: string | null
-    createdAt: Date
     cycle: { id: string; name: string; year: number; status: string }
-  }) {
+    state: { id: number; name: string; stateCode: string | null }
+  }>) {
+    const first = rows[0]!
     return {
-      id: c.id,
-      employerId: c.employerId,
-      cycleId: c.cycleId,
-      slotsOffered: c.slotsOffered,
-      stateId: c.stateId,
-      contactName: c.contactName,
-      contactPhone: c.contactPhone,
-      preferredSectorId: c.preferredSectorId,
-      preferredEducationLevelId: c.preferredEducationLevelId,
-      placementInstructions: c.placementInstructions,
-      createdAt: c.createdAt.toISOString(),
+      cycleId: first.cycleId,
+      contactName: first.contactName,
+      contactPhone: first.contactPhone,
+      preferredSectors: first.preferredSectors ?? [],
+      preferredEducationLevelId: first.preferredEducationLevelId,
+      placementInstructions: first.placementInstructions,
+      capacities: rows.map(r => ({
+        id: r.id,
+        stateId: r.stateId,
+        slotsOffered: r.slotsOffered,
+        state: { id: r.state.id, name: r.state.name, code: r.state.stateCode ?? null },
+      })),
+      totalSlots: rows.reduce((sum, r) => sum + r.slotsOffered, 0),
       cycle: {
-        id: c.cycle.id,
-        name: c.cycle.name,
-        year: c.cycle.year,
-        status: c.cycle.status as string,
+        id: first.cycle.id,
+        name: first.cycle.name,
+        year: first.cycle.year,
+        status: first.cycle.status as string,
       },
     }
   }
 
-  // POST /hosting-capacity — employer opts into a program by declaring hosting capacity
+  // POST /hosting-capacity — full replace of employer's capacity for a cycle
   server.post('/hosting-capacity', {
     schema: {
       tags: ['programs'],
-      summary: 'Declare employer hosting capacity for a program cycle',
+      summary: 'Declare employer hosting capacity for a program cycle (full replace)',
       body: HostingCapacityBodySchema,
-      response: { 201: HostingCapacityCreateResponseSchema },
+      response: { 201: HostingCapacityItemSchema },
     },
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
-    const { cycleId, slotsOffered, stateId, contactName, contactPhone, preferredSectorId, preferredEducationLevelId, placementInstructions } = req.body
+    const { cycleId, contactName, contactPhone, preferredSectors, preferredEducationLevelId, placementInstructions, capacities } = req.body
 
     const eu = await app.prisma.employerUser.findFirst({
       where: { userId: req.authUser!.id, isActive: true },
@@ -566,46 +558,88 @@ export const programsModule: FastifyPluginAsync = async (app) => {
     if (!cycle) return reply.notFound('Program cycle not found')
     if (cycle.status !== 'OPEN') return reply.badRequest('This program is not open for opt-ins')
 
-    const validState = await app.prisma.state.findFirst({
-      where: { id: stateId, countryCode: 'LR' },
-    })
-    if (!validState) return reply.badRequest('Invalid state ID')
+    // Validate no duplicate stateIds in payload
+    const stateIds = capacities.map(c => c.stateId)
+    if (new Set(stateIds).size !== stateIds.length) {
+      return reply.badRequest('Duplicate county IDs in capacities')
+    }
 
-    const existing = await app.prisma.programHostingCapacity.findUnique({
-      where: { employerId_cycleId: { employerId: eu.employerId, cycleId } },
+    // Validate all stateIds are Liberian counties
+    const validStates = await app.prisma.state.findMany({
+      where: { id: { in: stateIds }, countryCode: 'LR' },
+      select: { id: true },
     })
-    if (existing) return reply.conflict('Already opted into this program')
+    if (validStates.length !== stateIds.length) {
+      return reply.badRequest('One or more county IDs are not valid Liberian counties')
+    }
 
-    const capacity = await app.prisma.programHostingCapacity.create({
-      data: {
-        employerId: eu.employerId,
-        cycleId,
-        slotsOffered,
-        stateId,
-        contactName,
-        contactPhone,
-        preferredSectorId: preferredSectorId ?? null,
-        preferredEducationLevelId: preferredEducationLevelId ?? null,
-        placementInstructions: placementInstructions ?? null,
+    // Validate all preferredSectors are real sectors
+    const uniqueSectorIds = [...new Set(preferredSectors)]
+    const validSectors = await app.prisma.sector.findMany({
+      where: { id: { in: uniqueSectorIds } },
+      select: { id: true },
+    })
+    if (validSectors.length !== uniqueSectorIds.length) {
+      return reply.badRequest('One or more sector IDs are invalid')
+    }
+
+    if (preferredEducationLevelId) {
+      const educationLevel = await app.prisma.educationLevel.findUnique({ where: { id: preferredEducationLevelId } })
+      if (!educationLevel) return reply.badRequest('Invalid education level ID provided')
+    }
+
+    const sharedFields = {
+      contactName,
+      contactPhone,
+      preferredSectors: uniqueSectorIds,
+      preferredEducationLevelId: preferredEducationLevelId ?? null,
+      placementInstructions: placementInstructions ?? null,
+    }
+
+    await app.prisma.$transaction(async (tx: any) => {
+      // Delete rows for counties not present in this payload
+      await tx.programHostingCapacity.deleteMany({
+        where: {
+          employerId: eu.employerId,
+          cycleId,
+          stateId: { notIn: stateIds },
+        },
+      })
+      // Upsert each county row
+      for (const cap of capacities) {
+        await tx.programHostingCapacity.upsert({
+          where: {
+            employerId_cycleId_stateId: {
+              employerId: eu.employerId,
+              cycleId,
+              stateId: cap.stateId,
+            },
+          },
+          update: { slotsOffered: cap.slotsOffered, ...sharedFields },
+          create: {
+            employerId: eu.employerId,
+            cycleId,
+            stateId: cap.stateId,
+            slotsOffered: cap.slotsOffered,
+            ...sharedFields,
+          },
+        })
+      }
+    })
+
+    const rows = await app.prisma.programHostingCapacity.findMany({
+      where: { employerId: eu.employerId, cycleId },
+      include: {
+        cycle: { select: { id: true, name: true, year: true, status: true } },
+        state: { select: { id: true, name: true, stateCode: true } },
       },
     })
 
-    return reply.status(201).send({
-      id: capacity.id,
-      employerId: capacity.employerId,
-      cycleId: capacity.cycleId,
-      slotsOffered: capacity.slotsOffered,
-      stateId: capacity.stateId,
-      contactName: capacity.contactName,
-      contactPhone: capacity.contactPhone,
-      preferredSectorId: capacity.preferredSectorId,
-      preferredEducationLevelId: capacity.preferredEducationLevelId,
-      placementInstructions: capacity.placementInstructions,
-      createdAt: capacity.createdAt.toISOString(),
-    })
+    return reply.status(201).send(formatCapacityGroup(rows))
   })
 
-  // GET /my-hosting-capacity — list current employer's hosting capacity declarations
+  // GET /my-hosting-capacity — list current employer's hosting capacity grouped by cycle
+  // Paginate over cycles: load all rows for employer, group in JS, then page the groups.
   server.get('/my-hosting-capacity', {
     schema: {
       tags: ['programs'],
@@ -621,26 +655,48 @@ export const programsModule: FastifyPluginAsync = async (app) => {
     })
     if (!eu) return reply.notFound('No employer found for this user')
 
-    const { cursor } = req.query
+    // Load all rows; group by cycleId in JS; cursor-paginate over groups
+    const allRows = await app.prisma.programHostingCapacity.findMany({
+      where: { employerId: eu.employerId },
+      orderBy: [{ cycleId: 'desc' }, { stateId: 'asc' }],
+      include: {
+        cycle: { select: { id: true, name: true, year: true, status: true } },
+        state: { select: { id: true, name: true, stateCode: true } },
+      },
+    })
+
+    // Group rows by cycleId preserving order of first encounter
+    const groupMap = new Map<string, typeof allRows>()
+    for (const row of allRows) {
+      const existing = groupMap.get(row.cycleId)
+      if (existing) {
+        existing.push(row)
+      } else {
+        groupMap.set(row.cycleId, [row])
+      }
+    }
+
+    const groups = Array.from(groupMap.values())
     const PAGE_SIZE = 20
+
+    const { cursor } = req.query
     const decodedCursor = cursor ? decodeCursor(cursor) : undefined
+    let startIdx = 0
+    if (decodedCursor) {
+      const idx = groups.findIndex(g => g[0]!.cycleId === decodedCursor)
+      startIdx = idx >= 0 ? idx + 1 : 0
+    }
 
-    const [total, rows] = await Promise.all([
-      app.prisma.programHostingCapacity.count({ where: { employerId: eu.employerId } }),
-      app.prisma.programHostingCapacity.findMany({
-        where: { employerId: eu.employerId },
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        include: { cycle: { select: { id: true, name: true, year: true, status: true } } },
-        ...(decodedCursor ? { cursor: { id: decodedCursor }, skip: 1 } : {}),
-        take: PAGE_SIZE + 1,
-      }),
-    ])
+    const pageGroups = groups.slice(startIdx, startIdx + PAGE_SIZE + 1)
+    const hasMore = pageGroups.length > PAGE_SIZE
+    const dataGroups = hasMore ? pageGroups.slice(0, PAGE_SIZE) : pageGroups
+    const nextCursor = hasMore ? encodeCursor(dataGroups[dataGroups.length - 1]![0]!.cycleId) : null
+    const total = groups.length
 
-    const hasMore = rows.length > PAGE_SIZE
-    const data = hasMore ? rows.slice(0, PAGE_SIZE) : rows
-    const nextCursor = hasMore ? encodeCursor(data[data.length - 1]!.id) : null
-
-    return { data: data.map(formatCapacity), pagination: { nextCursor, hasMore, total } }
+    return {
+      data: dataGroups.map(formatCapacityGroup),
+      pagination: { nextCursor, hasMore, total },
+    }
   })
 
   // GET /hosting-capacity/by-cycle/:cycleId — get current employer's capacity for a specific cycle
@@ -659,13 +715,16 @@ export const programsModule: FastifyPluginAsync = async (app) => {
     })
     if (!eu) return reply.notFound('No employer found for this user')
 
-    const capacity = await app.prisma.programHostingCapacity.findUnique({
-      where: { employerId_cycleId: { employerId: eu.employerId, cycleId: req.params.cycleId } },
-      include: { cycle: { select: { id: true, name: true, year: true, status: true } } },
+    const rows = await app.prisma.programHostingCapacity.findMany({
+      where: { employerId: eu.employerId, cycleId: req.params.cycleId },
+      include: {
+        cycle: { select: { id: true, name: true, year: true, status: true } },
+        state: { select: { id: true, name: true, stateCode: true } },
+      },
     })
-    if (!capacity) return reply.notFound('Hosting capacity not found')
+    if (rows.length === 0) return reply.notFound('Hosting capacity not found')
 
-    return formatCapacity(capacity)
+    return formatCapacityGroup(rows)
   })
 
   // GET COUNTIES
@@ -737,14 +796,108 @@ export const programsModule: FastifyPluginAsync = async (app) => {
       params: z.object({ id: z.string().uuid() }),
       response: { 200: ProgramCycleResponseSchema },
     },
-    preHandler: [requireRole([...EMPLOYER_ROLES, "INDIVIDUAL"])],
+    preHandler: [requireRole([...EMPLOYER_ROLES, ...MOL_ROLES, "INDIVIDUAL"])],
   }, async (req, reply) => {
     const cycle = await app.prisma.programCycle.findUnique({ where: { id: req.params.id } })
     if (!cycle) return reply.notFound("Program cycle not found")
     return formatCycle(cycle)
   })
 
-  // POST /cycles/:id/opt-in — employer opt-in to a cycle
+  // POST /cycles — MoL admin creates a new program cycle
+  server.post("/cycles", {
+    schema: {
+      tags: ["programs"],
+      summary: "Create a program cycle (MoL only)",
+      body: CreateProgramCycleSchema,
+      response: { 201: ProgramCycleResponseSchema },
+    },
+    preHandler: [requireRole(MOL_ROLES)],
+  }, async (req, reply) => {
+    const { name, year, startDate, endDate, type, status, description } = req.body
+
+    if (endDate <= startDate) {
+      return reply.badRequest("endDate must be after startDate")
+    }
+
+    const cycle = await app.prisma.programCycle.create({
+      data: {
+        name,
+        year,
+        startDate,
+        endDate,
+        type: type ?? 'VACATION_JOB',
+        status: status ?? 'PLANNED',
+        description: description ?? null,
+      },
+    })
+
+    return reply.status(201).send(formatCycle(cycle))
+  })
+
+  // PATCH /cycles/:id — MoL admin updates cycle fields
+  server.patch("/cycles/:id", {
+    schema: {
+      tags: ["programs"],
+      summary: "Update a program cycle (MoL only)",
+      params: z.object({ id: z.string().uuid() }),
+      body: UpdateProgramCycleSchema,
+      response: { 200: ProgramCycleResponseSchema },
+    },
+    preHandler: [requireRole(MOL_ROLES)],
+  }, async (req, reply) => {
+    const { id } = req.params
+    const { name, year, type, status, startDate, endDate, description } = req.body
+
+    const existing = await app.prisma.programCycle.findUnique({ where: { id } })
+    if (!existing) return reply.notFound("Program cycle not found")
+
+    const data: Record<string, unknown> = {}
+    if (name !== undefined) data.name = name
+    if (year !== undefined) data.year = year
+    if (type !== undefined) data.type = type
+    if (status !== undefined) data.status = status
+    if (startDate !== undefined) data.startDate = startDate
+    if (endDate !== undefined) data.endDate = endDate
+    if (description !== undefined) data.description = description
+
+    const updated = await app.prisma.programCycle.update({ where: { id }, data })
+
+    return formatCycle(updated)
+  })
+
+  // DELETE /cycles/:id — MoL admin deletes a cycle (only if no dependents)
+  server.delete("/cycles/:id", {
+    schema: {
+      tags: ["programs"],
+      summary: "Delete a program cycle (MoL only)",
+      params: z.object({ id: z.string().uuid() }),
+    },
+    preHandler: [requireRole(MOL_ROLES)],
+  }, async (req, reply) => {
+    const { id } = req.params
+
+    const existing = await app.prisma.programCycle.findUnique({ where: { id } })
+    if (!existing) return reply.notFound("Program cycle not found")
+
+    const [optIns, hostingCapacities, placements] = await Promise.all([
+      app.prisma.programOptIn.count({ where: { programCycleId: id } }),
+      app.prisma.programHostingCapacity.count({ where: { cycleId: id } }),
+      app.prisma.programPlacement.count({ where: { cycleId: id } }),
+    ])
+
+    if (optIns > 0 || hostingCapacities > 0 || placements > 0) {
+      return reply.status(409).send({
+        error: 'CONFLICT',
+        message: `Cannot delete cycle with ${optIns} opt-ins, ${hostingCapacities} hosting capacities, ${placements} placements`,
+        details: { optIns, hostingCapacities, placements },
+      })
+    }
+
+    await app.prisma.programCycle.delete({ where: { id } })
+    return reply.status(204).send()
+  })
+
+  // POST /cycles/:id/opt-in — employer opt-in to a cycle (full replace, multi-county)
   server.post("/cycles/:id/opt-in", {
     schema: {
       tags: ["programs"],
@@ -767,31 +920,56 @@ export const programsModule: FastifyPluginAsync = async (app) => {
     })
     if (!employerUser) return reply.forbidden("User is not associated with an employer")
 
-    const hosting = await app.prisma.programHostingCapacity.upsert({
-      where: {
-        employerId_cycleId: {
-          employerId: employerUser.employerId,
-          cycleId: id,
-        }
-      },
-      update: {
-        slotsOffered: req.body.slotsOffered,
-        preferredEducationLevelId: req.body.preferredEducationLevelId || null,
-        stateId: req.body.stateId || 1,
-        contactName: req.body.contactName,
-        contactPhone: req.body.contactPhone,
-        placementInstructions: req.body.placementInstructions || null,
-      },
-      create: {
-        employerId: employerUser.employerId,
-        cycleId: id,
-        slotsOffered: req.body.slotsOffered,
-        preferredEducationLevelId: req.body.preferredEducationLevelId || null,
-        stateId: req.body.stateId || 1,
-        contactName: req.body.contactName,
-        contactPhone: req.body.contactPhone,
-        placementInstructions: req.body.placementInstructions || null,
+    const { contactName, contactPhone, preferredSectors, preferredEducationLevelId, placementInstructions, capacities } = req.body
+    const stateIds = capacities.map((c: { stateId: number }) => c.stateId)
+
+    // Validate all preferredSectors are real sectors
+    const uniqueSectorIds = [...new Set(preferredSectors)]
+    const validSectors = await app.prisma.sector.findMany({
+      where: { id: { in: uniqueSectorIds } },
+      select: { id: true },
+    })
+    if (validSectors.length !== uniqueSectorIds.length) {
+      return reply.badRequest('One or more sector IDs are invalid')
+    }
+
+    const sharedFields = {
+      contactName,
+      contactPhone,
+      preferredSectors: uniqueSectorIds,
+      preferredEducationLevelId: preferredEducationLevelId ?? null,
+      placementInstructions: placementInstructions ?? null,
+    }
+
+    await app.prisma.$transaction(async (tx: any) => {
+      await tx.programHostingCapacity.deleteMany({
+        where: { employerId: employerUser.employerId, cycleId: id, stateId: { notIn: stateIds } },
+      })
+      for (const cap of capacities) {
+        await tx.programHostingCapacity.upsert({
+          where: {
+            employerId_cycleId_stateId: {
+              employerId: employerUser.employerId,
+              cycleId: id,
+              stateId: cap.stateId,
+            },
+          },
+          update: { slotsOffered: cap.slotsOffered, ...sharedFields },
+          create: {
+            employerId: employerUser.employerId,
+            cycleId: id,
+            stateId: cap.stateId,
+            slotsOffered: cap.slotsOffered,
+            ...sharedFields,
+          },
+        })
       }
+    })
+
+    // Use first row id for audit
+    const firstRow = await app.prisma.programHostingCapacity.findFirst({
+      where: { employerId: employerUser.employerId, cycleId: id },
+      select: { id: true },
     })
 
     // AUDIT
@@ -800,7 +978,7 @@ export const programsModule: FastifyPluginAsync = async (app) => {
       actorRole: req.authUser!.role,
       action: "EMPLOYER_PROGRAM_OPT_IN",
       targetTable: "program_hosting_capacity",
-      targetId: hosting.id,
+      targetId: firstRow?.id ?? id,
       ipAddress: req.ip,
       userAgent: req.headers["user-agent"] || "",
       requestId: req.id as string,

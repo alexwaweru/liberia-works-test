@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 88" width="140" height="88" role="img" aria-label="Liberia Works · Ministry of Labor">
+  <title>Liberia Works — stacked lockup</title>
+  
+  <g transform="translate(48 0)">
+    <rect x="2" y="30" width="12" height="10" fill="#0B2342"></rect>
+    <rect x="16" y="30" width="12" height="10" fill="#0B2342"></rect>
+    <rect x="30" y="30" width="12" height="10" fill="#0B2342"></rect>
+    <rect x="9" y="18" width="12" height="10" fill="#0B2342"></rect>
+    <rect x="23" y="18" width="12" height="10" fill="#0B2342"></rect>
+    <rect x="16" y="6" width="12" height="10" fill="#BF1120"></rect>
+  </g>
+  
+  <g font-family="&#39;Outfit Variable&#39;,&#39;Outfit&#39;,system-ui,-apple-system,sans-serif" text-anchor="middle">
+    <text x="70" y="68" font-size="14" font-weight="600" letter-spacing="0.84" fill="#0B2342">LIBERIA WORKS</text>
+    <text x="70" y="82" font-size="7.5" font-weight="500" letter-spacing="0.6" fill="#57606E">MINISTRY OF LABOR</text>
+  </g>
+</svg>

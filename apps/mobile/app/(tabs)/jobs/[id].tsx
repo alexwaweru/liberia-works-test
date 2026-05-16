@@ -18,6 +18,7 @@ import { getPublicVacancy, createApplication } from '@/lib/api'
 import LoadingView from '@/components/LoadingView'
 import ErrorView from '@/components/ErrorView'
 import Badge from '@/components/Badge'
+import { lwColors, lwFont, lwRadius } from '@/lib/theme'
 
 function stripHtml(html: string): string {
   return html
@@ -162,7 +163,7 @@ export default function JobDetailScreen() {
           disabled={applyMutation.isPending}
         >
           {applyMutation.isPending ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color={lwColors.white} />
           ) : (
             <Text style={styles.applyButtonText}>Apply Now</Text>
           )}
@@ -201,7 +202,7 @@ export default function JobDetailScreen() {
                     value={responses[field.id] ?? ''}
                     onChangeText={(v) => setResponses((prev) => ({ ...prev, [field.id]: v }))}
                     placeholder={`Enter ${field.label.toLowerCase()}`}
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={lwColors.mutedFg}
                     multiline={field.type === 'textarea'}
                     numberOfLines={field.type === 'textarea' ? 4 : 1}
                     textAlignVertical={field.type === 'textarea' ? 'top' : 'center'}
@@ -216,7 +217,7 @@ export default function JobDetailScreen() {
               disabled={applyMutation.isPending}
             >
               {applyMutation.isPending ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={lwColors.white} />
               ) : (
                 <Text style={styles.applyButtonText}>Submit Application</Text>
               )}
@@ -229,59 +230,60 @@ export default function JobDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#FFFFFF' },
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  flex: { flex: 1, backgroundColor: lwColors.surface },
+  container: { flex: 1, backgroundColor: lwColors.surface },
   content: { padding: 20, paddingBottom: 40 },
   header: { marginBottom: 20 },
-  title: { fontSize: 22, fontWeight: '800', color: '#111827', marginBottom: 6 },
-  company: { fontSize: 15, color: '#6B7280', marginBottom: 10 },
+  title: { fontSize: 22, fontFamily: lwFont.familyBold, color: lwColors.foreground, marginBottom: 6 },
+  company: { fontSize: 15, fontFamily: lwFont.family, color: lwColors.mutedFg, marginBottom: 10 },
   infoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
+    backgroundColor: lwColors.background,
+    borderRadius: lwRadius.default,
     padding: 16,
     marginBottom: 20,
   },
   infoItem: { minWidth: '45%' },
-  infoLabel: { fontSize: 12, color: '#9CA3AF', fontWeight: '500', marginBottom: 2 },
-  infoValue: { fontSize: 15, fontWeight: '600', color: '#111827' },
+  infoLabel: { fontSize: 12, fontFamily: lwFont.familyBold, color: lwColors.mutedFg, marginBottom: 2 },
+  infoValue: { fontSize: 15, fontFamily: lwFont.familyBold, color: lwColors.foreground },
   section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 10 },
-  description: { fontSize: 14, color: '#374151', lineHeight: 22 },
+  sectionTitle: { fontSize: 16, fontFamily: lwFont.familyBold, color: lwColors.foreground, marginBottom: 10 },
+  description: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.foreground, lineHeight: 22 },
   applyButton: {
-    backgroundColor: '#E84A1F',
-    borderRadius: 10,
+    backgroundColor: lwColors.crimson,
+    borderRadius: lwRadius.default,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
   },
   applyButtonDisabled: { opacity: 0.6 },
-  applyButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 16 },
+  applyButtonText: { color: lwColors.white, fontFamily: lwFont.familyBold, fontSize: 16 },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: lwColors.muted,
+    backgroundColor: lwColors.surface,
   },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
-  modalClose: { fontSize: 15, color: '#E84A1F', fontWeight: '600' },
+  modalTitle: { fontSize: 18, fontFamily: lwFont.familyBold, color: lwColors.foreground },
+  modalClose: { fontSize: 15, fontFamily: lwFont.familyBold, color: lwColors.crimson },
   modalScroll: { flex: 1 },
   modalContent: { padding: 20, paddingBottom: 40 },
   field: { marginBottom: 16 },
-  fieldLabel: { fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 6 },
+  fieldLabel: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.foreground, marginBottom: 6 },
   fieldInput: {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
+    borderColor: lwColors.border,
+    borderRadius: lwRadius.default,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#111827',
-    backgroundColor: '#FAFAFA',
+    fontFamily: lwFont.family,
+    color: lwColors.foreground,
+    backgroundColor: lwColors.surface,
   },
 })

@@ -14,6 +14,7 @@ import { browseVacancies, PublicVacancyListItem } from '@/lib/api'
 import LoadingView from '@/components/LoadingView'
 import ErrorView from '@/components/ErrorView'
 import Badge from '@/components/Badge'
+import { lwColors, lwFont, lwRadius } from '@/lib/theme'
 
 const VACANCY_TYPES = ['All', 'PERMANENT', 'CONTRACT', 'INTERNSHIP', 'VACATION_JOB'] as const
 type VacancyTypeFilter = (typeof VACANCY_TYPES)[number]
@@ -100,7 +101,7 @@ export default function JobsScreen() {
           value={keyword}
           onChangeText={handleKeywordChange}
           placeholder="Search jobs..."
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={lwColors.mutedFg}
           autoCapitalize="none"
           autoCorrect={false}
           clearButtonMode="while-editing"
@@ -128,7 +129,7 @@ export default function JobsScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <JobCard item={item} />}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={false} onRefresh={onRefresh} tintColor="#E84A1F" />}
+        refreshControl={<RefreshControl refreshing={false} onRefresh={onRefresh} tintColor={lwColors.navy} />}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyText}>No jobs found.</Text>
@@ -140,49 +141,50 @@ export default function JobsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: lwColors.background },
   searchContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: lwColors.surface,
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 8,
   },
   searchInput: {
-    backgroundColor: '#F3F4F6',
-    borderRadius: 10,
+    backgroundColor: lwColors.muted,
+    borderRadius: lwRadius.default,
     paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: 15,
-    color: '#111827',
+    fontFamily: lwFont.family,
+    color: lwColors.foreground,
   },
   filterRow: {
     flexDirection: 'row',
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: lwColors.surface,
     gap: 6,
     flexWrap: 'wrap',
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: lwColors.muted,
   },
   chip: {
-    borderRadius: 20,
+    borderRadius: lwRadius.default,
     paddingHorizontal: 14,
     paddingVertical: 6,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: lwColors.muted,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: lwColors.border,
   },
   chipActive: {
-    backgroundColor: '#E84A1F',
-    borderColor: '#E84A1F',
+    backgroundColor: lwColors.navy,
+    borderColor: lwColors.navy,
   },
-  chipText: { fontSize: 13, color: '#374151', fontWeight: '500' },
-  chipTextActive: { color: '#FFFFFF' },
+  chipText: { fontSize: 13, fontFamily: lwFont.family, color: lwColors.foreground },
+  chipTextActive: { color: lwColors.white, fontFamily: lwFont.familyBold },
   list: { padding: 16, gap: 12, paddingBottom: 32 },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: lwColors.surface,
+    borderRadius: lwRadius.default,
     padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -201,20 +203,21 @@ const styles = StyleSheet.create({
   cardTitle: {
     flex: 1,
     fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontFamily: lwFont.familyBold,
+    color: lwColors.foreground,
   },
   cardCompany: {
     fontSize: 14,
-    color: '#6B7280',
+    fontFamily: lwFont.family,
+    color: lwColors.mutedFg,
     marginBottom: 10,
   },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  cardMeta: { fontSize: 13, color: '#9CA3AF' },
-  cardDeadline: { fontSize: 13, color: '#9CA3AF' },
+  cardMeta: { fontSize: 13, fontFamily: lwFont.family, color: lwColors.mutedFg },
+  cardDeadline: { fontSize: 13, fontFamily: lwFont.family, color: lwColors.mutedFg },
   empty: { paddingTop: 60, alignItems: 'center' },
-  emptyText: { fontSize: 15, color: '#9CA3AF' },
+  emptyText: { fontSize: 15, fontFamily: lwFont.family, color: lwColors.mutedFg },
 })

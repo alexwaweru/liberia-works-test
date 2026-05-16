@@ -1,10 +1,11 @@
 // MoL portal layout — requires MOL_OFFICER or MOL_DIRECTOR (enforced by middleware.ts)
-// Phase 1: read-only. Phase 2: data corrections + certificate issuance.
+import { MolSidebar } from '@/components/domain/mol/sidebar'
+
 export default function MolLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen">
-      {/* TODO: MolSidebar — Overview, Employers, Individuals, Vacancies, Work Permits, Disputes */}
-      <main className="flex-1 p-6">{children}</main>
+    <div className="flex h-screen overflow-hidden bg-background">
+      <MolSidebar />
+      <main className="flex-1 overflow-y-auto p-6 md:p-8">{children}</main>
     </div>
   )
 }

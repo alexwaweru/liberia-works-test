@@ -7,7 +7,7 @@ import { useCurrentEmployer } from '@/hooks/employer'
 const TITLES: Record<string, string> = {
   '/dashboard':    'Dashboard',
   '/vacancies':    'Vacancies',
-  '/programs':     'Programs',
+  '/host-programs': 'Programs',
   '/work-permits': 'Work Permits',
   '/disputes':     'Disputes',
   '/employees':    'Employees',

@@ -527,16 +527,36 @@ export function createOptIn(body: OptInRequest) {
 
 
 export type ProgramOptInPayload = {
-  slotsOffered: number
-  preferredSectorIds?: string[]
-  preferredEducationLevelId?: string
-  stateId?: number
   contactName: string
   contactPhone: string
+  preferredSectors: string[]
+  preferredEducationLevelId?: string
   placementInstructions?: string
+  capacities: Array<{ stateId: number; slotsOffered: number }>
 }
 
-export type ProgramPlacementListItem = any;
+export type ProgramPlacementListItem = {
+  id: string
+  matchDate: string
+  status: string
+  individual: {
+    id: string
+    fullName: string
+    email: string | null
+    phoneNumber: string | null
+    dateOfBirth: string | null
+    gender: string | null
+    education: Array<{
+      institutionName: string
+      qualification: string | null
+      fieldOfStudy: string | null
+    }>
+    experience: Array<{
+      employerName: string
+      title: string | null
+    }>
+  }
+}
 
 export type MyPlacementResponse = {
   id: string
@@ -554,7 +574,95 @@ export type MyPlacementResponse = {
 }
 
 export function getProgramCycle(id: string) {
-  return apiFetch(`/api/v1/programs/cycles/${id}`)
+  return apiFetch<ProgramCycleListItem>(`/api/v1/programs/cycles/${id}`)
+}
+
+export type UpdateProgramCyclePayload = {
+  name?: string
+  year?: number
+  type?: 'VACATION_JOB'
+  status?: 'PLANNED' | 'OPEN' | 'MATCHING' | 'COMPLETED'
+  startDate?: string
+  endDate?: string
+  description?: string
+}
+
+export type CreateProgramCyclePayload = {
+  name: string
+  year: number
+  startDate: string
+  endDate: string
+  type?: 'VACATION_JOB'
+  status?: 'PLANNED' | 'OPEN' | 'MATCHING' | 'COMPLETED'
+  description?: string
+}
+
+export type DeleteProgramCycleConflict = {
+  error: string
+  message: string
+  details: { optIns: number; hostingCapacities: number; placements: number }
+}
+
+export function updateProgramCycle(id: string, body: UpdateProgramCyclePayload) {
+  return apiFetch<ProgramCycleListItem>(`/api/v1/programs/cycles/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  })
+}
+
+export function createProgramCycle(body: CreateProgramCyclePayload) {
+  return apiFetch<ProgramCycleListItem>('/api/v1/programs/cycles', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
+export async function deleteProgramCycle(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/v1/programs/cycles/${id}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  if (res.status === 204) return
+  const body = await res.json().catch(() => ({}))
+  const err = new Error((body as { message?: string }).message ?? `Request failed: ${res.status}`)
+  ;(err as Error & { status: number; details?: DeleteProgramCycleConflict['details'] }).status = res.status
+  ;(err as Error & { status: number; details?: DeleteProgramCycleConflict['details'] }).details =
+    (body as DeleteProgramCycleConflict).details
+  throw err
+}
+
+export type MolEmployerItem = {
+  id: string
+  companyName: string
+  lraRegistrationNumber: string
+  primaryContactName: string
+  primaryContactEmail: string
+  primaryContactPhone: string
+  stateId: number | null
+  stateName: string | null
+  createdAt: string
+  metrics: {
+    vacanciesTotal: number
+    vacanciesActive: number
+    employees: number
+    workPermits: number
+    disputes: number
+    placements: number
+  }
+}
+
+export type MolEmployerListResponse = {
+  items: MolEmployerItem[]
+  nextCursor: string | null
+}
+
+export function getMolEmployers(params?: { cursor?: string; limit?: number; search?: string }) {
+  const q = new URLSearchParams()
+  if (params?.cursor) q.set('cursor', params.cursor)
+  if (params?.limit) q.set('limit', String(params.limit))
+  if (params?.search) q.set('search', params.search)
+  const qs = q.toString()
+  return apiFetch<MolEmployerListResponse>(`/api/v1/mol/employers${qs ? `?${qs}` : ''}`)
 }
 
 export function optInToProgram(id: string, body: ProgramOptInPayload) {
@@ -592,27 +700,30 @@ export function getMyPlacement() {
 
 export type HostingCapacityRequest = {
   cycleId: string
-  slotsOffered: number
-  stateId: number
   contactName: string
   contactPhone: string
-  preferredSectorId?: string
+  preferredSectors: string[]
   preferredEducationLevelId?: string
   placementInstructions?: string
+  capacities: Array<{ stateId: number; slotsOffered: number }>
+}
+
+export type HostingCapacityRow = {
+  id: string
+  stateId: number
+  slotsOffered: number
+  state: { id: number; name: string; code: string | null }
 }
 
 export type HostingCapacity = {
-  id: string
-  employerId: string
   cycleId: string
-  slotsOffered: number
-  stateId: number
   contactName: string
   contactPhone: string
-  preferredSectorId: string | null
+  preferredSectors: string[]
   preferredEducationLevelId: string | null
   placementInstructions: string | null
-  createdAt: string
+  capacities: HostingCapacityRow[]
+  totalSlots: number
   cycle: { id: string; name: string; year: number; status: string }
 }
 
@@ -632,4 +743,273 @@ export function getMyHostingCapacity(params?: { cursor?: string }) {
 
 export function getHostingCapacityByCycle(cycleId: string) {
   return apiFetch<HostingCapacity>(`/api/v1/programs/hosting-capacity/by-cycle/${cycleId}`)
+}
+
+// ── Employer users (team members) ─────────────────────────────────────────────
+
+export type EmployerUserListItem = {
+  id: string
+  userId: string | null
+  email: string
+  fullName: string | null
+  role: 'ADMIN' | 'HR'
+  status: 'PENDING' | 'ACTIVE' | 'INACTIVE'
+  invitedAt: string | null
+  acceptedAt: string | null
+  createdAt: string
+}
+
+export type EmployerUserListResponse = {
+  data: EmployerUserListItem[]
+  pagination: { nextCursor: string | null; hasMore: boolean; total: number }
+}
+
+export function listEmployerUsers(cursor?: string) {
+  const qs = cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''
+  return apiFetch<EmployerUserListResponse>(`/api/v1/employers/me/users${qs}`)
+}
+
+export function inviteEmployerUser(payload: { email: string; role: 'ADMIN' | 'HR' }) {
+  return apiFetch<{ message: string }>('/api/v1/employers/me/users/invite', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function resendEmployerInvite(inviteId: string) {
+  return apiFetch<{ message: string }>(`/api/v1/employers/me/invites/${inviteId}/resend`, {
+    method: 'POST',
+  })
+}
+
+export function revokeEmployerInvite(inviteId: string) {
+  return apiFetch<{ message: string }>(`/api/v1/employers/me/invites/${inviteId}`, {
+    method: 'DELETE',
+  })
+}
+
+export function updateEmployerUserRole(userId: string, role: 'ADMIN' | 'HR') {
+  return apiFetch<{ message: string }>(`/api/v1/employers/me/users/${userId}/role`, {
+    method: 'PATCH',
+    body: JSON.stringify({ role }),
+  })
+}
+
+export function removeEmployerUser(userId: string) {
+  return apiFetch<{ message: string }>(`/api/v1/employers/me/users/${userId}`, {
+    method: 'DELETE',
+  })
+}
+
+// ── Workforce employees ───────────────────────────────────────────────────────
+
+export type WorkforceEmployee = {
+  id: string
+  employerId: string
+  fullName: string
+  gender: 'MALE' | 'FEMALE' | 'PREFER_NOT_TO_SAY' | null
+  nationality: string
+  position: string
+  department: string
+  employmentType: 'PERMANENT' | 'CONTRACT' | 'CASUAL' | 'INTERN'
+  hireDate: string
+  terminationDate: string | null
+  email: string | null
+  phone: string | null
+  salary: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export type WorkforceEmployeeListResponse = {
+  data: WorkforceEmployee[]
+  pagination: { nextCursor: string | null; hasMore: boolean; total: number }
+}
+
+export type WorkforceEmployeeFilters = {
+  cursor?: string
+  search?: string
+  employmentType?: 'PERMANENT' | 'CONTRACT' | 'CASUAL' | 'INTERN'
+  department?: string
+  isActive?: boolean
+}
+
+export function listWorkforceEmployees(filters?: WorkforceEmployeeFilters) {
+  const q = new URLSearchParams()
+  if (filters?.cursor) q.set('cursor', filters.cursor)
+  if (filters?.search) q.set('search', filters.search)
+  if (filters?.employmentType) q.set('employmentType', filters.employmentType)
+  if (filters?.department) q.set('department', filters.department)
+  if (filters?.isActive !== undefined) q.set('isActive', String(filters.isActive))
+  const qs = q.toString()
+  return apiFetch<WorkforceEmployeeListResponse>(`/api/v1/workforce-employees${qs ? `?${qs}` : ''}`)
+}
+
+export function getWorkforceEmployee(id: string) {
+  return apiFetch<WorkforceEmployee>(`/api/v1/workforce-employees/${id}`)
+}
+
+export type CreateWorkforceEmployeePayload = {
+  fullName: string
+  nationality: string
+  position: string
+  department: string
+  employmentType: 'PERMANENT' | 'CONTRACT' | 'CASUAL' | 'INTERN'
+  hireDate: string
+  gender?: 'MALE' | 'FEMALE' | 'PREFER_NOT_TO_SAY'
+  terminationDate?: string
+  email?: string
+  phone?: string
+  salary?: string
+}
+
+export function createWorkforceEmployee(payload: CreateWorkforceEmployeePayload) {
+  return apiFetch<WorkforceEmployee>('/api/v1/workforce-employees', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function updateWorkforceEmployee(id: string, payload: Partial<CreateWorkforceEmployeePayload>) {
+  return apiFetch<WorkforceEmployee>(`/api/v1/workforce-employees/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function deleteWorkforceEmployee(id: string) {
+  return apiFetch<{ message: string }>(`/api/v1/workforce-employees/${id}`, {
+    method: 'DELETE',
+  })
+}
+
+// ── Employer settings ─────────────────────────────────────────────────────────
+
+export type EmployerAddress = {
+  id: string
+  countryId: number
+  stateId: number | null
+  cityId: number | null
+  addressLine1: string | null
+  addressLine2: string | null
+}
+
+export type EmployerSettings = {
+  id: string
+  companyName: string
+  lraRegistrationNumber: string
+  sectorId: string | null
+  stateId: number | null
+  primaryContactName: string
+  primaryContactEmail: string
+  primaryContactPhone: string
+  complianceStatus: 'COMPLIANT' | 'PENDING' | 'OVERDUE' | 'EXEMPT'
+  vacationJobHosting: boolean
+  vacationJobDonating: boolean
+  isActive: boolean
+  address: EmployerAddress | null
+  createdAt: string
+  updatedAt: string
+}
+
+export function getEmployerSettings() {
+  return apiFetch<EmployerSettings>('/api/v1/employers/me/settings')
+}
+
+export type UpdateEmployerSettingsPayload = {
+  companyName?: string
+  sectorId?: string
+  stateId?: number
+  primaryContactName?: string
+  primaryContactEmail?: string
+  primaryContactPhone?: string
+  vacationJobHosting?: boolean
+  vacationJobDonating?: boolean
+  address?: {
+    countryId?: number
+    stateId?: number
+    cityId?: number
+    addressLine1?: string
+    addressLine2?: string
+  }
+}
+
+export function updateEmployerSettings(payload: UpdateEmployerSettingsPayload) {
+  return apiFetch<EmployerSettings>('/api/v1/employers/me', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+}
+
+// ── Public landing endpoints ──────────────────────────────────────────────────
+
+import type {
+  PublicStatsResponse,
+  LandingPublicVacancyListItem,
+  LandingPublicVacancyListResponse,
+  LandingPublicVacancyDetail,
+  PublicProgramCycleListItem,
+  PublicProgramCycleListResponse,
+  PublicProgramCycleDetail,
+} from '@liberia-works/shared-schemas'
+
+export type { PublicStatsResponse, LandingPublicVacancyListItem, LandingPublicVacancyListResponse, LandingPublicVacancyDetail, PublicProgramCycleListItem, PublicProgramCycleListResponse, PublicProgramCycleDetail }
+
+export function getPublicStats() {
+  return apiFetch<PublicStatsResponse>('/api/v1/public/stats')
+}
+
+export function listPublicVacancies(params?: {
+  cursor?: string
+  limit?: number
+  keyword?: string
+  vacancyType?: string
+  stateId?: number
+}) {
+  const q = new URLSearchParams()
+  if (params?.cursor) q.set('cursor', params.cursor)
+  if (params?.limit) q.set('limit', String(params.limit))
+  if (params?.keyword) q.set('keyword', params.keyword)
+  if (params?.vacancyType) q.set('vacancyType', params.vacancyType)
+  if (params?.stateId) q.set('stateId', String(params.stateId))
+  const qs = q.toString()
+  return apiFetch<LandingPublicVacancyListResponse>(`/api/v1/public/vacancies${qs ? `?${qs}` : ''}`)
+}
+
+export function getPublicVacancyDetail(id: string) {
+  return apiFetch<LandingPublicVacancyDetail>(`/api/v1/public/vacancies/${id}`)
+}
+
+export function listPublicProgramCycles(params?: { cursor?: string; limit?: number }) {
+  const q = new URLSearchParams()
+  if (params?.cursor) q.set('cursor', params.cursor)
+  if (params?.limit) q.set('limit', String(params.limit))
+  const qs = q.toString()
+  return apiFetch<PublicProgramCycleListResponse>(`/api/v1/public/programs/cycles${qs ? `?${qs}` : ''}`)
+}
+
+export function getPublicProgramCycleDetail(id: string) {
+  return apiFetch<PublicProgramCycleDetail>(`/api/v1/public/programs/cycles/${id}`)
+}
+
+// ── Invite accept (public) ────────────────────────────────────────────────────
+
+export type AcceptInvitePayload = {
+  token: string
+  fullName?: string
+  password?: string
+}
+
+export type AcceptInviteResponse = {
+  userId: string
+  role: string
+  expiresAt: string
+}
+
+export function acceptInvite(payload: AcceptInvitePayload) {
+  return apiFetch<AcceptInviteResponse>('/api/v1/invites/accept', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
 }

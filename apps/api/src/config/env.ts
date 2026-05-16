@@ -45,6 +45,9 @@ const envSchema = z.object({
   // Resend (email)
   RESEND_API_KEY: z.string().optional(),
 
+  // Web app URL (used in invite emails)
+  WEB_APP_URL: z.string().url().default('http://localhost:3000'),
+
   // CORS
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
 

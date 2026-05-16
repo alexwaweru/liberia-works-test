@@ -3,6 +3,42 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ─────────────────────────────────────────
+   Liberia Works brand tokens (--lw-*)
+   Direct-use aliases for inline SVG, marketing
+   surfaces, and any place outside Tailwind's
+   shadcn semantic vars.
+   ───────────────────────────────────────── */
+:root {
+  --lw-navy:        #0B2342;
+  --lw-navy-700:    #15315A;
+  --lw-navy-300:    #6B7E97;
+  --lw-crimson:     #BF1120;
+  --lw-crimson-700: #8E0C17;
+  --lw-crimson-300: #E5293A;
+  --lw-white:       #FFFFFF;
+  --lw-background:  #F7F8FA;
+  --lw-surface:     #FFFFFF;
+  --lw-muted:       #F0F2F4;
+  --lw-foreground:  #0B0E14;
+  --lw-muted-fg:    #57606E;
+  --lw-border:        rgba(11, 35, 66, 0.10);
+  --lw-border-strong: rgba(11, 35, 66, 0.22);
+  --lw-font: 'Outfit Variable', 'Outfit', system-ui, -apple-system, sans-serif;
+  --lw-radius: 0;
+}
+
+.dark {
+  --lw-background:  #060C18;
+  --lw-surface:     #0D1829;
+  --lw-muted:       #122036;
+  --lw-foreground:  #DDE6F0;
+  --lw-muted-fg:    #7A8FA4;
+  --lw-border:        rgba(255, 255, 255, 0.07);
+  --lw-border-strong: rgba(255, 255, 255, 0.18);
+  --lw-crimson:     #E5293A;
+}
+
 @theme {
   /* ─────────────────────────────────────────
      Typography

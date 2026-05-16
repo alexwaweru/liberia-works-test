@@ -71,7 +71,7 @@ describe('GET /api/v1/reference/sectors', () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/reference/sectors' })
 
     expect(res.statusCode).toBe(200)
-    expect(res.headers['cache-control']).toBe('public, max-age=86400, stale-while-revalidate=3600')
+    expect(res.headers['cache-control']).toBe('no-cache')
     const calledWith = (app.prisma.sector.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]
     expect(calledWith.where).toEqual({ parentId: null })
   })
@@ -116,7 +116,7 @@ describe('GET /api/v1/reference/occupations', () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/reference/occupations' })
 
     expect(res.statusCode).toBe(200)
-    expect(res.headers['cache-control']).toBe('public, max-age=86400, stale-while-revalidate=3600')
+    expect(res.headers['cache-control']).toBe('no-cache')
     const body = res.json()
     expect(body[0]).toMatchObject({ iscoCode: '2512', majorGroup: 'ICT Professionals' })
   })
@@ -131,7 +131,7 @@ describe('GET /api/v1/reference/countries', () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/reference/countries' })
 
     expect(res.statusCode).toBe(200)
-    expect(res.headers['cache-control']).toBe('public, max-age=86400, stale-while-revalidate=3600')
+    expect(res.headers['cache-control']).toBe('no-cache')
     const body = res.json()
     expect(body[0]).toMatchObject({ id: 121, name: 'Liberia', iso2: 'LR', iso3: 'LBR', emoji: '🇱🇷' })
   })
@@ -146,7 +146,7 @@ describe('GET /api/v1/reference/education-levels', () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/reference/education-levels' })
 
     expect(res.statusCode).toBe(200)
-    expect(res.headers['cache-control']).toBe('public, max-age=86400, stale-while-revalidate=3600')
+    expect(res.headers['cache-control']).toBe('no-cache')
     const body = res.json()
     expect(body).toHaveLength(2)
     expect(body[0]).toMatchObject({ iscedCode: 'ISCED1', levelOrder: 1 })
@@ -162,7 +162,7 @@ describe('GET /api/v1/reference/regions', () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/reference/regions' })
 
     expect(res.statusCode).toBe(200)
-    expect(res.headers['cache-control']).toBe('public, max-age=86400, stale-while-revalidate=3600')
+    expect(res.headers['cache-control']).toBe('no-cache')
     const body = res.json()
     expect(body).toHaveLength(2)
     expect(body[0]).toMatchObject({ id: 1, name: 'Africa' })
@@ -192,7 +192,7 @@ describe('GET /api/v1/reference/sub-regions', () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/reference/sub-regions' })
 
     expect(res.statusCode).toBe(200)
-    expect(res.headers['cache-control']).toBe('public, max-age=86400, stale-while-revalidate=3600')
+    expect(res.headers['cache-control']).toBe('no-cache')
     const body = res.json()
     expect(body).toHaveLength(2)
     expect(body[0]).toMatchObject({ id: 11, name: 'Eastern Africa', regionId: 1 })
@@ -278,7 +278,7 @@ describe('GET /api/v1/reference/states', () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/reference/states' })
 
     expect(res.statusCode).toBe(200)
-    expect(res.headers['cache-control']).toBe('public, max-age=86400, stale-while-revalidate=3600')
+    expect(res.headers['cache-control']).toBe('no-cache')
     const body = res.json()
     expect(body[0]).toMatchObject({ id: 101, name: 'Montserrado', countryId: 121, stateCode: 'MO' })
     const calledWith = (app.prisma.state.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]
@@ -316,7 +316,7 @@ describe('GET /api/v1/reference/cities', () => {
     const res = await app.inject({ method: 'GET', url: '/api/v1/reference/cities' })
 
     expect(res.statusCode).toBe(200)
-    expect(res.headers['cache-control']).toBe('public, max-age=86400, stale-while-revalidate=3600')
+    expect(res.headers['cache-control']).toBe('no-cache')
     const body = res.json()
     expect(body[0]).toMatchObject({ id: 1001, name: 'Monrovia', countryId: 121, stateId: 101 })
     const calledWith = (app.prisma.city.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]

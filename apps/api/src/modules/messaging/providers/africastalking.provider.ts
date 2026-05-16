@@ -15,8 +15,13 @@ export class AfricasTalkingProvider implements MessagingProvider {
 
   private async getAt() {
     if (!this._at) {
-      // Dynamic import to handle cases where the SDK isn't installed yet during build
-      const { default: AfricasTalking } = await import('africastalking')
+      // Dynamic import to handle cases where the SDK isn't installed yet during build.
+      // Resolved via a runtime-only specifier so TS skips module resolution.
+      const moduleName = 'africastalking'
+      const mod = await import(/* @vite-ignore */ moduleName).catch(() => {
+        throw new Error("Africa's Talking SDK is not installed. Run `pnpm add africastalking` to enable this provider.")
+      })
+      const AfricasTalking = (mod as any).default ?? mod
       this._at = AfricasTalking({
         apiKey: this.config.apiKey,
         username: this.config.username,

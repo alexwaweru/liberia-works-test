@@ -122,9 +122,9 @@ const worker = new Worker<MatchingJobData>(
           }
         }
 
-        // Check Sector Interest (if employer preferred a sector)
-        if (capacity.preferredSectorId) {
-          const hasSectorInterest = candidate.sectorInterests.some(s => s.sectorId === capacity.preferredSectorId)
+        // Check Sector Interest (if employer preferred any sectors, candidate must overlap with at least one)
+        if (capacity.preferredSectors.length > 0) {
+          const hasSectorInterest = candidate.sectorInterests.some(s => capacity.preferredSectors.includes(s.sectorId))
           if (!hasSectorInterest) {
             continue
           }

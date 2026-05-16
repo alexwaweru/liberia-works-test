@@ -38,7 +38,7 @@ if (env.AT_API_KEY && env.AT_USERNAME) {
   providers.push(new AfricasTalkingProvider({
     apiKey: env.AT_API_KEY,
     username: env.AT_USERNAME,
-    senderId: env.AT_SENDER_ID,
+    ...(env.AT_SENDER_ID !== undefined ? { senderId: env.AT_SENDER_ID } : {}),
   }))
 }
 

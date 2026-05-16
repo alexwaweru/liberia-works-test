@@ -19,6 +19,7 @@ import { useQuery } from '@tanstack/react-query'
 import { registerIndividual, verifyOtp, getLiberiaCounties } from '@/lib/api'
 import { storeTokens, useAuth } from '@/lib/auth'
 import { Logo } from '@/components/Logo'
+import { lwColors, lwFont, lwRadius } from '@/lib/theme'
 
 type Gender = 'male' | 'female' | 'unspecified'
 type Step = 'details' | 'otp'
@@ -137,7 +138,7 @@ export default function RegisterScreen() {
                 value={otp}
                 onChangeText={setOtp}
                 placeholder="000000"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={lwColors.mutedFg}
                 keyboardType="number-pad"
                 maxLength={6}
                 textAlign="center"
@@ -178,7 +179,7 @@ export default function RegisterScreen() {
               value={fullName}
               onChangeText={setFullName}
               placeholder="Your full name"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={lwColors.mutedFg}
               autoCapitalize="words"
             />
           </View>
@@ -195,7 +196,7 @@ export default function RegisterScreen() {
                 value={phone}
                 onChangeText={setPhone}
                 placeholder="XX XXX XXXX"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={lwColors.mutedFg}
                 keyboardType="phone-pad"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -211,7 +212,7 @@ export default function RegisterScreen() {
               value={email}
               onChangeText={setEmail}
               placeholder="you@example.com"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={lwColors.mutedFg}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -223,7 +224,7 @@ export default function RegisterScreen() {
             <Text style={styles.label}>County <Text style={styles.required}>*</Text></Text>
             {statesLoading ? (
               <View style={[styles.input, styles.loadingRow]}>
-                <ActivityIndicator size="small" color="#E84A1F" />
+                <ActivityIndicator size="small" color={lwColors.navy} />
                 <Text style={styles.loadingText}>Loading counties…</Text>
               </View>
             ) : (
@@ -243,7 +244,7 @@ export default function RegisterScreen() {
               value={dateOfBirth}
               onChangeText={setDateOfBirth}
               placeholder="YYYY-MM-DD"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={lwColors.mutedFg}
               keyboardType="numbers-and-punctuation"
               maxLength={10}
             />
@@ -277,11 +278,11 @@ export default function RegisterScreen() {
                 value={password}
                 onChangeText={setPassword}
                 placeholder="Min. 12 characters"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={lwColors.mutedFg}
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword((v) => !v)}>
-                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#6B7280" />
+                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={lwColors.mutedFg} />
               </TouchableOpacity>
             </View>
             {password.length > 0 && (
@@ -306,11 +307,11 @@ export default function RegisterScreen() {
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 placeholder="Repeat your password"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={lwColors.mutedFg}
                 secureTextEntry={!showConfirm}
               />
               <TouchableOpacity style={styles.eyeButton} onPress={() => setShowConfirm((v) => !v)}>
-                <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={20} color="#6B7280" />
+                <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={20} color={lwColors.mutedFg} />
               </TouchableOpacity>
             </View>
             {confirmPassword.length > 0 && (
@@ -367,12 +368,12 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#F3F4F6' },
+  flex: { flex: 1, backgroundColor: lwColors.background },
   container: { flexGrow: 1, padding: 20, paddingTop: 40, paddingBottom: 40 },
   logoRow: { alignItems: 'center', marginBottom: 24 },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    backgroundColor: lwColors.surface,
+    borderRadius: lwRadius.default,
     padding: 28,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -380,96 +381,97 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 3,
   },
-  title: { fontSize: 22, fontWeight: '800', color: '#111827', marginBottom: 4 },
-  subtitle: { fontSize: 13, color: '#6B7280', marginBottom: 24, lineHeight: 18 },
+  title: { fontSize: 22, fontFamily: lwFont.familyBold, color: lwColors.foreground, marginBottom: 4 },
+  subtitle: { fontSize: 13, fontFamily: lwFont.family, color: lwColors.mutedFg, marginBottom: 24, lineHeight: 18 },
   field: { marginBottom: 16 },
-  label: { fontSize: 14, fontWeight: '500', color: '#374151', marginBottom: 6 },
-  required: { color: '#E84A1F' },
-  optional: { color: '#9CA3AF', fontWeight: '400' },
+  label: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.foreground, marginBottom: 6 },
+  required: { color: lwColors.crimson },
+  optional: { color: lwColors.mutedFg },
   input: {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
+    borderColor: lwColors.border,
+    borderRadius: lwRadius.default,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: '#111827',
-    backgroundColor: '#FAFAFA',
+    fontFamily: lwFont.family,
+    color: lwColors.foreground,
+    backgroundColor: lwColors.surface,
     justifyContent: 'center',
   },
   phoneRow: { flexDirection: 'row', gap: 8 },
   dialCode: {
     borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 8,
+    borderColor: lwColors.border,
+    borderRadius: lwRadius.default,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: lwColors.muted,
     justifyContent: 'center',
   },
-  dialCodeText: { fontSize: 14, color: '#374151', fontWeight: '500' },
+  dialCodeText: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.foreground },
   phoneInput: { flex: 1 },
   loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  loadingText: { fontSize: 14, color: '#9CA3AF' },
-  selectValue: { fontSize: 15, color: '#111827' },
-  selectPlaceholder: { fontSize: 15, color: '#9CA3AF' },
+  loadingText: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.mutedFg },
+  selectValue: { fontSize: 15, fontFamily: lwFont.family, color: lwColors.foreground },
+  selectPlaceholder: { fontSize: 15, fontFamily: lwFont.family, color: lwColors.mutedFg },
   radioGroup: { gap: 12 },
   radioRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   radioOuter: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: lwRadius.full,
     borderWidth: 2,
-    borderColor: '#D1D5DB',
+    borderColor: lwColors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  radioOuterActive: { borderColor: '#E84A1F' },
-  radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#E84A1F' },
-  radioLabel: { fontSize: 15, color: '#374151' },
+  radioOuterActive: { borderColor: lwColors.navy },
+  radioInner: { width: 10, height: 10, borderRadius: lwRadius.full, backgroundColor: lwColors.navy },
+  radioLabel: { fontSize: 15, fontFamily: lwFont.family, color: lwColors.foreground },
   passwordRow: { flexDirection: 'row', alignItems: 'center' },
   passwordInput: { flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0 },
   eyeButton: {
     borderWidth: 1,
     borderLeftWidth: 0,
-    borderColor: '#D1D5DB',
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
+    borderColor: lwColors.border,
+    borderTopRightRadius: lwRadius.default,
+    borderBottomRightRadius: lwRadius.default,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: lwColors.surface,
     justifyContent: 'center',
   },
 
-  requirements: { marginTop: 8, backgroundColor: '#F9FAFB', borderRadius: 8, padding: 12, gap: 4 },
+  requirements: { marginTop: 8, backgroundColor: lwColors.background, borderRadius: lwRadius.default, padding: 12, gap: 4 },
   reqRow: {},
-  reqMet: { fontSize: 13, color: '#16A34A' },
-  reqUnmet: { fontSize: 13, color: '#DC2626' },
+  reqMet: { fontSize: 13, fontFamily: lwFont.family, color: lwColors.success },
+  reqUnmet: { fontSize: 13, fontFamily: lwFont.family, color: lwColors.danger },
   button: {
-    backgroundColor: '#C0392B',
-    borderRadius: 10,
+    backgroundColor: lwColors.crimson,
+    borderRadius: lwRadius.default,
     paddingVertical: 15,
     alignItems: 'center',
     marginTop: 8,
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 16 },
+  buttonText: { color: lwColors.white, fontFamily: lwFont.familyBold, fontSize: 16 },
   linkRow: { alignItems: 'center', marginTop: 20 },
-  linkText: { fontSize: 14, color: '#6B7280' },
-  linkBold: { color: '#C0392B', fontWeight: '700' },
+  linkText: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.mutedFg },
+  linkBold: { color: lwColors.crimson, fontFamily: lwFont.familyBold },
   otpInput: { fontSize: 24, letterSpacing: 8, textAlign: 'center' },
   // Modal
-  modalContainer: { flex: 1, backgroundColor: '#FFFFFF' },
+  modalContainer: { flex: 1, backgroundColor: lwColors.surface },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: lwColors.muted,
   },
-  modalTitle: { fontSize: 17, fontWeight: '700', color: '#111827' },
-  modalClose: { fontSize: 15, color: '#E84A1F', fontWeight: '600' },
+  modalTitle: { fontSize: 17, fontFamily: lwFont.familyBold, color: lwColors.foreground },
+  modalClose: { fontSize: 15, fontFamily: lwFont.familyBold, color: lwColors.crimson },
   countyItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -477,10 +479,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F9FAFB',
+    borderBottomColor: lwColors.background,
   },
-  countyItemActive: { backgroundColor: '#FFF5F3' },
-  countyItemText: { fontSize: 16, color: '#374151' },
-  countyItemTextActive: { color: '#E84A1F', fontWeight: '600' },
-  checkmark: { fontSize: 16, color: '#E84A1F' },
+  countyItemActive: { backgroundColor: lwColors.muted },
+  countyItemText: { fontSize: 16, fontFamily: lwFont.family, color: lwColors.foreground },
+  countyItemTextActive: { color: lwColors.navy, fontFamily: lwFont.familyBold },
+  checkmark: { fontSize: 16, color: lwColors.navy },
 })

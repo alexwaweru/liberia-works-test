@@ -18,7 +18,7 @@ export async function verifyOtpAction(body: {
   const role = result.data.role
   if (role === 'INDIVIDUAL') redirect('/me/jobs')
   if (role === 'EMPLOYER_ADMIN' || role === 'EMPLOYER_HR') redirect('/vacancies')
-  if (role === 'MOL_OFFICER' || role === 'MOL_DIRECTOR') redirect('/mol/overview')
+  if (role === 'MOL_OFFICER' || role === 'MOL_DIRECTOR') redirect('/mol/employers')
   redirect('/')
 }
 

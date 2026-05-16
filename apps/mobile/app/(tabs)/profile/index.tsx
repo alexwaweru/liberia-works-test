@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { getMe } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import LoadingView from '@/components/LoadingView'
+import { lwColors, lwFont, lwRadius } from '@/lib/theme'
 
 function getInitials(name: string | null): string {
   if (!name) return '?'
@@ -34,10 +35,10 @@ function NavItem({ icon, label, onPress }: NavItemProps) {
   return (
     <TouchableOpacity style={styles.navItem} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.navItemLeft}>
-        <Ionicons name={icon} size={20} color="#E84A1F" style={styles.navIcon} />
+        <Ionicons name={icon} size={20} color={lwColors.navy} style={styles.navIcon} />
         <Text style={styles.navLabel}>{label}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
+      <Ionicons name="chevron-forward" size={18} color={lwColors.border} />
     </TouchableOpacity>
   )
 }
@@ -98,7 +99,7 @@ export default function ProfileScreen() {
 
       {/* Sign out */}
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-        <Ionicons name="log-out-outline" size={18} color="#DC2626" />
+        <Ionicons name="log-out-outline" size={18} color={lwColors.danger} />
         <Text style={styles.signOutText}>Sign Out</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -106,33 +107,33 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: lwColors.background },
   content: { padding: 20, paddingBottom: 40 },
   avatarSection: { alignItems: 'center', paddingVertical: 24 },
   avatar: {
     width: 80,
     height: 80,
-    borderRadius: 40,
-    backgroundColor: '#E84A1F',
+    borderRadius: lwRadius.full,
+    backgroundColor: lwColors.navy,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
-  avatarText: { fontSize: 28, fontWeight: '700', color: '#FFFFFF' },
-  name: { fontSize: 20, fontWeight: '700', color: '#111827' },
-  phone: { fontSize: 14, color: '#6B7280', marginTop: 4 },
+  avatarText: { fontSize: 28, fontFamily: lwFont.familyBold, color: lwColors.white },
+  name: { fontSize: 20, fontFamily: lwFont.familyBold, color: lwColors.foreground },
+  phone: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.mutedFg, marginTop: 4 },
   navSection: { marginBottom: 24 },
   navSectionTitle: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#9CA3AF',
+    fontFamily: lwFont.familyBold,
+    color: lwColors.mutedFg,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 8,
   },
   navCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: lwColors.surface,
+    borderRadius: lwRadius.default,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -149,16 +150,16 @@ const styles = StyleSheet.create({
   },
   navItemLeft: { flexDirection: 'row', alignItems: 'center' },
   navIcon: { marginRight: 12 },
-  navLabel: { fontSize: 15, color: '#111827', fontWeight: '500' },
-  divider: { height: 1, backgroundColor: '#F3F4F6', marginLeft: 52 },
+  navLabel: { fontSize: 15, fontFamily: lwFont.family, color: lwColors.foreground },
+  divider: { height: 1, backgroundColor: lwColors.muted, marginLeft: 52 },
   signOutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#FEF2F2',
-    borderRadius: 10,
+    backgroundColor: lwColors.muted,
+    borderRadius: lwRadius.default,
     paddingVertical: 14,
   },
-  signOutText: { fontSize: 15, color: '#DC2626', fontWeight: '600' },
+  signOutText: { fontSize: 15, fontFamily: lwFont.familyBold, color: lwColors.danger },
 })

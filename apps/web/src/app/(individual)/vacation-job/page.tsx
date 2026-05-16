@@ -4,9 +4,8 @@ import { useState } from 'react'
 import { useMyPlacement, useConfirmPlacement } from '@/hooks/vacation-job'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { Loader2, Briefcase, CalendarDays, Building2, User } from 'lucide-react'
+import { Loader2, CalendarDays, User } from 'lucide-react'
 
 export default function VacationJobPage() {
   const { data: placement, isLoading, isError } = useMyPlacement()
@@ -28,14 +27,14 @@ export default function VacationJobPage() {
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
       <div className="p-4 border rounded bg-card">
-         <h2 className="font-bold">{(placement as any).employer?.companyName}</h2>
+         <h2 className="font-bold">{placement.employer?.companyName}</h2>
          <div className="mt-4 space-y-2">
-            <div className="flex gap-2"><CalendarDays size={18}/> {(placement as any).cycle?.startDate ? new Date((placement as any).cycle.startDate).toLocaleDateString() : "N/A"}</div>
-            <div className="flex gap-2"><User size={18}/> {(placement as any).employer?.primaryContactName}</div>
+            <div className="flex gap-2"><CalendarDays size={18}/> {placement.cycle?.startDate ? new Date(placement.cycle.startDate).toLocaleDateString() : "N/A"}</div>
+            <div className="flex gap-2"><User size={18}/> {placement.employer?.primaryContactName}</div>
          </div>
       </div>
-      
-      {(placement as any).status === "MATCHED" && (
+
+      {placement.status === "MATCHED" && (
         <form onSubmit={async (e) => {
           e.preventDefault()
           await mutation.mutateAsync(code)

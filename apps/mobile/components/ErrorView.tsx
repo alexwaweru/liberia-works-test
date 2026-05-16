@@ -1,5 +1,6 @@
 import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { lwColors, lwFont, lwRadius } from '@/lib/theme'
 
 type Props = {
   message?: string
@@ -25,23 +26,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: lwColors.surface,
   },
   message: {
     fontSize: 15,
-    color: '#6B7280',
+    fontFamily: lwFont.family,
+    color: lwColors.mutedFg,
     textAlign: 'center',
     marginBottom: 16,
   },
   button: {
-    backgroundColor: '#E84A1F',
+    backgroundColor: lwColors.crimson,
     paddingHorizontal: 24,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: lwRadius.default,
   },
   buttonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+    color: lwColors.white,
+    fontFamily: lwFont.familyBold,
     fontSize: 14,
   },
 })

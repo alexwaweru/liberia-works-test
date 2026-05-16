@@ -2,10 +2,10 @@
 
 import { Suspense, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Loader2, MapPin, Phone, User, Calendar, Layers } from 'lucide-react'
+import { ArrowLeft, Loader2, MapPin, Phone, User, Layers } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { useMyHostingCapacity, useCounties } from '@/hooks/programs'
+import { useMyHostingCapacity } from '@/hooks/programs'
 import type { HostingCapacity } from '@/lib/api'
 import { cn } from '@/lib/utils'
 
@@ -23,21 +23,7 @@ const CYCLE_STATUS_LABELS: Record<string, string> = {
   COMPLETED: 'Completed',
 }
 
-function formatDate(d: string) {
-  return new Date(d).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-}
-
-function CapacityCard({
-  item,
-  countyName,
-}: {
-  item: HostingCapacity
-  countyName: string | undefined
-}) {
+function CapacityCard({ item }: { item: HostingCapacity }) {
   const cycleStatus = item.cycle.status
   const variant = CYCLE_STATUS_VARIANT[cycleStatus] ?? 'neutral'
 
@@ -56,36 +42,49 @@ function CapacityCard({
         />
       </div>
 
-      {/* Details grid */}
-      <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Layers className="size-3.5 shrink-0" />
-          <span>
-            <span className="font-medium text-foreground">{item.slotsOffered}</span>{' '}
-            {item.slotsOffered === 1 ? 'slot' : 'slots'} offered
-          </span>
-        </div>
+      {/* Total slots summary */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Layers className="size-3.5 shrink-0" />
+        <span>
+          <span className="font-medium text-foreground">{item.totalSlots}</span>{' '}
+          {item.totalSlots === 1 ? 'slot' : 'slots'} total across{' '}
+          <span className="font-medium text-foreground">{item.capacities.length}</span>{' '}
+          {item.capacities.length === 1 ? 'county' : 'counties'}
+        </span>
+      </div>
 
-        {countyName && (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <MapPin className="size-3.5 shrink-0" />
-            <span>{countyName}</span>
-          </div>
-        )}
+      {/* County breakdown table */}
+      <div className="rounded-md border border-border/60 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-muted/50 text-xs text-muted-foreground uppercase">
+              <th className="px-3 py-2 text-left font-medium">County</th>
+              <th className="px-3 py-2 text-right font-medium">Slots</th>
+            </tr>
+          </thead>
+          <tbody>
+            {item.capacities.map((cap) => (
+              <tr key={cap.id} className="border-t border-border/40">
+                <td className="px-3 py-2 flex items-center gap-1.5">
+                  <MapPin className="size-3 text-muted-foreground shrink-0" />
+                  {cap.state.name}
+                </td>
+                <td className="px-3 py-2 text-right font-medium">{cap.slotsOffered}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
+      {/* Contact info */}
+      <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
         <div className="flex items-center gap-2 text-muted-foreground">
           <User className="size-3.5 shrink-0" />
           <span>{item.contactName}</span>
         </div>
-
         <div className="flex items-center gap-2 text-muted-foreground">
           <Phone className="size-3.5 shrink-0" />
           <span>{item.contactPhone}</span>
-        </div>
-
-        <div className="flex items-center gap-2 text-muted-foreground col-span-2">
-          <Calendar className="size-3.5 shrink-0" />
-          <span>Registered {formatDate(item.createdAt)}</span>
         </div>
       </div>
 
@@ -105,9 +104,6 @@ function OptedInInner() {
   const [cursorStack, setCursorStack] = useState<string[]>([])
 
   const { data: page, isLoading, isError, error } = useMyHostingCapacity(cursor)
-  const { data: counties } = useCounties()
-
-  const countyMap = new Map((counties ?? []).map((c) => [c.id, c.name]))
 
   const items = page?.data ?? []
   const pagination = page?.pagination
@@ -129,7 +125,7 @@ function OptedInInner() {
     <div className="flex flex-col h-full">
       {/* Back */}
       <Link
-        href="/programs"
+        href="/host-programs"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-5 transition-colors w-fit"
       >
         <ArrowLeft className="size-4" />
@@ -145,7 +141,7 @@ function OptedInInner() {
           </p>
         </div>
         <Button asChild variant="outline" size="sm">
-          <Link href="/programs">Browse Programs</Link>
+          <Link href="/host-programs">Browse Programs</Link>
         </Button>
       </div>
 
@@ -166,7 +162,7 @@ function OptedInInner() {
             Browse open programs and register your hosting capacity.
           </p>
           <Button asChild>
-            <Link href="/programs">Browse Programs</Link>
+            <Link href="/host-programs">Browse Programs</Link>
           </Button>
         </div>
       ) : (
@@ -181,9 +177,8 @@ function OptedInInner() {
           >
             {items.map((item) => (
               <CapacityCard
-                key={item.id}
+                key={item.cycleId}
                 item={item}
-                countyName={countyMap.get(item.stateId)}
               />
             ))}
           </div>

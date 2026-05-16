@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { Plus, Trash2 } from 'lucide-react'
 import { useOptInMutation } from '@/hooks/programs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,10 +18,17 @@ import {
 import { toast } from 'sonner'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"
+const MAX_COUNTIES = 15
+
+interface CountyRow {
+  stateId: string
+  slotsOffered: number
+}
 
 export function OptInForm({ cycleId }: { cycleId: string }) {
   const mutation = useOptInMutation(cycleId)
   const [handled, setHandled] = useState(false)
+  const [rows, setRows] = useState<CountyRow[]>([{ stateId: '', slotsOffered: 1 }])
 
   const { data: counties } = useQuery({
     queryKey: ['reference', 'counties'],
@@ -49,18 +57,50 @@ export function OptInForm({ cycleId }: { cycleId: string }) {
     },
   })
 
+  // Counties selected in other rows
+  function usedStateIds(currentIdx: number): Set<string> {
+    const used = new Set<string>()
+    rows.forEach((r, i) => {
+      if (i !== currentIdx && r.stateId) used.add(r.stateId)
+    })
+    return used
+  }
+
+  function addRow() {
+    if (rows.length >= MAX_COUNTIES) return
+    setRows(prev => [...prev, { stateId: '', slotsOffered: 1 }])
+  }
+
+  function removeRow(idx: number) {
+    if (rows.length <= 1) return
+    setRows(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  function updateRow(idx: number, field: keyof CountyRow, value: string | number) {
+    setRows(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r))
+  }
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+
+    if (rows.some(r => !r.stateId)) {
+      toast.error('Please select a county for every row')
+      return
+    }
+
     const fd = new FormData(e.currentTarget)
-    
+
+    const preferredSectorId = (fd.get('preferredSectorId') as string) || ''
     const payload = {
-      slotsOffered: Number(fd.get('slotsOffered')),
-      preferredSectorIds: fd.get('preferredSectorId') ? [fd.get('preferredSectorId') as string] : undefined,
-      preferredEducationLevelId: (fd.get('preferredEducationLevelId') as string) || undefined,
-      stateId: fd.get('stateId') ? Number(fd.get('stateId')) : undefined,
       contactName: fd.get('contactName') as string,
       contactPhone: fd.get('contactPhone') as string,
-      placementInstructions: fd.get('placementInstructions') as string,
+      preferredSectors: preferredSectorId ? [preferredSectorId] : [],
+      preferredEducationLevelId: (fd.get('preferredEducationLevelId') as string) || undefined,
+      placementInstructions: (fd.get('placementInstructions') as string) || undefined,
+      capacities: rows.map(r => ({
+        stateId: Number(r.stateId),
+        slotsOffered: r.slotsOffered,
+      })),
     }
 
     try {
@@ -83,27 +123,67 @@ export function OptInForm({ cycleId }: { cycleId: string }) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
+      {/* County repeater */}
       <div className="space-y-2">
-        <Label htmlFor="slotsOffered">Slots Offered</Label>
-        <Input id="slotsOffered" name="slotsOffered" type="number" min="1" required defaultValue="1" />
+        <Label>Counties and Slots <span className="text-red-500">*</span></Label>
+        {rows.map((row, idx) => {
+          const used = usedStateIds(idx)
+          const availableCounties = (counties ?? []).filter(c => !used.has(String(c.id)))
+          return (
+            <div key={idx} className="flex items-center gap-2">
+              <div className="flex-1">
+                <Select
+                  value={row.stateId}
+                  onValueChange={(val) => updateRow(idx, 'stateId', val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a county" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableCounties.map((county) => (
+                      <SelectItem key={county.id} value={county.id.toString()}>
+                        {county.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-24">
+                <Input
+                  type="number"
+                  min={1}
+                  placeholder="Slots"
+                  value={row.slotsOffered}
+                  onChange={e => updateRow(idx, 'slotsOffered', Math.max(1, Number(e.target.value)))}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => removeRow(idx)}
+                disabled={rows.length <= 1}
+                aria-label="Remove county"
+              >
+                <Trash2 className="size-4 text-red-500" />
+              </Button>
+            </div>
+          )
+        })}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={addRow}
+          disabled={rows.length >= MAX_COUNTIES}
+          className="gap-1.5"
+        >
+          <Plus className="size-4" />
+          Add county
+        </Button>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="stateId">County</Label>
-          <Select name="stateId">
-            <SelectTrigger>
-              <SelectValue placeholder="Select a county" />
-            </SelectTrigger>
-            <SelectContent>
-              {counties?.map((county) => (
-                <SelectItem key={county.id} value={county.id.toString()}>
-                  {county.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
         <div className="space-y-2">
           <Label htmlFor="preferredSectorId">Preferred Sector</Label>
           <Select name="preferredSectorId">
@@ -119,22 +199,21 @@ export function OptInForm({ cycleId }: { cycleId: string }) {
             </SelectContent>
           </Select>
         </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="preferredEducationLevelId">Preferred Education Level</Label>
-        <Select name="preferredEducationLevelId">
-          <SelectTrigger>
-            <SelectValue placeholder="Select an education level" />
-          </SelectTrigger>
-          <SelectContent>
-            {educationLevels?.map((level) => (
-              <SelectItem key={level.id} value={level.id}>
-                {level.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="space-y-2">
+          <Label htmlFor="preferredEducationLevelId">Preferred Education Level</Label>
+          <Select name="preferredEducationLevelId">
+            <SelectTrigger>
+              <SelectValue placeholder="Select an education level" />
+            </SelectTrigger>
+            <SelectContent>
+              {educationLevels?.map((level) => (
+                <SelectItem key={level.id} value={level.id}>
+                  {level.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

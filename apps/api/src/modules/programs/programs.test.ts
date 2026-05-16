@@ -1,4 +1,21 @@
 import { describe, it, expect, vi } from 'vitest'
+
+vi.mock('../../config/env.js', () => ({
+  env: {
+    NODE_ENV: 'test',
+    REDIS_URL: 'redis://localhost:6379',
+    JWT_SECRET: 'test-secret-at-least-32-chars-long!!',
+    JWT_ACCESS_EXPIRES_IN: '15m',
+    JWT_REFRESH_EXPIRES_IN: '30d',
+  },
+}))
+
+vi.mock('bullmq', () => ({
+  Queue: vi.fn().mockImplementation(() => ({
+    add: vi.fn().mockResolvedValue(undefined),
+  })),
+}))
+
 import Fastify from 'fastify'
 import cookie from '@fastify/cookie'
 import jwt from '@fastify/jwt'

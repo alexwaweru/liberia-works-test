@@ -1,90 +1,107 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { MultiSelect } from '@/components/ui/multi-select'
 import { useCreateHostingCapacity, useCounties, useSectors, useEducationLevels } from '@/hooks/programs'
 import { toast } from '@/lib/toast'
+import type { HostingCapacity } from '@/lib/api'
 
-const hostingCapacitySchema = z.object({
-  slotsOffered: z.number({ invalid_type_error: 'Enter a number' }).int().min(1, 'Must offer at least 1 slot'),
-  stateId: z.number({ invalid_type_error: 'Select a county' }).int(),
-  contactName: z.string().min(1, 'Contact name is required'),
-  contactPhone: z.string().min(1, 'Contact phone is required'),
-  preferredSectorId: z.string().optional(),
-  preferredEducationLevelId: z.string().optional(),
-  placementInstructions: z.string().optional(),
-})
+const MAX_COUNTIES = 15
 
-type HostingCapacityFormData = z.infer<typeof hostingCapacitySchema>
+interface CountyRow {
+  stateId: string
+  slotsOffered: number
+}
 
 interface HostingCapacityFormProps {
   programId: string
+  initial?: HostingCapacity | null
   onSuccess: () => void
 }
 
-export function HostingCapacityForm({ programId, onSuccess }: HostingCapacityFormProps) {
+export function HostingCapacityForm({ programId, initial, onSuccess }: HostingCapacityFormProps) {
+  const isEdit = !!initial
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [rows, setRows] = useState<CountyRow[]>(() =>
+    initial && initial.capacities.length > 0
+      ? initial.capacities.map(c => ({ stateId: String(c.stateId), slotsOffered: c.slotsOffered }))
+      : [{ stateId: '', slotsOffered: 1 }]
+  )
+  const [contactName, setContactName] = useState(initial?.contactName ?? '')
+  const [contactPhone, setContactPhone] = useState(initial?.contactPhone ?? '')
+  const [preferredSectors, setPreferredSectors] = useState<string[]>(initial?.preferredSectors ?? [])
+  const [preferredEducationLevelId, setPreferredEducationLevelId] = useState<string>(initial?.preferredEducationLevelId ?? '')
+  const [placementInstructions, setPlacementInstructions] = useState(initial?.placementInstructions ?? '')
+
   const createHostingCapacity = useCreateHostingCapacity()
 
   const { data: counties, isLoading: countiesLoading } = useCounties()
   const { data: sectors, isLoading: sectorsLoading } = useSectors()
   const { data: educationLevels, isLoading: educationLoading } = useEducationLevels()
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<HostingCapacityFormData>({
-    resolver: zodResolver(hostingCapacitySchema),
-    defaultValues: {
-      slotsOffered: undefined,
-      stateId: undefined,
-      contactName: '',
-      contactPhone: '',
-      preferredSectorId: undefined,
-      preferredEducationLevelId: undefined,
-      placementInstructions: '',
-    },
-  })
+  // Counties already selected in OTHER rows (for filtering each row's options)
+  function usedStateIds(currentIdx: number): Set<string> {
+    const used = new Set<string>()
+    rows.forEach((r, i) => {
+      if (i !== currentIdx && r.stateId) used.add(r.stateId)
+    })
+    return used
+  }
 
-  const selectedStateId = watch('stateId')
-  const selectedSectorId = watch('preferredSectorId')
-  const selectedEducationLevelId = watch('preferredEducationLevelId')
+  function addRow() {
+    if (rows.length >= MAX_COUNTIES) return
+    setRows(prev => [...prev, { stateId: '', slotsOffered: 1 }])
+  }
 
-  async function onSubmit(data: HostingCapacityFormData) {
+  function removeRow(idx: number) {
+    if (rows.length <= 1) return
+    setRows(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  function updateRow(idx: number, field: keyof CountyRow, value: string | number) {
+    setRows(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r))
+  }
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+
+    // Validate every row has a county selected
+    if (rows.some(r => !r.stateId)) {
+      toast.error('Please select a county for every row')
+      return
+    }
+
+    if (preferredSectors.length === 0) {
+      toast.error('Select at least one preferred sector')
+      return
+    }
+
     setIsSubmitting(true)
     try {
       await createHostingCapacity.mutateAsync({
         cycleId: programId,
-        slotsOffered: data.slotsOffered,
-        stateId: data.stateId,
-        contactName: data.contactName,
-        contactPhone: data.contactPhone,
-        preferredSectorId: data.preferredSectorId || undefined,
-        preferredEducationLevelId: data.preferredEducationLevelId || undefined,
-        placementInstructions: data.placementInstructions || undefined,
+        contactName,
+        contactPhone,
+        preferredSectors,
+        preferredEducationLevelId: preferredEducationLevelId || undefined,
+        placementInstructions: placementInstructions || undefined,
+        capacities: rows.map(r => ({
+          stateId: Number(r.stateId),
+          slotsOffered: r.slotsOffered,
+        })),
       })
 
-      toast.success('You have opted into this program.')
+      toast.success(isEdit ? 'Hosting capacity updated.' : 'You have opted into this program.')
       onSuccess()
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to opt in'
-
-      if (message.includes('Already opted')) {
-        toast.error('You have already opted into this program.')
-      } else {
-        toast.error(message)
-      }
+      const message = error instanceof Error ? error.message : isEdit ? 'Failed to update hosting capacity' : 'Failed to opt in'
+      toast.error(message)
     } finally {
       setIsSubmitting(false)
     }
@@ -100,48 +117,75 @@ export function HostingCapacityForm({ programId, onSuccess }: HostingCapacityFor
     )
   }
 
-  return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Slots Offered */}
-      <div className="space-y-2">
-        <Label htmlFor="slotsOffered">
-          Slots Offered <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          id="slotsOffered"
-          type="number"
-          min={1}
-          placeholder="e.g. 5"
-          {...register('slotsOffered', { valueAsNumber: true })}
-        />
-        {errors.slotsOffered && (
-          <p className="text-sm text-destructive">{errors.slotsOffered.message}</p>
-        )}
-      </div>
+  const allCountiesUsed = rows.length >= MAX_COUNTIES
 
-      {/* County */}
-      <div className="space-y-2">
+  return (
+    <form onSubmit={onSubmit} className="space-y-6">
+      {/* County capacity rows */}
+      <div className="space-y-3">
         <Label>
-          County <span className="text-destructive">*</span>
+          Counties and Slots <span className="text-destructive">*</span>
         </Label>
-        <Select
-          onValueChange={(value) => setValue('stateId', Number(value))}
-          value={selectedStateId !== undefined ? String(selectedStateId) : undefined}
+
+        {rows.map((row, idx) => {
+          const used = usedStateIds(idx)
+          const availableCounties = (counties ?? []).filter(c => !used.has(String(c.id)))
+
+          return (
+            <div key={idx} className="flex items-center gap-2">
+              <div className="flex-1">
+                <Select
+                  value={row.stateId}
+                  onValueChange={(val) => updateRow(idx, 'stateId', val)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a county" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableCounties.map((county) => (
+                      <SelectItem key={county.id} value={String(county.id)}>
+                        {county.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="w-28">
+                <Input
+                  type="number"
+                  min={1}
+                  placeholder="Slots"
+                  value={row.slotsOffered}
+                  onChange={(e) => updateRow(idx, 'slotsOffered', Math.max(1, Number(e.target.value)))}
+                />
+              </div>
+
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => removeRow(idx)}
+                disabled={rows.length <= 1}
+                aria-label="Remove county"
+              >
+                <Trash2 className="size-4 text-destructive" />
+              </Button>
+            </div>
+          )
+        })}
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={addRow}
+          disabled={allCountiesUsed}
+          className="gap-1.5"
         >
-          <SelectTrigger>
-            <SelectValue placeholder="Select a county" />
-          </SelectTrigger>
-          <SelectContent>
-            {counties?.map((county) => (
-              <SelectItem key={county.id} value={String(county.id)}>
-                {county.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.stateId && (
-          <p className="text-sm text-destructive">{errors.stateId.message}</p>
-        )}
+          <Plus className="size-4" />
+          Add county
+        </Button>
       </div>
 
       {/* Contact Name */}
@@ -153,11 +197,10 @@ export function HostingCapacityForm({ programId, onSuccess }: HostingCapacityFor
           id="contactName"
           type="text"
           placeholder="Full name of the placement contact"
-          {...register('contactName')}
+          value={contactName}
+          onChange={e => setContactName(e.target.value)}
+          required
         />
-        {errors.contactName && (
-          <p className="text-sm text-destructive">{errors.contactName.message}</p>
-        )}
       </div>
 
       {/* Contact Phone */}
@@ -169,40 +212,29 @@ export function HostingCapacityForm({ programId, onSuccess }: HostingCapacityFor
           id="contactPhone"
           type="tel"
           placeholder="+231..."
-          {...register('contactPhone')}
+          value={contactPhone}
+          onChange={e => setContactPhone(e.target.value)}
+          required
         />
-        {errors.contactPhone && (
-          <p className="text-sm text-destructive">{errors.contactPhone.message}</p>
-        )}
       </div>
 
-      {/* Preferred Sector */}
+      {/* Preferred Sectors */}
       <div className="space-y-2">
-        <Label>Preferred Sector (Optional)</Label>
-        <Select
-          onValueChange={(value) => setValue('preferredSectorId', value)}
-          value={selectedSectorId}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select a sector" />
-          </SelectTrigger>
-          <SelectContent>
-            {sectors?.map((sector) => (
-              <SelectItem key={sector.id} value={sector.id}>
-                {sector.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Label>
+          Preferred Sectors <span className="text-destructive">*</span>
+        </Label>
+        <MultiSelect
+          options={(sectors ?? []).map((s) => ({ value: s.id, label: s.name }))}
+          selected={preferredSectors}
+          onChange={(value) => setPreferredSectors(value as string[])}
+          placeholder="Select sectors..."
+        />
       </div>
 
       {/* Preferred Education Level */}
       <div className="space-y-2">
         <Label>Preferred Education Level (Optional)</Label>
-        <Select
-          onValueChange={(value) => setValue('preferredEducationLevelId', value)}
-          value={selectedEducationLevelId}
-        >
+        <Select value={preferredEducationLevelId} onValueChange={setPreferredEducationLevelId}>
           <SelectTrigger>
             <SelectValue placeholder="Select education level" />
           </SelectTrigger>
@@ -223,7 +255,8 @@ export function HostingCapacityForm({ programId, onSuccess }: HostingCapacityFor
           id="placementInstructions"
           placeholder="Any specific instructions for placement..."
           className="min-h-[100px]"
-          {...register('placementInstructions')}
+          value={placementInstructions}
+          onChange={e => setPlacementInstructions(e.target.value)}
         />
       </div>
 
@@ -233,10 +266,10 @@ export function HostingCapacityForm({ programId, onSuccess }: HostingCapacityFor
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 size-4 animate-spin" />
-              Submitting...
+              {isEdit ? 'Saving...' : 'Submitting...'}
             </>
           ) : (
-            'Submit Opt-In'
+            isEdit ? 'Save Changes' : 'Submit Opt-In'
           )}
         </Button>
       </div>

@@ -2,36 +2,41 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { 
-  createOptIn, 
-  getCounties, 
-  getEducationLevels, 
-  getMyOptIns, 
-  getOptInByProgram, 
-  getSectors, 
+import {
+  createOptIn,
+  getCounties,
+  getEducationLevels,
+  getMyOptIns,
+  getOptInByProgram,
+  getSectors,
   listProgramCycles,
-  getProgramCycle, 
-  listProgramMatches, 
+  getProgramCycle,
+  listProgramMatches,
   optInToProgram,
   createHostingCapacity,
   getMyHostingCapacity,
   getHostingCapacityByCycle,
+  updateProgramCycle,
+  createProgramCycle,
+  deleteProgramCycle,
 } from '@/lib/api'
 
-import type { 
-  OptInRequest, 
-  ProgramCycleListResponse, 
+import type {
+  OptInRequest,
+  ProgramCycleListResponse,
   County,
   Sector,
   EducationLevel,
-  MyOptInsResponse, 
+  MyOptInsResponse,
   MyOptIn,
-  ProgramCycleListItem, 
-  ProgramPlacementListItem, 
+  ProgramCycleListItem,
+  ProgramPlacementListItem,
   ProgramOptInPayload,
   HostingCapacityRequest,
   HostingCapacity,
   MyHostingCapacityResponse,
+  UpdateProgramCyclePayload,
+  CreateProgramCyclePayload,
 } from '@/lib/api'
 
 
@@ -195,6 +200,37 @@ export function useCreateHostingCapacity() {
       queryClient.invalidateQueries({
         queryKey: programKeys.hostingCapacityByCycle(variables.cycleId),
       })
+    },
+  })
+}
+
+export function useUpdateProgramCycle(id: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: UpdateProgramCyclePayload) => updateProgramCycle(id, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: programKeys.detail(id) })
+      queryClient.invalidateQueries({ queryKey: programKeys.all })
+    },
+  })
+}
+
+export function useCreateProgramCycle() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (body: CreateProgramCyclePayload) => createProgramCycle(body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: programKeys.all })
+    },
+  })
+}
+
+export function useDeleteProgramCycle() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => deleteProgramCycle(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: programKeys.all })
     },
   })
 }

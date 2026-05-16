@@ -29,7 +29,7 @@ import { Logo } from '@/components/ui/logo'
 
 const TOP_NAV = [
   { href: '/vacancies',    label: 'Vacancies',    icon: BriefcaseIcon },
-  { href: '/programs',     label: 'Programs',     icon: LayersIcon },
+  { href: '/host-programs', label: 'Programs',    icon: LayersIcon },
   { href: '/work-permits', label: 'Work Permits',  icon: FileCheckIcon },
   { href: '/disputes',     label: 'Disputes',      icon: ScaleIcon },
 ]
@@ -106,11 +106,11 @@ export function EmployerSidebar() {
       <div className="px-3 pt-4 pb-2">
         <button
           onClick={() => setCommandOpen(true)}
-          className="flex w-full items-center gap-2 rounded-lg border border-border bg-sidebar-accent/30 px-3 py-1.5 hover:bg-sidebar-accent/60 transition-colors"
+          className="flex w-full items-center gap-2 rounded-lg border border-border bg-background px-3 py-1.5 hover:bg-muted/50 transition-colors"
         >
-          <SearchIcon className="size-3.5 shrink-0 text-sidebar-muted" />
-          <span className="flex-1 text-left text-xs text-sidebar-muted">Search…</span>
-          <kbd className="text-[10px] text-sidebar-muted bg-border/60 rounded px-1 py-0.5">⌘K</kbd>
+          <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
+          <span className="flex-1 text-left text-xs text-muted-foreground">Search…</span>
+          <kbd className="text-[10px] text-muted-foreground bg-muted border border-border rounded px-1 py-0.5">⌘K</kbd>
         </button>
       </div>
 
@@ -147,19 +147,22 @@ export function EmployerSidebar() {
       <div className="border-t border-border p-3">
         <Popover>
           <PopoverTrigger asChild>
-            <button className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-sidebar-accent/50 transition-colors text-left">
+            <button
+              aria-label={`${displayName}, ${roleLabel}, open user menu`}
+              className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-muted/60 transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+            >
               <Avatar className="size-7 shrink-0">
                 <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-sidebar-foreground truncate">
+                <p className="text-xs font-semibold text-foreground truncate">
                   {user?.email ?? 'Employer'}
                 </p>
-                <p className="text-[11px] text-sidebar-muted">{roleLabel}</p>
+                <p className="text-[11px] text-foreground/70">{roleLabel}</p>
               </div>
-              <MoreHorizontalIcon className="size-4 shrink-0 text-sidebar-muted" />
+              <MoreHorizontalIcon className="size-4 shrink-0 text-foreground/50" />
             </button>
           </PopoverTrigger>
 
