@@ -2,7 +2,19 @@
 
 import * as React from 'react'
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { useTheme } from 'next-themes'
+
+function useIsDarkClass() {
+  const [isDark, setIsDark] = useState(false)
+  useEffect(() => {
+    const el = document.documentElement
+    const update = () => setIsDark(el.classList.contains('dark'))
+    update()
+    const obs = new MutationObserver(update)
+    obs.observe(el, { attributes: true, attributeFilter: ['class'] })
+    return () => obs.disconnect()
+  }, [])
+  return isDark
+}
 
 const LIBERIA_VIEWBOX = '0 0 1000 1000'
 const LIBERIA_WIDTH = 1000
@@ -65,14 +77,14 @@ export function LiberiaMap({
   const [activeId, setActiveId] = useState<string | null>(null)
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
   const svgRef = useRef<SVGSVGElement | null>(null)
-  const { resolvedTheme } = useTheme()
+  const isDarkClass = useIsDarkClass()
 
-  const isDark = mode === 'auto' ? resolvedTheme === 'dark' : mode === 'dark'
+  const isDark = mode === 'auto' ? isDarkClass : mode === 'dark'
   const ink = primary || (isDark ? '#FFFFFF' : '#0B2342')
   const surface = 'transparent'
-  const countyFill = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(11,35,66,0.025)'
-  const countyStroke = isDark ? 'rgba(255,255,255,0.35)' : 'rgba(11,35,66,0.28)'
-  const countyHoverFill = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(11,35,66,0.06)'
+  const countyFill = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(11,35,66,0.025)'
+  const countyStroke = isDark ? 'rgba(255,255,255,0.7)' : 'rgba(11,35,66,0.28)'
+  const countyHoverFill = isDark ? 'rgba(255,255,255,0.18)' : 'rgba(11,35,66,0.06)'
   const countyActiveFill = accent
   const labelFill = isDark ? 'rgba(255,255,255,0.78)' : 'rgba(11,35,66,0.78)'
 
@@ -186,6 +198,7 @@ export function LiberiaMap({
                 fill={isActive ? countyActiveFill : isHover ? countyHoverFill : countyFill}
                 stroke={isActive ? accent : countyStroke}
                 strokeWidth={isActive ? 1.6 : 1}
+                vectorEffect="non-scaling-stroke"
                 strokeLinejoin="round"
                 strokeLinecap="round"
                 style={{
