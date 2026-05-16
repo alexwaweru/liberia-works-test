@@ -34,7 +34,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Copy the pnpm virtual store and workspace symlinks (includes prod + dev deps;
-# dev deps are intentionally kept so `prisma migrate deploy` works at startup).
+# dev deps are intentionally kept so the App Platform pre-deploy migrate job
+# — which reuses this image — can run `pnpm exec prisma migrate deploy`).
 COPY --from=builder /app/node_modules          ./node_modules
 COPY --from=builder /app/package.json          ./package.json
 COPY --from=builder /app/pnpm-workspace.yaml   ./pnpm-workspace.yaml
@@ -50,4 +51,5 @@ COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
 
 WORKDIR /app/apps/api
 EXPOSE 3001
-CMD ["sh", "-c", "pnpm exec prisma migrate deploy && node dist/server.js"]
+# Migrations run as an App Platform pre-deploy job (see .do/app.yaml), not here.
+CMD ["node", "dist/server.js"]

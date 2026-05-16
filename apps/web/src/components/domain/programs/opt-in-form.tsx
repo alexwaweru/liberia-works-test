@@ -107,7 +107,7 @@ export function OptInForm({ cycleId }: { cycleId: string }) {
       await mutation.mutateAsync(payload)
       toast.success('Opt-in successful!')
       setHandled(true)
-    } catch (err) {
+    } catch {
       toast.error('Failed to opt-in')
     }
   }

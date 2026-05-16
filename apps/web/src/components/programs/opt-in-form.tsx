@@ -36,7 +36,6 @@ export function OptInForm({ programId, onSuccess }: OptInFormProps) {
   const { data: educationLevels, isLoading: educationLoading } = useEducationLevels()
 
   const {
-    register,
     handleSubmit,
     setValue,
     watch,

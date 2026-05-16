@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
 
+# Opt JavaScript actions (still shipping with Node 20 bundles) into the
+# runner's Node 24 to silence the deprecation warning ahead of June 2026.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 # Cancel in-progress runs on the same branch so stale jobs don't eat minutes.
 concurrency:
   group: ci-${{ github.ref }}

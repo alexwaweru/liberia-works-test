@@ -133,9 +133,7 @@ app.get('/health', { schema: { hide: true } }, async () => ({
 }))
 
 // ── Start ─────────────────────────────────────────────────────────────────────
-// Start background workers
-import "./workers/matching.worker.js"
-import "./workers/outbound-messaging.worker.js"
+// Background workers run in a separate process — see src/workers/index.ts.
 
 try {
   await app.listen({ port: env.PORT, host: env.HOST })

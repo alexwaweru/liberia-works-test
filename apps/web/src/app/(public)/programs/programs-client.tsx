@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { usePublicProgramCycles } from '@/hooks/public'
 import type { PublicProgramCycleListItem } from '@/lib/api'
-import { cn } from '@/lib/utils'
 
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })

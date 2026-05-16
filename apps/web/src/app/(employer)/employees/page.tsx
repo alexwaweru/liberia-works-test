@@ -526,7 +526,7 @@ function TeamTab({ onOpenInvite }: { onOpenInvite: () => void }) {
   )
 
   const renderCard: RenderCardFn = useCallback(
-    (item, _helpers) => <TeamMemberCard item={item} onAction={handleAction} />,
+    (item) => <TeamMemberCard item={item} onAction={handleAction} />,
     [handleAction]
   )
 
@@ -1126,7 +1126,7 @@ function WorkforceTab({ onOpenAdd }: { onOpenAdd: () => void }) {
   )
 
   const renderCard: RenderCardFn = useCallback(
-    (item, _helpers) => (
+    (item) => (
       <WorkforceCard
         item={item}
         onEdit={setEditTarget}
