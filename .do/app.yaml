@@ -1,174 +1,174 @@
-# ## DigitalOcean App Platform — PRODUCTION
-# ##
-# ## Apply:
-# ##   doctl apps create   --spec .do/app.yaml          # first time
-# ##   doctl apps update <APP_ID> --spec .do/app.yaml   # after edits
-# ##
-# ## After creation, set the secrets (marked `type: SECRET` below) in the App
-# ## Platform UI or via:
-# ##   doctl apps update <APP_ID> --spec - < .do/app.yaml
-# ##
-# ## Auto-deploy is wired via `deploy_on_push: true` on the `main` branch.
+## DigitalOcean App Platform — PRODUCTION
+##
+## Apply:
+##   doctl apps create   --spec .do/app.yaml          # first time
+##   doctl apps update <APP_ID> --spec .do/app.yaml   # after edits
+##
+## After creation, set the secrets (marked `type: SECRET` below) in the App
+## Platform UI or via:
+##   doctl apps update <APP_ID> --spec - < .do/app.yaml
+##
+## Auto-deploy is wired via `deploy_on_push: true` on the `main` branch.
 
-# name: liberiaworks-prod
-# region: fra
+name: liberiaworks-prod
+region: fra
 
-# # ── Postgres (managed by App Platform) ────────────────────────────────────────
-# # Engine PG 16; pgvector + postgis are available extensions on this image.
-# # Connection string exposed as ${db.DATABASE_URL}.
-# databases:
-#   - name: db
-#     engine: PG
-#     version: "16"
-#     production: true
-#     cluster_name: liberiaworks-prod-db
+# ── Postgres (managed by App Platform) ────────────────────────────────────────
+# Engine PG 16; pgvector + postgis are available extensions on this image.
+# Connection string exposed as ${db.DATABASE_URL}.
+databases:
+  - name: db
+    engine: PG
+    version: "16"
+    production: true
+    cluster_name: liberiaworks-prod-db
 
-# # ── Redis (managed by App Platform) ───────────────────────────────────────────
-# # Connection string exposed as ${redis.DATABASE_URL}.
-#   - name: redis
-#     engine: REDIS
-#     production: true
-#     cluster_name: liberiaworks-prod-redis
+# ── Redis (managed by App Platform) ───────────────────────────────────────────
+# Connection string exposed as ${redis.DATABASE_URL}.
+  - name: redis
+    engine: REDIS
+    production: true
+    cluster_name: liberiaworks-prod-redis
 
-# # ── Pre-deploy: run Prisma migrations exactly once per deploy ────────────────
-# jobs:
-#   - name: migrate
-#     kind: PRE_DEPLOY
-#     dockerfile_path: apps/api/Dockerfile
-#     source_dir: /
-#     github:
-#       repo: nyamu5/liberiaworks-monolith
-#       branch: main
-#     run_command: pnpm exec prisma migrate deploy
-#     instance_count: 1
-#     instance_size_slug: apps-s-1vcpu-1gb
-#     envs:
-#       - key: DATABASE_URL
-#         scope: RUN_TIME
-#         value: ${db.DATABASE_URL}
+# ── Pre-deploy: run Prisma migrations exactly once per deploy ────────────────
+jobs:
+  - name: migrate
+    kind: PRE_DEPLOY
+    dockerfile_path: apps/api/Dockerfile
+    source_dir: /
+    github:
+      repo: nyamu5/liberiaworks-monolith
+      branch: main
+    run_command: pnpm exec prisma migrate deploy
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-1gb
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
 
-# # ── HTTP services ────────────────────────────────────────────────────────────
-# services:
-#   - name: api
-#     dockerfile_path: apps/api/Dockerfile
-#     source_dir: /
-#     github:
-#       repo: nyamu5/liberiaworks-monolith
-#       branch: main
-#       deploy_on_push: true
-#     http_port: 3001
-#     instance_count: 1
-#     instance_size_slug: apps-s-1vcpu-1gb
-#     health_check:
-#       http_path: /health
-#       initial_delay_seconds: 20
-#       period_seconds: 10
-#       failure_threshold: 3
-#     routes:
-#       - path: /api
-#         preserve_path_prefix: true
-#     envs:
-#       - key: NODE_ENV
-#         scope: RUN_AND_BUILD_TIME
-#         value: production
-#       - key: DATABASE_URL
-#         scope: RUN_TIME
-#         value: ${db.DATABASE_URL}
-#       - key: REDIS_URL
-#         scope: RUN_TIME
-#         value: ${redis.DATABASE_URL}
-#       - key: JWT_SECRET
-#         scope: RUN_TIME
-#         type: SECRET
-#       - key: JWT_ACCESS_EXPIRES_IN
-#         scope: RUN_TIME
-#         value: "15m"
-#       - key: JWT_REFRESH_EXPIRES_IN
-#         scope: RUN_TIME
-#         value: "30d"
-#       - key: WEB_APP_URL
-#         scope: RUN_TIME
-#         value: ${web.PUBLIC_URL}
-#       - key: ALLOWED_ORIGINS
-#         scope: RUN_TIME
-#         value: ${web.PUBLIC_URL}
-#       # Optional integrations — fill in via the UI when ready.
-#       - key: AT_API_KEY
-#         scope: RUN_TIME
-#         type: SECRET
-#       - key: AT_USERNAME
-#         scope: RUN_TIME
-#       - key: AT_SENDER_ID
-#         scope: RUN_TIME
-#       - key: OPENAI_API_KEY
-#         scope: RUN_TIME
-#         type: SECRET
-#       - key: RESEND_API_KEY
-#         scope: RUN_TIME
-#         type: SECRET
-#       - key: SENTRY_DSN
-#         scope: RUN_TIME
-#         type: SECRET
+# ── HTTP services ────────────────────────────────────────────────────────────
+services:
+  - name: api
+    dockerfile_path: apps/api/Dockerfile
+    source_dir: /
+    github:
+      repo: nyamu5/liberiaworks-monolith
+      branch: main
+      deploy_on_push: true
+    http_port: 3001
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-1gb
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 20
+      period_seconds: 10
+      failure_threshold: 3
+    routes:
+      - path: /api
+        preserve_path_prefix: true
+    envs:
+      - key: NODE_ENV
+        scope: RUN_AND_BUILD_TIME
+        value: production
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
+      - key: REDIS_URL
+        scope: RUN_TIME
+        value: ${redis.DATABASE_URL}
+      - key: JWT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: JWT_ACCESS_EXPIRES_IN
+        scope: RUN_TIME
+        value: "15m"
+      - key: JWT_REFRESH_EXPIRES_IN
+        scope: RUN_TIME
+        value: "30d"
+      - key: WEB_APP_URL
+        scope: RUN_TIME
+        value: ${web.PUBLIC_URL}
+      - key: ALLOWED_ORIGINS
+        scope: RUN_TIME
+        value: ${web.PUBLIC_URL}
+      # Optional integrations — fill in via the UI when ready.
+      - key: AT_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: AT_USERNAME
+        scope: RUN_TIME
+      - key: AT_SENDER_ID
+        scope: RUN_TIME
+      - key: OPENAI_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: RESEND_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: SENTRY_DSN
+        scope: RUN_TIME
+        type: SECRET
 
-#   - name: web
-#     dockerfile_path: apps/web/Dockerfile
-#     source_dir: /
-#     github:
-#       repo: nyamu5/liberiaworks-monolith
-#       branch: main
-#       deploy_on_push: true
-#     http_port: 3000
-#     instance_count: 1
-#     instance_size_slug: apps-s-1vcpu-1gb
-#     routes:
-#       - path: /
-#     envs:
-#       - key: NODE_ENV
-#         scope: RUN_AND_BUILD_TIME
-#         value: production
-#       # Browser fetches go through the same app domain; ingress routes /api
-#       # to the api service. Build-time so it's inlined into the bundle.
-#       - key: NEXT_PUBLIC_API_URL
-#         scope: RUN_AND_BUILD_TIME
-#         value: ${APP_URL}
-#       # Server-side fetches inside the web container hit the api directly.
-#       - key: API_URL
-#         scope: RUN_TIME
-#         value: ${api.PRIVATE_URL}
+  - name: web
+    dockerfile_path: apps/web/Dockerfile
+    source_dir: /
+    github:
+      repo: nyamu5/liberiaworks-monolith
+      branch: main
+      deploy_on_push: true
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-1gb
+    routes:
+      - path: /
+    envs:
+      - key: NODE_ENV
+        scope: RUN_AND_BUILD_TIME
+        value: production
+      # Browser fetches go through the same app domain; ingress routes /api
+      # to the api service. Build-time so it's inlined into the bundle.
+      - key: NEXT_PUBLIC_API_URL
+        scope: RUN_AND_BUILD_TIME
+        value: ${APP_URL}
+      # Server-side fetches inside the web container hit the api directly.
+      - key: API_URL
+        scope: RUN_TIME
+        value: ${api.PRIVATE_URL}
 
-# # ── Background workers (BullMQ) ──────────────────────────────────────────────
-# # Reuses the api Dockerfile and just overrides the run command.
-# workers:
-#   - name: workers
-#     dockerfile_path: apps/api/Dockerfile
-#     source_dir: /
-#     github:
-#       repo: nyamu5/liberiaworks-monolith
-#       branch: main
-#       deploy_on_push: true
-#     run_command: node dist/workers/index.js
-#     instance_count: 1
-#     instance_size_slug: apps-s-1vcpu-1gb
-#     envs:
-#       - key: NODE_ENV
-#         scope: RUN_AND_BUILD_TIME
-#         value: production
-#       - key: DATABASE_URL
-#         scope: RUN_TIME
-#         value: ${db.DATABASE_URL}
-#       - key: REDIS_URL
-#         scope: RUN_TIME
-#         value: ${redis.DATABASE_URL}
-#       - key: JWT_SECRET
-#         scope: RUN_TIME
-#         type: SECRET
-#       - key: AT_API_KEY
-#         scope: RUN_TIME
-#         type: SECRET
-#       - key: AT_USERNAME
-#         scope: RUN_TIME
-#       - key: AT_SENDER_ID
-#         scope: RUN_TIME
-#       - key: OPENAI_API_KEY
-#         scope: RUN_TIME
-#         type: SECRET
+# ── Background workers (BullMQ) ──────────────────────────────────────────────
+# Reuses the api Dockerfile and just overrides the run command.
+workers:
+  - name: workers
+    dockerfile_path: apps/api/Dockerfile
+    source_dir: /
+    github:
+      repo: nyamu5/liberiaworks-monolith
+      branch: main
+      deploy_on_push: true
+    run_command: node dist/workers/index.js
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-1gb
+    envs:
+      - key: NODE_ENV
+        scope: RUN_AND_BUILD_TIME
+        value: production
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
+      - key: REDIS_URL
+        scope: RUN_TIME
+        value: ${redis.DATABASE_URL}
+      - key: JWT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: AT_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: AT_USERNAME
+        scope: RUN_TIME
+      - key: AT_SENDER_ID
+        scope: RUN_TIME
+      - key: OPENAI_API_KEY
+        scope: RUN_TIME
+        type: SECRET
