@@ -23,14 +23,23 @@ databases:
     cluster_name: liberiaworks-staging-redis
 
 jobs:
-  - name: migrate
+  # Runs once per deploy, before the new revision goes live. Chained:
+  #   1. migrate deploy — apply any new Prisma migrations
+  #   2. db:seed         — ISCED education levels, ISIC sectors, ISCO occupations
+  #                        (idempotent via prisma.upsert by natural code)
+  #   3. db:seed:locations — countries / regions / subregions / states / cities
+  #                          (idempotent via INSERT ... ON CONFLICT (id) DO UPDATE)
+  # Test fixtures (db:seed:test) are intentionally NOT run here.
+  - name: migrate-and-seed
     kind: PRE_DEPLOY
     dockerfile_path: apps/api/Dockerfile
-    source_dir: /
     github:
       repo: nyamu5/liberiaworks-monolith
       branch: staging
-    run_command: pnpm exec prisma migrate deploy
+    run_command: |
+      pnpm exec prisma migrate deploy && \
+      pnpm exec tsx prisma/seed.ts && \
+      pnpm exec tsx prisma/seed-locations.ts
     instance_count: 1
     instance_size_slug: apps-s-1vcpu-0.5gb
     envs:
@@ -41,7 +50,6 @@ jobs:
 services:
   - name: api
     dockerfile_path: apps/api/Dockerfile
-    source_dir: /
     github:
       repo: nyamu5/liberiaworks-monolith
       branch: staging
@@ -101,7 +109,6 @@ services:
 
   - name: web
     dockerfile_path: apps/web/Dockerfile
-    source_dir: /
     github:
       repo: nyamu5/liberiaworks-monolith
       branch: staging
@@ -125,7 +132,6 @@ services:
 workers:
   - name: workers
     dockerfile_path: apps/api/Dockerfile
-    source_dir: /
     github:
       repo: nyamu5/liberiaworks-monolith
       branch: staging

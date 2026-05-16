@@ -35,7 +35,6 @@ jobs:
   - name: migrate
     kind: PRE_DEPLOY
     dockerfile_path: apps/api/Dockerfile
-    source_dir: /
     github:
       repo: nyamu5/liberiaworks-monolith
       branch: main
@@ -51,7 +50,6 @@ jobs:
 services:
   - name: api
     dockerfile_path: apps/api/Dockerfile
-    source_dir: /
     github:
       repo: nyamu5/liberiaworks-monolith
       branch: main
@@ -112,7 +110,6 @@ services:
 
   - name: web
     dockerfile_path: apps/web/Dockerfile
-    source_dir: /
     github:
       repo: nyamu5/liberiaworks-monolith
       branch: main
@@ -141,7 +138,6 @@ services:
 workers:
   - name: workers
     dockerfile_path: apps/api/Dockerfile
-    source_dir: /
     github:
       repo: nyamu5/liberiaworks-monolith
       branch: main

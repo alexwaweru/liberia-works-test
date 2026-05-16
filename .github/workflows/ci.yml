@@ -5,11 +5,6 @@ on:
     branches: [main]
   pull_request:
 
-# Opt JavaScript actions (still shipping with Node 20 bundles) into the
-# runner's Node 24 to silence the deprecation warning ahead of June 2026.
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
-
 # Cancel in-progress runs on the same branch so stale jobs don't eat minutes.
 concurrency:
   group: ci-${{ github.ref }}
@@ -23,12 +18,12 @@ jobs:
     name: Lint · Typecheck · Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # Version comes from "packageManager": "pnpm@9.15.4" in package.json.
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'pnpm' # Caches ~/.pnpm-store keyed on pnpm-lock.yaml
@@ -39,7 +34,7 @@ jobs:
       # but prior-branch entries are restored via the prefix restore-key.
       # For cross-PR warm cache, set TURBO_TOKEN + TURBO_TEAM (Vercel Remote Cache).
       - name: Restore Turbo cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .turbo
           key: turbo-${{ runner.os }}-${{ github.sha }}
@@ -70,16 +65,16 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install pgvector in postgres container
         run: |
           docker exec ${{ job.services.postgres.id }} bash -c \
             "apt-get update -qq && apt-get install -y --no-install-recommends postgresql-16-pgvector"
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'pnpm'
