@@ -365,6 +365,309 @@ export const programsModule: FastifyPluginAsync = async (app) => {
     }
   })
   
+  // GET /opt-ins/by-program/:programCycleId — get current user's opt-in for a specific program cycle
+  const SingleOptInResponseSchema = MyOptInsResponseSchema.shape.data.element
+
+  server.get('/opt-ins/by-program/:programCycleId', {
+    schema: {
+      tags: ['programs'],
+      summary: 'Get my opt-in for a specific program cycle',
+      params: z.object({ programCycleId: z.string() }),
+      response: { 200: SingleOptInResponseSchema },
+    },
+    preHandler: [requireRole(['INDIVIDUAL'])],
+  }, async (req, reply) => {
+    const individual = await app.prisma.individual.findUnique({
+      where: { userId: req.authUser!.id },
+    })
+    if (!individual) return reply.notFound('Individual profile not found')
+
+    const optIn = await app.prisma.programOptIn.findFirst({
+      where: {
+        individualId: individual.id,
+        programCycleId: req.params.programCycleId,
+      },
+      include: {
+        programCycle: {
+          select: { id: true, name: true, year: true, status: true },
+        },
+        matchedEmployer: {
+          select: { id: true, companyName: true },
+        },
+        preferredEducationLevel: {
+          select: { id: true, name: true, iscedCode: true },
+        },
+      },
+    })
+    if (!optIn) return reply.notFound('Opt-in not found')
+
+    const sectorIds = optIn.preferredSectors as string[]
+    const countyIds = optIn.preferredCounties as number[]
+
+    const [sectors, counties] = await Promise.all([
+      sectorIds.length > 0
+        ? app.prisma.sector.findMany({ where: { id: { in: sectorIds } }, select: { id: true, name: true, isicCode: true } })
+        : Promise.resolve([]),
+      countyIds.length > 0
+        ? app.prisma.state.findMany({ where: { id: { in: countyIds } }, select: { id: true, name: true, stateCode: true } })
+        : Promise.resolve([]),
+    ])
+
+    const sectorMap = new Map(sectors.map(s => [s.id, s]))
+    const countyMap = new Map(counties.map(c => [c.id, c]))
+
+    return {
+      id: optIn.id,
+      individualId: optIn.individualId,
+      programCycleId: optIn.programCycleId,
+      status: optIn.status as string,
+      preferredSectors: sectorIds.map(id => ({
+        id,
+        name: sectorMap.get(id)?.name ?? 'Unknown',
+        code: sectorMap.get(id)?.isicCode ?? null,
+      })),
+      preferredCounties: countyIds.map(id => ({
+        id,
+        name: countyMap.get(id)?.name ?? 'Unknown',
+        code: countyMap.get(id)?.stateCode ?? null,
+      })),
+      preferredEducationLevel: optIn.preferredEducationLevel ? {
+        id: optIn.preferredEducationLevel.id,
+        name: optIn.preferredEducationLevel.name,
+        code: optIn.preferredEducationLevel.iscedCode,
+      } : null,
+      additionalNotes: optIn.additionalNotes,
+      matchedEmployerId: optIn.matchedEmployerId,
+      matchedAt: optIn.matchedAt?.toISOString() ?? null,
+      createdAt: optIn.createdAt.toISOString(),
+      programCycle: {
+        id: optIn.programCycle.id,
+        name: optIn.programCycle.name,
+        year: optIn.programCycle.year,
+        status: optIn.programCycle.status as string,
+      },
+      matchedEmployer: optIn.matchedEmployer ? {
+        id: optIn.matchedEmployer.id,
+        companyName: optIn.matchedEmployer.companyName,
+      } : null,
+    }
+  })
+
+  // ── Employer hosting capacity ──────────────────────────────────────────────
+
+  const HostingCapacityBodySchema = z.object({
+    cycleId: z.string(),
+    slotsOffered: z.number().int().min(1),
+    stateId: z.number().int(),
+    contactName: z.string().min(1),
+    contactPhone: z.string().min(1),
+    preferredSectorId: z.string().optional(),
+    preferredEducationLevelId: z.string().optional(),
+    placementInstructions: z.string().optional(),
+  })
+
+  const HostingCapacityItemSchema = z.object({
+    id: z.string(),
+    employerId: z.string(),
+    cycleId: z.string(),
+    slotsOffered: z.number(),
+    stateId: z.number(),
+    contactName: z.string(),
+    contactPhone: z.string(),
+    preferredSectorId: z.string().nullable(),
+    preferredEducationLevelId: z.string().nullable(),
+    placementInstructions: z.string().nullable(),
+    createdAt: z.string(),
+    cycle: z.object({
+      id: z.string(),
+      name: z.string(),
+      year: z.number(),
+      status: z.string(),
+    }),
+  })
+
+  const MyHostingCapacityResponseSchema = z.object({
+    data: z.array(HostingCapacityItemSchema),
+    pagination: z.object({
+      nextCursor: z.string().nullable(),
+      hasMore: z.boolean(),
+      total: z.number(),
+    }),
+  })
+
+  const HostingCapacityCreateResponseSchema = z.object({
+    id: z.string(),
+    employerId: z.string(),
+    cycleId: z.string(),
+    slotsOffered: z.number(),
+    stateId: z.number(),
+    contactName: z.string(),
+    contactPhone: z.string(),
+    preferredSectorId: z.string().nullable(),
+    preferredEducationLevelId: z.string().nullable(),
+    placementInstructions: z.string().nullable(),
+    createdAt: z.string(),
+  })
+
+  function formatCapacity(c: {
+    id: string
+    employerId: string
+    cycleId: string
+    slotsOffered: number
+    stateId: number
+    contactName: string
+    contactPhone: string
+    preferredSectorId: string | null
+    preferredEducationLevelId: string | null
+    placementInstructions: string | null
+    createdAt: Date
+    cycle: { id: string; name: string; year: number; status: string }
+  }) {
+    return {
+      id: c.id,
+      employerId: c.employerId,
+      cycleId: c.cycleId,
+      slotsOffered: c.slotsOffered,
+      stateId: c.stateId,
+      contactName: c.contactName,
+      contactPhone: c.contactPhone,
+      preferredSectorId: c.preferredSectorId,
+      preferredEducationLevelId: c.preferredEducationLevelId,
+      placementInstructions: c.placementInstructions,
+      createdAt: c.createdAt.toISOString(),
+      cycle: {
+        id: c.cycle.id,
+        name: c.cycle.name,
+        year: c.cycle.year,
+        status: c.cycle.status as string,
+      },
+    }
+  }
+
+  // POST /hosting-capacity — employer opts into a program by declaring hosting capacity
+  server.post('/hosting-capacity', {
+    schema: {
+      tags: ['programs'],
+      summary: 'Declare employer hosting capacity for a program cycle',
+      body: HostingCapacityBodySchema,
+      response: { 201: HostingCapacityCreateResponseSchema },
+    },
+    preHandler: [requireRole(EMPLOYER_ROLES)],
+  }, async (req, reply) => {
+    const { cycleId, slotsOffered, stateId, contactName, contactPhone, preferredSectorId, preferredEducationLevelId, placementInstructions } = req.body
+
+    const eu = await app.prisma.employerUser.findFirst({
+      where: { userId: req.authUser!.id, isActive: true },
+      select: { employerId: true },
+    })
+    if (!eu) return reply.notFound('No employer found for this user')
+
+    const cycle = await app.prisma.programCycle.findUnique({ where: { id: cycleId } })
+    if (!cycle) return reply.notFound('Program cycle not found')
+    if (cycle.status !== 'OPEN') return reply.badRequest('This program is not open for opt-ins')
+
+    const validState = await app.prisma.state.findFirst({
+      where: { id: stateId, countryCode: 'LR' },
+    })
+    if (!validState) return reply.badRequest('Invalid state ID')
+
+    const existing = await app.prisma.programHostingCapacity.findUnique({
+      where: { employerId_cycleId: { employerId: eu.employerId, cycleId } },
+    })
+    if (existing) return reply.conflict('Already opted into this program')
+
+    const capacity = await app.prisma.programHostingCapacity.create({
+      data: {
+        employerId: eu.employerId,
+        cycleId,
+        slotsOffered,
+        stateId,
+        contactName,
+        contactPhone,
+        preferredSectorId: preferredSectorId ?? null,
+        preferredEducationLevelId: preferredEducationLevelId ?? null,
+        placementInstructions: placementInstructions ?? null,
+      },
+    })
+
+    return reply.status(201).send({
+      id: capacity.id,
+      employerId: capacity.employerId,
+      cycleId: capacity.cycleId,
+      slotsOffered: capacity.slotsOffered,
+      stateId: capacity.stateId,
+      contactName: capacity.contactName,
+      contactPhone: capacity.contactPhone,
+      preferredSectorId: capacity.preferredSectorId,
+      preferredEducationLevelId: capacity.preferredEducationLevelId,
+      placementInstructions: capacity.placementInstructions,
+      createdAt: capacity.createdAt.toISOString(),
+    })
+  })
+
+  // GET /my-hosting-capacity — list current employer's hosting capacity declarations
+  server.get('/my-hosting-capacity', {
+    schema: {
+      tags: ['programs'],
+      summary: "List the current employer's hosting capacity declarations",
+      querystring: z.object({ cursor: z.string().optional() }),
+      response: { 200: MyHostingCapacityResponseSchema },
+    },
+    preHandler: [requireRole(EMPLOYER_ROLES)],
+  }, async (req, reply) => {
+    const eu = await app.prisma.employerUser.findFirst({
+      where: { userId: req.authUser!.id, isActive: true },
+      select: { employerId: true },
+    })
+    if (!eu) return reply.notFound('No employer found for this user')
+
+    const { cursor } = req.query
+    const PAGE_SIZE = 20
+    const decodedCursor = cursor ? decodeCursor(cursor) : undefined
+
+    const [total, rows] = await Promise.all([
+      app.prisma.programHostingCapacity.count({ where: { employerId: eu.employerId } }),
+      app.prisma.programHostingCapacity.findMany({
+        where: { employerId: eu.employerId },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        include: { cycle: { select: { id: true, name: true, year: true, status: true } } },
+        ...(decodedCursor ? { cursor: { id: decodedCursor }, skip: 1 } : {}),
+        take: PAGE_SIZE + 1,
+      }),
+    ])
+
+    const hasMore = rows.length > PAGE_SIZE
+    const data = hasMore ? rows.slice(0, PAGE_SIZE) : rows
+    const nextCursor = hasMore ? encodeCursor(data[data.length - 1]!.id) : null
+
+    return { data: data.map(formatCapacity), pagination: { nextCursor, hasMore, total } }
+  })
+
+  // GET /hosting-capacity/by-cycle/:cycleId — get current employer's capacity for a specific cycle
+  server.get('/hosting-capacity/by-cycle/:cycleId', {
+    schema: {
+      tags: ['programs'],
+      summary: "Get the current employer's hosting capacity for a specific program cycle",
+      params: z.object({ cycleId: z.string() }),
+      response: { 200: HostingCapacityItemSchema },
+    },
+    preHandler: [requireRole(EMPLOYER_ROLES)],
+  }, async (req, reply) => {
+    const eu = await app.prisma.employerUser.findFirst({
+      where: { userId: req.authUser!.id, isActive: true },
+      select: { employerId: true },
+    })
+    if (!eu) return reply.notFound('No employer found for this user')
+
+    const capacity = await app.prisma.programHostingCapacity.findUnique({
+      where: { employerId_cycleId: { employerId: eu.employerId, cycleId: req.params.cycleId } },
+      include: { cycle: { select: { id: true, name: true, year: true, status: true } } },
+    })
+    if (!capacity) return reply.notFound('Hosting capacity not found')
+
+    return formatCapacity(capacity)
+  })
+
   // GET COUNTIES
   server.get('/counties', {
     schema: {

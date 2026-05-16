@@ -16,8 +16,8 @@ export async function verifyOtpAction(body: {
   if ('error' in result) return { error: result.error }
   await forwardCookies(result.headers)
   const role = result.data.role
-  if (role === 'INDIVIDUAL') redirect('/me/profile')
-  if (role === 'EMPLOYER_ADMIN' || role === 'EMPLOYER_HR') redirect('/dashboard')
+  if (role === 'INDIVIDUAL') redirect('/me/jobs')
+  if (role === 'EMPLOYER_ADMIN' || role === 'EMPLOYER_HR') redirect('/vacancies')
   if (role === 'MOL_OFFICER' || role === 'MOL_DIRECTOR') redirect('/mol/overview')
   redirect('/')
 }

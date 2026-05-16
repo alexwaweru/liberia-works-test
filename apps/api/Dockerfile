@@ -24,8 +24,6 @@ WORKDIR /app
 COPY . .
 RUN pnpm --filter "@liberia-works/shared*" run build && \
     pnpm --filter @liberia-works/api run db:generate && \
-    pnpm --filter @liberia-works/api run db:seed && \
-    pnpm --filter @liberia-works/api db:seed:locations && \
     pnpm --filter @liberia-works/api run build
 
 # ── runner: production image ──────────────────────────────────────────────────
@@ -50,4 +48,4 @@ COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
 
 WORKDIR /app/apps/api
 EXPOSE 3001
-CMD ["node", "dist/server.js"]
+CMD ["sh", "-c", "pnpm exec prisma migrate deploy && node dist/server.js"]

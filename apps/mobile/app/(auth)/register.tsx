@@ -14,18 +14,19 @@ import {
   FlatList,
 } from 'react-native'
 import { router } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
 import { useQuery } from '@tanstack/react-query'
-import { registerIndividual, verifyOtp, getStates } from '@/lib/api'
+import { registerIndividual, verifyOtp, getLiberiaCounties } from '@/lib/api'
 import { storeTokens, useAuth } from '@/lib/auth'
 import { Logo } from '@/components/Logo'
 
-type Gender = 'MALE' | 'FEMALE' | 'PREFER_NOT_TO_SAY'
+type Gender = 'male' | 'female' | 'unspecified'
 type Step = 'details' | 'otp'
 
 const GENDER_OPTIONS: { label: string; value: Gender }[] = [
-  { label: 'Male', value: 'MALE' },
-  { label: 'Female', value: 'FEMALE' },
-  { label: 'Prefer not to say', value: 'PREFER_NOT_TO_SAY' },
+  { label: 'Male', value: 'male' },
+  { label: 'Female', value: 'female' },
+  { label: 'Prefer not to say', value: 'unspecified' },
 ]
 
 const PASSWORD_REQUIREMENTS = [
@@ -58,8 +59,9 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false)
 
   const { data: states, isLoading: statesLoading } = useQuery({
-    queryKey: ['states'],
-    queryFn: () => getStates(1),
+    queryKey: ['states', 'LR'],
+    queryFn: getLiberiaCounties,
+    staleTime: 60 * 60 * 1000,
   })
 
   const selectedCounty = states?.find((s) => s.id === countyId)
@@ -279,7 +281,7 @@ export default function RegisterScreen() {
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword((v) => !v)}>
-                <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁'}</Text>
+                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#6B7280" />
               </TouchableOpacity>
             </View>
             {password.length > 0 && (
@@ -308,7 +310,7 @@ export default function RegisterScreen() {
                 secureTextEntry={!showConfirm}
               />
               <TouchableOpacity style={styles.eyeButton} onPress={() => setShowConfirm((v) => !v)}>
-                <Text style={styles.eyeText}>{showConfirm ? '🙈' : '👁'}</Text>
+                <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={20} color="#6B7280" />
               </TouchableOpacity>
             </View>
             {confirmPassword.length > 0 && (
@@ -438,7 +440,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
     justifyContent: 'center',
   },
-  eyeText: { fontSize: 16 },
+
   requirements: { marginTop: 8, backgroundColor: '#F9FAFB', borderRadius: 8, padding: 12, gap: 4 },
   reqRow: {},
   reqMet: { fontSize: 13, color: '#16A34A' },

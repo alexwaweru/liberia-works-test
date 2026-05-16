@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCreateOptIn, useCounties, useSectors, useEducationLevels } from '@/hooks/programs'
 import { MultiSelect } from '@/components/ui/multi-select'
+import { toast } from '@/lib/toast'
 
 const optInSchema = z.object({
   preferredSectors: z.array(z.string()).min(1, 'Select at least one sector'),
@@ -66,16 +67,16 @@ export function OptInForm({ programId, onSuccess }: OptInFormProps) {
         additionalNotes: data.additionalNotes || undefined,
       })
   
-      alert('Success! You have opted into this program.')
+      toast.success('You have opted into this program.')
       onSuccess()
     } catch (error) {
       // Better error message
       const message = error instanceof Error ? error.message : 'Failed to opt in'
-      
+
       if (message.includes('Already opted')) {
-        alert('You have already opted into this program.')
+        toast.error('You have already opted into this program.')
       } else {
-        alert(message)
+        toast.error(message)
       }
     } finally {
       setIsSubmitting(false)

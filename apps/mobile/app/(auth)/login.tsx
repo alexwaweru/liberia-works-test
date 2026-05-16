@@ -11,6 +11,7 @@ import {
   ScrollView,
 } from 'react-native'
 import { router } from 'expo-router'
+import { Ionicons } from '@expo/vector-icons'
 import { loginWithPassword } from '@/lib/api'
 import { storeTokens, useAuth } from '@/lib/auth'
 import { Logo } from '@/components/Logo'
@@ -148,7 +149,7 @@ export default function LoginScreen() {
                 secureTextEntry={!showPassword}
               />
               <TouchableOpacity style={styles.eyeButton} onPress={() => setShowPassword((v) => !v)}>
-                <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁'}</Text>
+                <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color="#6B7280" />
               </TouchableOpacity>
             </View>
             <TouchableOpacity style={styles.forgotRow}>

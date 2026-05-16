@@ -4,93 +4,99 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  /* ── Typography ── */
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  /* ─────────────────────────────────────────
+     Typography
+     ───────────────────────────────────────── */
+  --font-sans: "Outfit Variable", "Outfit", ui-sans-serif, system-ui, sans-serif;
 
-  /* ── Light Mode (Charcoal + Warm Coral) ── */
+  /* ─────────────────────────────────────────
+     Radius — sharp edges throughout
+     All shadcn components inherit 0rem.
+     Only exception: rounded-full for avatars/pills.
+     ───────────────────────────────────────── */
+  --radius:    0rem;
+  --radius-sm: 0rem;
+  --radius-md: 0rem;
+  --radius-lg: 0rem;
+  --radius-xl: 0rem;
 
-  --color-background: hsl(30 15% 97%);
-  --color-foreground: hsl(20 15% 10%);
+  /* ─────────────────────────────────────────
+     Light mode
+     ───────────────────────────────────────── */
 
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(20 15% 10%);
+  /* Surfaces */
+  --color-background:         hsl(218, 22%, 97%);   /* #F7F8FA — page bg      */
+  --color-foreground:         hsl(219, 29%, 6%);    /* #0B0E14 — body text     */
 
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(20 15% 10%);
+  --color-card:               hsl(0, 0%, 100%);     /* #FFFFFF — card surface  */
+  --color-card-foreground:    hsl(219, 29%, 6%);
 
-  --color-primary: hsl(10 70% 58%);
-  --color-primary-foreground: hsl(0 0% 100%);
+  --color-popover:            hsl(0, 0%, 100%);
+  --color-popover-foreground: hsl(219, 29%, 6%);
 
-  --color-secondary: hsl(20 12% 96%);
-  --color-secondary-foreground: hsl(20 15% 10%);
+  /* Brand — navy as primary, crimson as CTA/destructive */
+  --color-primary:             hsl(214, 72%, 15%);  /* Navy    #0B2342         */
+  --color-primary-foreground:  hsl(0, 0%, 100%);
 
-  --color-muted: hsl(20 10% 96%);
-  --color-muted-foreground: hsl(20 8% 46%);
+  --color-destructive:         hsl(355, 84%, 41%);  /* Crimson #BF1120         */
+  --color-destructive-foreground: hsl(0, 0%, 100%);
 
-  --color-accent: hsl(10 30% 95%);
-  --color-accent-foreground: hsl(20 15% 10%);
+  /* NOTE: In this design system "destructive" = brand CTA (Get started, Apply).
+     It is NOT reserved for errors only. Errors use color-danger below. */
 
-  --color-destructive: hsl(0 84% 60%);
-  --color-destructive-foreground: hsl(0 0% 100%);
+  /* Secondary / muted surfaces */
+  --color-secondary:             hsl(218, 22%, 94%);
+  --color-secondary-foreground:  hsl(219, 29%, 6%);
 
-  --color-success: hsl(142 71% 45%);
-  --color-success-foreground: hsl(0 0% 100%);
+  --color-muted:                 hsl(218, 20%, 94%);
+  --color-muted-foreground:      hsl(217, 12%, 39%); /* #57606E — labels, captions */
 
-  --color-warning: hsl(48 96% 47%);
-  --color-warning-foreground: hsl(0 0% 100%);
+  --color-accent:                hsl(214, 30%, 92%);
+  --color-accent-foreground:     hsl(214, 72%, 15%);
 
-  --color-info: hsl(217 91% 60%);
-  --color-info-foreground: hsl(0 0% 100%);
+  /* Chrome */
+  --color-border: hsl(214, 72%, 15%, 0.1);  /* Navy — use with opacity: border-border/10 */
+  --color-input:  hsl(214, 30%, 80%);
+  --color-ring:   hsl(355, 84%, 41%);  /* Focus ring = crimson */
 
-  --color-border: hsl(20 10% 90%);
-  --color-input: hsl(20 10% 84%);
-  --color-ring: hsl(10 70% 58%);
+  /* Semantic (not brand) */
+  --color-success:             hsl(142, 71%, 45%);
+  --color-success-foreground:  hsl(0, 0%, 100%);
 
-  /* Brand tokens (coral + warm gold) */
-  --color-brand-amber: hsl(40 85% 55%);
-  --color-brand-teal-light: hsl(10 60% 68%);
-  --color-brand-teal-deep: hsl(15 25% 25%);
+  --color-warning:             hsl(48, 96%, 47%);
+  --color-warning-foreground:  hsl(0, 0%, 7%);
 
-  /* Sidebar */
-  --color-sidebar-background: hsl(0 0% 100%);
-  --color-sidebar-foreground: hsl(20 15% 10%);
-  --color-sidebar-primary: hsl(10 70% 58%);
-  --color-sidebar-primary-foreground: hsl(0 0% 100%);
-  --color-sidebar-accent: hsl(10 30% 95%);
-  --color-sidebar-accent-foreground: hsl(10 70% 58%);
-  --color-sidebar-border: hsl(20 10% 90%);
-  --color-sidebar-ring: hsl(10 70% 58%);
-  --color-sidebar-muted: hsl(20 8% 46%);
+  --color-info:                hsl(217, 91%, 60%);
+  --color-info-foreground:     hsl(0, 0%, 100%);
+
+  --color-danger:              hsl(0, 84%, 60%);    /* True error state — distinct from crimson CTA */
+  --color-danger-foreground:   hsl(0, 0%, 100%);
+
+  /* Sidebar — used for dark nav (employers./ mol. portals) */
+  --color-sidebar-background:         hsl(218, 22%, 97%);  /* Navy */
+  --color-sidebar-foreground:         hsl(0, 0%, 100%);
+  --color-sidebar-primary:            hsl(355, 84%, 41%);  /* Crimson */
+  --color-sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --color-sidebar-accent:             hsl(214, 60%, 22%);
+  --color-sidebar-accent-foreground:  hsl(0, 0%, 100%);
+  --color-sidebar-border:             hsl(214, 55%, 20%);
+  --color-sidebar-ring:               hsl(355, 84%, 41%);
+  --color-sidebar-muted:              hsl(213, 20%, 60%);
 
   /* Charts */
-  --color-chart-1: hsl(10 70% 58%);
-  --color-chart-2: hsl(40 85% 55%);
-  --color-chart-3: hsl(10 60% 68%);
-  --color-chart-4: hsl(142 71% 45%);
-  --color-chart-5: hsl(0 84% 60%);
+  --color-chart-1: hsl(214, 72%, 15%);  /* Navy              */
+  --color-chart-2: hsl(355, 84%, 41%);  /* Crimson           */
+  --color-chart-3: hsl(213, 48%, 84%);  /* Light navy        */
+  --color-chart-4: hsl(142, 71%, 45%);  /* Success green     */
+  --color-chart-5: hsl(48, 96%, 47%);   /* Warning amber     */
 
-  /* Radii (brand: cards 12px, buttons/inputs 8px) */
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
-
-  /* Animations */
-  --animate-caret-blink: caret-blink 1.2s ease-out infinite;
+  /* Compliance widget dots — hardcoded, not part of Tailwind theme */
+  /* Use: bg-[hsl(142,71%,45%)] bg-[hsl(48,96%,47%)] bg-destructive */
 }
 
-@keyframes caret-blink {
-  0%,
-  70%,
-  100% {
-    opacity: 1;
-  }
-  20%,
-  50% {
-    opacity: 0;
-  }
-}
-
+/* ─────────────────────────────────────────
+   Base layer
+   ───────────────────────────────────────── */
 @layer base {
   * {
     @apply border-border;
@@ -99,63 +105,71 @@
     @apply bg-background text-foreground font-sans;
   }
 
-  /* ── Dark Mode ── */
+  /* ─────────────────────────────────────────
+     Dark mode
+     ───────────────────────────────────────── */
   .dark {
-    --color-background: hsl(222 47% 11%);
-    --color-foreground: hsl(214 32% 96%);
+    /* Surfaces */
+    --color-background:         hsl(220, 60%, 6%);   /* #060C18 — dark page bg  */
+    --color-foreground:         hsl(212, 39%, 90%);  /* #DDE6F0 — dark body text */
 
-    --color-card: hsl(222 42% 14%);
-    --color-card-foreground: hsl(214 32% 96%);
+    --color-card:               hsl(217, 52%, 11%);  /* #0D1829 — dark card     */
+    --color-card-foreground:    hsl(212, 39%, 90%);
 
-    --color-popover: hsl(222 42% 15%);
-    --color-popover-foreground: hsl(214 32% 96%);
+    --color-popover:            hsl(217, 52%, 13%);
+    --color-popover-foreground: hsl(212, 39%, 90%);
 
-    --color-primary: hsl(10 72% 62%);
-    --color-primary-foreground: hsl(0 0% 100%);
+    /* Brand */
+    --color-primary:             hsl(213, 48%, 84%);  /* Light navy #C4D5EA      */
+    --color-primary-foreground:  hsl(220, 60%, 6%);
 
-    --color-secondary: hsl(222 36% 18%);
-    --color-secondary-foreground: hsl(214 32% 96%);
+    --color-destructive:         hsl(355, 78%, 53%);  /* Crimson dm #E5293A      */
+    --color-destructive-foreground: hsl(0, 0%, 100%);
 
-    --color-muted: hsl(222 36% 16%);
-    --color-muted-foreground: hsl(214 20% 58%);
+    /* Secondary / muted */
+    --color-secondary:             hsl(217, 40%, 16%);
+    --color-secondary-foreground:  hsl(212, 39%, 90%);
 
-    --color-accent: hsl(222 30% 19%);
-    --color-accent-foreground: hsl(10 60% 75%);
+    --color-muted:                 hsl(217, 36%, 14%);
+    --color-muted-foreground:      hsl(210, 19%, 56%); /* #7A8FA4 */
 
-    --color-destructive: hsl(0 85% 65%);
-    --color-destructive-foreground: hsl(0 0% 100%);
+    --color-accent:                hsl(217, 35%, 17%);
+    --color-accent-foreground:     hsl(213, 48%, 84%);
 
-    --color-success: hsl(160 60% 50%);
-    --color-success-foreground: hsl(0 0% 100%);
+    /* Chrome */
+    --color-border: hsl(0, 0%, 100%, 0.1);   /* White — use with opacity: border-border/8 */
+    --color-input:  hsl(217, 30%, 22%);
+    --color-ring:   hsl(355, 78%, 53%);
 
-    --color-warning: hsl(48 95% 55%);
-    --color-warning-foreground: hsl(0 0% 7%);
+    /* Semantic */
+    --color-success:             hsl(160, 60%, 50%);
+    --color-success-foreground:  hsl(0, 0%, 100%);
 
-    --color-info: hsl(217 92% 68%);
-    --color-info-foreground: hsl(0 0% 7%);
+    --color-warning:             hsl(48, 95%, 55%);
+    --color-warning-foreground:  hsl(0, 0%, 7%);
 
-    --color-border: hsl(222 30% 22%);
-    --color-input: hsl(222 30% 24%);
-    --color-ring: hsl(10 72% 62%);
+    --color-info:                hsl(217, 92%, 68%);
+    --color-info-foreground:     hsl(0, 0%, 7%);
 
-    --color-brand-amber: hsl(40 88% 60%);
-    --color-brand-teal-light: hsl(10 65% 72%);
-    --color-brand-teal-deep: hsl(15 20% 32%);
+    --color-danger:              hsl(0, 85%, 65%);
+    --color-danger-foreground:   hsl(0, 0%, 100%);
 
-    --color-sidebar-background: hsl(222 50% 9%);
-    --color-sidebar-foreground: hsl(214 32% 96%);
-    --color-sidebar-primary: hsl(10 72% 62%);
-    --color-sidebar-primary-foreground: hsl(0 0% 100%);
-    --color-sidebar-accent: hsl(222 40% 14%);
-    --color-sidebar-accent-foreground: hsl(10 60% 65%);
-    --color-sidebar-border: hsl(222 35% 17%);
-    --color-sidebar-ring: hsl(10 72% 62%);
-    --color-sidebar-muted: hsl(214 20% 52%);
+    /* Sidebar */
+    --color-sidebar-background:         hsl(220, 65%, 8%);
+    --color-sidebar-foreground:         hsl(212, 39%, 90%);
+    --color-sidebar-primary:            hsl(355, 78%, 53%);
+    --color-sidebar-primary-foreground: hsl(0, 0%, 100%);
+    --color-sidebar-accent:             hsl(217, 50%, 14%);
+    --color-sidebar-accent-foreground:  hsl(213, 48%, 84%);
+    --color-sidebar-border:             hsl(217, 40%, 17%);
+    --color-sidebar-ring:               hsl(355, 78%, 53%);
+    --color-sidebar-muted:              hsl(214, 20%, 52%);
 
-    --color-chart-1: hsl(10 72% 65%);
-    --color-chart-2: hsl(40 88% 60%);
-    --color-chart-3: hsl(10 65% 72%);
-    --color-chart-4: hsl(160 60% 55%);
-    --color-chart-5: hsl(0 85% 68%);
+    /* Charts */
+    --color-chart-1: hsl(213, 48%, 84%);  /* Light navy        */
+    --color-chart-2: hsl(355, 78%, 53%);  /* Crimson dm        */
+    --color-chart-3: hsl(214, 72%, 15%);  /* Navy              */
+    --color-chart-4: hsl(160, 60%, 55%);
+    --color-chart-5: hsl(48, 95%, 55%);
   }
 }

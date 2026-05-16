@@ -589,3 +589,47 @@ export function confirmPlacement(code: string) {
 export function getMyPlacement() {
   return apiFetch("/api/v1/vacation-job/my-placement")
 }
+
+export type HostingCapacityRequest = {
+  cycleId: string
+  slotsOffered: number
+  stateId: number
+  contactName: string
+  contactPhone: string
+  preferredSectorId?: string
+  preferredEducationLevelId?: string
+  placementInstructions?: string
+}
+
+export type HostingCapacity = {
+  id: string
+  employerId: string
+  cycleId: string
+  slotsOffered: number
+  stateId: number
+  contactName: string
+  contactPhone: string
+  preferredSectorId: string | null
+  preferredEducationLevelId: string | null
+  placementInstructions: string | null
+  createdAt: string
+  cycle: { id: string; name: string; year: number; status: string }
+}
+
+export type MyHostingCapacityResponse = {
+  data: HostingCapacity[]
+  pagination: { nextCursor: string | null; hasMore: boolean; total: number }
+}
+
+export function createHostingCapacity(body: HostingCapacityRequest) {
+  return apiFetch<HostingCapacity>('/api/v1/programs/hosting-capacity', { method: 'POST', body: JSON.stringify(body) })
+}
+
+export function getMyHostingCapacity(params?: { cursor?: string }) {
+  const q = params?.cursor ? `?cursor=${params.cursor}` : ''
+  return apiFetch<MyHostingCapacityResponse>(`/api/v1/programs/my-hosting-capacity${q}`)
+}
+
+export function getHostingCapacityByCycle(cycleId: string) {
+  return apiFetch<HostingCapacity>(`/api/v1/programs/hosting-capacity/by-cycle/${cycleId}`)
+}

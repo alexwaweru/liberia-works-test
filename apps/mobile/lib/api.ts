@@ -415,8 +415,39 @@ export function listProgramCycles(params?: { cursor?: string; status?: string; y
   return apiFetch<ProgramCycleListResponse>(`/api/v1/programs/cycles${qs ? `?${qs}` : ''}`)
 }
 
+export type ProgramOptIn = {
+  id: string
+  programCycleId: string
+  status: string
+  additionalNotes: string | null
+  matchedEmployerId: string | null
+  matchedAt: string | null
+  createdAt: string
+  programCycle: { id: string; name: string; year: number; status: string }
+  preferredSectors: { id: string; name: string; code: string | null }[]
+  preferredCounties: { id: number; name: string; code: string | null }[]
+  preferredEducationLevel: { id: string; name: string; code: string } | null
+  matchedEmployer: { id: string; companyName: string } | null
+}
+
+export type MyOptInsResponse = {
+  data: ProgramOptIn[]
+  pagination: { nextCursor: string | null; hasMore: boolean; total: number }
+}
+
+export function getMyOptIns() {
+  return apiFetch<MyOptInsResponse>('/api/v1/programs/my-opt-ins')
+}
+
+export function optInToProgram(body: { programCycleId: string; additionalNotes?: string }) {
+  return apiFetch<{ id: string; status: string }>('/api/v1/programs/opt-in', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+}
+
 // ─── Reference ─────────────────────────────────────────────────────────────────
 
-export function getStates(countryId = 1) {
-  return apiFetch<StateItem[]>(`/api/v1/reference/states?countryId=${countryId}`)
+export function getLiberiaCounties() {
+  return apiFetch<StateItem[]>('/api/v1/reference/states?countryCode=LR')
 }

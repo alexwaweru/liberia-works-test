@@ -57,7 +57,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         <CommandGroup heading="Actions">
           {ACTIONS.map(({ label, icon: Icon, href }) => (
             <CommandItem key={label} onSelect={() => run(href)}>
-              <Icon className="size-4 text-muted-foreground" />
+              <Icon className="size-4 bg-foreground" />
               {label}
             </CommandItem>
           ))}

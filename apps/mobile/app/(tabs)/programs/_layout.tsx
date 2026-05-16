@@ -12,6 +12,7 @@ export default function ProgramsLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ title: 'Programs' }} />
+      <Stack.Screen name="opt-ins" options={{ title: 'My Opt-Ins' }} />
     </Stack>
   )
 }

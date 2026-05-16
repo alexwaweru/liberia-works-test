@@ -1,10 +1,23 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+
 import { 
-  createOptIn, getCounties, getEducationLevels, getMyOptIns, getOptInByProgram, getSectors, listProgramCycles,
-  getProgramCycle, listProgramMatches, optInToProgram
+  createOptIn, 
+  getCounties, 
+  getEducationLevels, 
+  getMyOptIns, 
+  getOptInByProgram, 
+  getSectors, 
+  listProgramCycles,
+  getProgramCycle, 
+  listProgramMatches, 
+  optInToProgram,
+  createHostingCapacity,
+  getMyHostingCapacity,
+  getHostingCapacityByCycle,
 } from '@/lib/api'
+
 import type { 
   OptInRequest, 
   ProgramCycleListResponse, 
@@ -15,8 +28,12 @@ import type {
   MyOptIn,
   ProgramCycleListItem, 
   ProgramPlacementListItem, 
-  ProgramOptInPayload
+  ProgramOptInPayload,
+  HostingCapacityRequest,
+  HostingCapacity,
+  MyHostingCapacityResponse,
 } from '@/lib/api'
+
 
 type ProgramFilters = { cursor?: string; status?: string; year?: number }
 
@@ -30,6 +47,8 @@ export const programKeys = {
   educationLevels: () => [...programKeys.all, 'education-levels'] as const,
   myOptIns: (cursor?: string) => [...programKeys.all, 'my-opt-ins', cursor] as const,
   optInByProgram: (programId: string) => [...programKeys.all, 'opt-in', programId] as const,
+  myHostingCapacity: (cursor?: string) => [...programKeys.all, 'my-hosting-capacity', cursor] as const,
+  hostingCapacityByCycle: (cycleId: string) => [...programKeys.all, 'hosting-capacity', cycleId] as const,
 }
 
 
@@ -136,6 +155,46 @@ export function useOptInMutation(id: string) {
     mutationFn: (body: ProgramOptInPayload) => optInToProgram(id, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: programKeys.detail(id) })
+    }
+  })
+}   
+
+export function useMyHostingCapacity(cursor?: string) {
+  return useQuery<MyHostingCapacityResponse>({
+    queryKey: programKeys.myHostingCapacity(cursor),
+    queryFn: () => getMyHostingCapacity({ cursor }),
+    staleTime: 60 * 1000,
+  })
+}
+
+export function useHostingCapacityByCycle(cycleId: string, enabled = true) {
+  return useQuery<HostingCapacity | null>({
+    queryKey: programKeys.hostingCapacityByCycle(cycleId),
+    queryFn: async () => {
+      try {
+        return await getHostingCapacityByCycle(cycleId)
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('not found')) {
+          return null
+        }
+        throw error
+      }
+    },
+    enabled,
+    staleTime: 60 * 1000,
+  })
+}
+
+export function useCreateHostingCapacity() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: HostingCapacityRequest) => createHostingCapacity(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: programKeys.myHostingCapacity() })
+      queryClient.invalidateQueries({
+        queryKey: programKeys.hostingCapacityByCycle(variables.cycleId),
+      })
     },
   })
 }

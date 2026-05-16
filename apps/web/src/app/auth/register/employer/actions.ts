@@ -21,5 +21,5 @@ export async function registerEmployerAction(body: {
   if ('error' in result) return { error: result.error }
 
   await forwardCookies(result.headers)
-  redirect('/dashboard')
+  redirect('/vacancies')
 }

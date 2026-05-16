@@ -61,7 +61,7 @@ function ProgramCardContent({ item, myOptIns }: { item: ListItem; myOptIns: MyOp
 
   return (
     <>
-    <div className="flex flex-col gap-3 p-4 h-full min-h-[160px]">
+    <div className="flex flex-col gap-3 p-4 min-h-[160px]">
       {/* Header */}
       <div className="flex items-start gap-3">
         <div

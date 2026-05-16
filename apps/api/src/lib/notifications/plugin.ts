@@ -16,6 +16,9 @@ const notifyPlugin: FastifyPluginAsync = async (app) => {
   app.decorate('notify', async function (type: DeliveryType, message: Message) {
     const sender = registry.resolve(type)
     await sender.send(type, message)
+    if (sender.name === 'console') {
+      app.log.info({ type, to: message.to, body: message.body }, 'DEV notification (no real sender configured)')
+    }
   })
 }
 
