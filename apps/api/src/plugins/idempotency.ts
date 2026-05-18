@@ -23,6 +23,7 @@ const idempotencyPlugin: FastifyPluginAsync = async (app) => {
       statusCode: number
       body: unknown
     }
+    
     // Skip replaying 102 (in-progress marker) — let the handler run
     if (statusCode === 102) return undefined
 
