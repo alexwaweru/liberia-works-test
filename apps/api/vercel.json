@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-  "buildCommand": "cd ../.. && pnpm --filter \"@liberia-works/shared*\" run build && pnpm --filter @liberia-works/api run db:generate && pnpm --filter @liberia-works/api run build",
+  "buildCommand": "cd ../.. && pnpm --filter \"@liberia-works/shared*\" run build && pnpm --filter @liberia-works/api run db:generate && pnpm --filter @liberia-works/api db:migrate:dev && pnpm --filter @liberia-works/api db:seed && pnpm --filter @liberia-works/api db:seed:locations && pnpm --filter @liberia-works/api db:seed:test && pnpm --filter @liberia-works/api run build",
   "outputDirectory": "dist",
   "functions": {
     "api/index.ts": {

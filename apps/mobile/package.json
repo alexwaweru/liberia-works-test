@@ -19,6 +19,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,json}\" --ignore-path .gitignore"
   },
   "dependencies": {
+    "@babel/runtime": "^7.25.0",
     "@expo-google-fonts/outfit": "^0.4.3",
     "@expo/vector-icons": "~14.0.4",
     "@tanstack/react-query": "^5.0.0",

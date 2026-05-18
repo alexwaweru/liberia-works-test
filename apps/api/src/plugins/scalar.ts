@@ -4,6 +4,10 @@ import { jsonSchemaTransform } from 'fastify-type-provider-zod'
 import type { FastifyPluginAsync } from 'fastify'
 
 const scalarPlugin: FastifyPluginAsync = async (app) => {
+  // Scalar loads a static JS bundle dynamically at runtime which Vercel's
+  // serverless tracer doesn't pick up. Skip docs registration in production.
+  if (process.env.NODE_ENV === 'production') return
+
   await app.register(swagger, {
     openapi: {
       openapi: '3.0.3',
