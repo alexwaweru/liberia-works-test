@@ -12,19 +12,19 @@ const idempotencyPlugin: FastifyPluginAsync = async (app) => {
   // Before handler: return cached response if key was already used
   app.addHook('preHandler', async (request, reply) => {
     const key = request.headers['idempotency-key']
-    if (!key || typeof key !== 'string') return
-    if (!['POST', 'PUT', 'PATCH'].includes(request.method)) return
+    if (!key || typeof key !== 'string') return undefined
+    if (!['POST', 'PUT', 'PATCH'].includes(request.method)) return undefined
 
     const cacheKey = `idempotency:${key}`
     const cached = await app.redis.get(cacheKey)
-    if (!cached) return
+    if (!cached) return undefined
 
     const { statusCode, body } = JSON.parse(cached) as {
       statusCode: number
       body: unknown
     }
     // Skip replaying 102 (in-progress marker) — let the handler run
-    if (statusCode === 102) return
+    if (statusCode === 102) return undefined
 
     return reply.code(statusCode).send(body)
   })
