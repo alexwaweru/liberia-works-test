@@ -184,7 +184,7 @@ export const employersModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const ctx = await getEmployerContext(app, req.authUser!.id, reply)
-    if (!ctx) return
+    if (!ctx) return undefined
     const employer = await app.prisma.employer.findUnique({
       where: { id: ctx.employerId },
       select: { id: true, companyName: true },
@@ -203,7 +203,7 @@ export const employersModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const ctx = await getEmployerContext(app, req.authUser!.id, reply)
-    if (!ctx) return
+    if (!ctx) return undefined
     return getEmployerSettings(app, ctx.employerId, reply)
   })
 
@@ -218,9 +218,9 @@ export const employersModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const ctx = await getEmployerContext(app, req.authUser!.id, reply)
-    if (!ctx) return
+    if (!ctx) return undefined
     const isAdmin = await requireEmployerAdmin(app, req.authUser!.id, ctx.employerId, reply)
-    if (!isAdmin) return
+    if (!isAdmin) return undefined
 
     const { address, ...rest } = req.body
 
@@ -281,7 +281,7 @@ export const employersModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const ctx = await getEmployerContext(app, req.authUser!.id, reply)
-    if (!ctx) return
+    if (!ctx) return undefined
 
     const [members, pendingInvites] = await Promise.all([
       app.prisma.employerUser.findMany({
@@ -343,9 +343,9 @@ export const employersModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const ctx = await getEmployerContext(app, req.authUser!.id, reply)
-    if (!ctx) return
+    if (!ctx) return undefined
     const isAdmin = await requireEmployerAdmin(app, req.authUser!.id, ctx.employerId, reply)
-    if (!isAdmin) return
+    if (!isAdmin) return undefined
 
     const { email, role } = req.body
 
@@ -392,9 +392,9 @@ export const employersModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const ctx = await getEmployerContext(app, req.authUser!.id, reply)
-    if (!ctx) return
+    if (!ctx) return undefined
     const isAdmin = await requireEmployerAdmin(app, req.authUser!.id, ctx.employerId, reply)
-    if (!isAdmin) return
+    if (!isAdmin) return undefined
 
     const { inviteId } = req.params as { inviteId: string }
     const invite = await app.prisma.employerInviteToken.findFirst({
@@ -436,9 +436,9 @@ export const employersModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const ctx = await getEmployerContext(app, req.authUser!.id, reply)
-    if (!ctx) return
+    if (!ctx) return undefined
     const isAdmin = await requireEmployerAdmin(app, req.authUser!.id, ctx.employerId, reply)
-    if (!isAdmin) return
+    if (!isAdmin) return undefined
 
     const { inviteId } = req.params as { inviteId: string }
     const invite = await app.prisma.employerInviteToken.findFirst({
@@ -461,9 +461,9 @@ export const employersModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const ctx = await getEmployerContext(app, req.authUser!.id, reply)
-    if (!ctx) return
+    if (!ctx) return undefined
     const isAdmin = await requireEmployerAdmin(app, req.authUser!.id, ctx.employerId, reply)
-    if (!isAdmin) return
+    if (!isAdmin) return undefined
 
     const { userId } = req.params as { userId: string }
     const { role } = req.body
@@ -495,9 +495,9 @@ export const employersModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const ctx = await getEmployerContext(app, req.authUser!.id, reply)
-    if (!ctx) return
+    if (!ctx) return undefined
     const isAdmin = await requireEmployerAdmin(app, req.authUser!.id, ctx.employerId, reply)
-    if (!isAdmin) return
+    if (!isAdmin) return undefined
 
     const { userId } = req.params as { userId: string }
     const target = await app.prisma.employerUser.findFirst({

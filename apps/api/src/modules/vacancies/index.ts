@@ -109,7 +109,7 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const employerId = await getEmployerId(req.authUser!.id, reply)
-    if (!employerId) return
+    if (!employerId) return undefined
 
     const { cursor, status, sortBy, sortDir } = req.query
     const PAGE_SIZE = 20
@@ -153,7 +153,7 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const employerId = await getEmployerId(req.authUser!.id, reply)
-    if (!employerId) return
+    if (!employerId) return undefined
     const b = req.body
     const appForm = toJsonInput(b.applicationForm)
     const created = await app.prisma.vacancy.create({
@@ -290,7 +290,7 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const employerId = await getEmployerId(req.authUser!.id, reply)
-    if (!employerId) return
+    if (!employerId) return undefined
 
     const { vacancyId } = req.params as { vacancyId: string }
     const vacancy = await app.prisma.vacancy.findFirst({
@@ -351,7 +351,7 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const employerId = await getEmployerId(req.authUser!.id, reply)
-    if (!employerId) return
+    if (!employerId) return undefined
 
     const { vacancyId, applicationId } = req.params as { vacancyId: string; applicationId: string }
     const vacancy = await app.prisma.vacancy.findFirst({
@@ -447,7 +447,7 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const employerId = await getEmployerId(req.authUser!.id, reply)
-    if (!employerId) return
+    if (!employerId) return undefined
     const { id } = req.params as { id: string }
     const vacancy = await app.prisma.vacancy.findFirst({
       where: { id, employerId, isActive: true },
@@ -468,7 +468,7 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const employerId = await getEmployerId(req.authUser!.id, reply)
-    if (!employerId) return
+    if (!employerId) return undefined
     const { id } = req.params as { id: string }
     const existing = await app.prisma.vacancy.findFirst({
       where: { id, employerId, isActive: true },
@@ -509,7 +509,7 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const employerId = await getEmployerId(req.authUser!.id, reply)
-    if (!employerId) return
+    if (!employerId) return undefined
     const { id } = req.params as { id: string }
     const existing = await app.prisma.vacancy.findFirst({
       where: { id, employerId, isActive: true },
@@ -537,7 +537,7 @@ export const vacanciesModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const employerId = await getEmployerId(req.authUser!.id, reply)
-    if (!employerId) return
+    if (!employerId) return undefined
     const { id } = req.params as { id: string }
     const existing = await app.prisma.vacancy.findFirst({
       where: { id, employerId, isActive: true },

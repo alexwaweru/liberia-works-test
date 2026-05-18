@@ -72,7 +72,7 @@ export const workforceEmployeesModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const employerId = await getEmployerId(app, req.authUser!.id, reply)
-    if (!employerId) return
+    if (!employerId) return undefined
 
     const { cursor, search, isActive, employmentType, department } = req.query
     const PAGE_SIZE = 20
@@ -114,7 +114,7 @@ export const workforceEmployeesModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const employerId = await getEmployerId(app, req.authUser!.id, reply)
-    if (!employerId) return
+    if (!employerId) return undefined
 
     const { id } = req.params as { id: string }
     const employee = await app.prisma.workforceEmployee.findFirst({
@@ -135,7 +135,7 @@ export const workforceEmployeesModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const employerId = await getEmployerId(app, req.authUser!.id, reply)
-    if (!employerId) return
+    if (!employerId) return undefined
 
     const b = req.body
     const created = await app.prisma.workforceEmployee.create({
@@ -168,7 +168,7 @@ export const workforceEmployeesModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const employerId = await getEmployerId(app, req.authUser!.id, reply)
-    if (!employerId) return
+    if (!employerId) return undefined
 
     const { id } = req.params as { id: string }
     const existing = await app.prisma.workforceEmployee.findFirst({
@@ -206,7 +206,7 @@ export const workforceEmployeesModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const employerId = await getEmployerId(app, req.authUser!.id, reply)
-    if (!employerId) return
+    if (!employerId) return undefined
 
     const { id } = req.params as { id: string }
     const existing = await app.prisma.workforceEmployee.findFirst({

@@ -13,7 +13,10 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.liberiaworks.app"
+      "bundleIdentifier": "com.liberiaworks.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -33,6 +36,15 @@
     "newArchEnabled": true,
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "dc835495-bef9-4974-9d4a-74bd74d7ac67"
+      }
+    },
+    "owner": "liberia-works"
   }
 }

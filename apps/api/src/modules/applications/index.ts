@@ -33,7 +33,7 @@ export const applicationsModule: FastifyPluginAsync = async (app) => {
     preHandler: [requireRole(EMPLOYER_ROLES)],
   }, async (req, reply) => {
     const employerId = await getEmployerId(req.authUser!.id, reply)
-    if (!employerId) return
+    if (!employerId) return undefined
 
     const { id } = req.params as { id: string }
     const application = await app.prisma.application.findFirst({
