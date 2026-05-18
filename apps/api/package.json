@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "dotenv -e ../../.env -- tsx watch src/start.ts",
     "build": "tsc",
+    "vercel:build": "pnpm db:generate && pnpm db:migrate && pnpm db:seed && pnpm db:seed:locations && pnpm db:seed:test && pnpm build",
     "start": "node dist/start.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
