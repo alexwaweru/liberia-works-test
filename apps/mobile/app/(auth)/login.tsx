@@ -37,9 +37,10 @@ export default function LoginScreen() {
 
     setLoading(true)
     try {
+      const digits = identifier.replace(/\D/g, '').replace(/^231/, '')
       const body = method === 'email'
-        ? { email: identifier, password }
-        : { phoneNumber: identifier, password }
+        ? { email: identifier.toLowerCase(), password }
+        : { phoneNumber: `+231${digits}`, password }
 
       const result = await loginWithPassword(body)
       const accessToken = result.accessToken

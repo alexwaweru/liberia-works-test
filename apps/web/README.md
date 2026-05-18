@@ -87,20 +87,10 @@ app/
 
 **Forms** use React Hook Form with Zod resolvers, reusing the same schemas as the API to keep client and server validation in sync.
 
-**Image CDN** — remote images from `*.digitaloceanspaces.com` are allowed in `next.config.ts`.
+**Image CDN** — remote images from `*.public.blob.vercel-storage.com` are allowed in `next.config.ts`.
 
-## Docker
+## Deployment (Vercel)
 
-The image uses Next.js [standalone output](https://nextjs.org/docs/app/api-reference/config/next-config-js/output) (`output: 'standalone'` in `next.config.ts`), which produces a self-contained server with a minimal `node_modules`. Build from the monorepo root:
+`vercel.json` declares the install + build commands. Set the Vercel project's **Root Directory** to `apps/web` and the framework will be auto-detected as Next.js. The build first compiles the workspace `@liberia-works/shared*` packages, then runs `next build`.
 
-```bash
-docker build -f apps/web/Dockerfile \
-  --build-arg NEXT_PUBLIC_API_URL=https://api.example.com \
-  -t liberia-works-web .
-```
-
-The resulting image is roughly 200–300 MB and runs with:
-
-```bash
-docker run -e NEXT_PUBLIC_API_URL=https://api.example.com -p 3000:3000 liberia-works-web
-```
+Set `NEXT_PUBLIC_API_URL` per environment in the Vercel project settings — it's baked into the client bundle at build time.

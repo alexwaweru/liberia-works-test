@@ -1,24 +1,13 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { Queue } from 'bullmq'
 import { env } from '../../config/env.js'
 import { MessageDirection, MessageChannel, MessageDeliveryStatus } from '@prisma/client'
 import { WebhookSecurity } from './security.js'
+import { inngest } from '../../lib/inngest/index.js'
 
 /**
  * Messaging module — Africa's Talking adapters, inbound webhook, WhatsApp bot flows.
+ * Background work is fanned out via Inngest events (see src/lib/inngest/).
  */
-
-// Helper: Queue for outbound messages
-const outboundQueue = new Queue('outbound-messaging', {
-  connection: {
-    url: env.REDIS_URL
-  }
-})
-
-// Helper: Queue for inbound processing (Bot logic)
-const inboundQueue = new Queue('inbound-messaging', {
-  connection: { url: env.REDIS_URL }
-})
 
 export const messagingModule: FastifyPluginAsync = async (app) => {
   
@@ -46,12 +35,10 @@ export const messagingModule: FastifyPluginAsync = async (app) => {
       }
     })
 
-    // Enqueue for Bot Processing
-    await inboundQueue.add('process-inbound', {
-      from,
-      text,
-      channel: 'SMS',
-      messageEventId: event.id,
+    // Fan out to BotRouter via Inngest
+    await inngest.send({
+      name: 'messaging/inbound.received',
+      data: { from, text, channel: 'SMS', messageEventId: event.id },
     })
 
     return reply.status(200).send('OK')
@@ -102,11 +89,9 @@ export const messagingModule: FastifyPluginAsync = async (app) => {
         }
       })
 
-      await inboundQueue.add('process-inbound', {
-        from,
-        text,
-        channel: 'WHATSAPP',
-        messageEventId: event.id,
+      await inngest.send({
+        name: 'messaging/inbound.received',
+        data: { from, text, channel: 'WHATSAPP', messageEventId: event.id },
       })
     }
 
@@ -155,13 +140,14 @@ export async function sendSms(params: {
     }
   })
 
-  // 2. Enqueue BullMQ job
-  await outboundQueue.add('send-sms', {
-    phoneNumber: params.to,
-    channel: 'SMS',
-    body: params.body,
-    messageEventId: event.id,
-    templateName: params.templateName,
+  // 2. Dispatch via Inngest
+  await inngest.send({
+    name: 'messaging/outbound.send-sms',
+    data: {
+      phoneNumber: params.to,
+      body: params.body,
+      messageEventId: event.id,
+    },
   })
 
   return event.id
@@ -191,12 +177,13 @@ export async function sendWhatsApp(params: {
     }
   })
 
-  await outboundQueue.add('send-whatsapp', {
-    phoneNumber: params.to,
-    channel: 'WHATSAPP',
-    body: params.body,
-    messageEventId: event.id,
-    templateName: params.templateName,
+  await inngest.send({
+    name: 'messaging/outbound.send-whatsapp',
+    data: {
+      phoneNumber: params.to,
+      body: params.body,
+      messageEventId: event.id,
+    },
   })
 
   return event.id

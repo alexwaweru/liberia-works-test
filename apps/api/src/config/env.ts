@@ -6,10 +6,13 @@ const envSchema = z.object({
   HOST: z.string().default('0.0.0.0'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
 
-  // Database
+  // Database — DATABASE_URL is the pooled connection (Supabase pgBouncer, port 6543)
+  // used by the runtime; DIRECT_URL is the direct connection (port 5432) used only
+  // by `prisma migrate`. Locally both can point at the same Postgres.
   DATABASE_URL: z.string().url(),
+  DIRECT_URL: z.string().url().optional(),
 
-  // Redis
+  // Redis (Upstash in production)
   REDIS_URL: z.string().default('redis://localhost:6379'),
 
   // JWT — keep secrets in Doppler, never committed
@@ -22,12 +25,13 @@ const envSchema = z.object({
   AT_USERNAME: z.string().optional(),
   AT_SENDER_ID: z.string().optional(),
 
-  // DigitalOcean Spaces (S3-compatible)
-  DO_SPACES_KEY: z.string().optional(),
-  DO_SPACES_SECRET: z.string().optional(),
-  DO_SPACES_ENDPOINT: z.string().optional(),
-  DO_SPACES_BUCKET: z.string().optional(),
-  DO_SPACES_REGION: z.string().default('fra1'),
+  // Vercel Blob — read/write token for the documents module
+  BLOB_READ_WRITE_TOKEN: z.string().optional(),
+
+  // Inngest — event key signs outbound events; signing key verifies inbound
+  // requests from the Inngest cloud. Both optional locally (dev server handles it).
+  INNGEST_EVENT_KEY: z.string().optional(),
+  INNGEST_SIGNING_KEY: z.string().optional(),
 
   // OpenAI (CV parsing)
   OPENAI_API_KEY: z.string().optional(),

@@ -1,0 +1,40 @@
+name: Deploy migrations
+
+# Runs Prisma migrate against the Supabase DB matching the branch. Vercel auto-deploys
+# the api + web projects on the same push — this job races with them but only blocks
+# the schema, so a brief mismatch window is acceptable.
+#
+# Required repository secrets:
+#   STAGING_DIRECT_URL   — Supabase direct connection (port 5432) for the staging project
+#   PROD_DIRECT_URL      — Supabase direct connection (port 5432) for the production project
+
+on:
+  push:
+    branches: [main, staging]
+
+concurrency:
+  group: deploy-migrations-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Prisma migrate deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run migrations
+        working-directory: apps/api
+        env:
+          DIRECT_URL: ${{ github.ref == 'refs/heads/main' && secrets.PROD_DIRECT_URL || secrets.STAGING_DIRECT_URL }}
+          DATABASE_URL: ${{ github.ref == 'refs/heads/main' && secrets.PROD_DIRECT_URL || secrets.STAGING_DIRECT_URL }}
+        run: pnpm exec prisma migrate deploy

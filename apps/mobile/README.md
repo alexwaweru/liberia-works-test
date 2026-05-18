@@ -170,3 +170,4 @@ Configure `eas.json` at the root of `apps/mobile/` for build profiles (developme
 | `@expo/vector-icons ^14` | Ionicons and other icon sets |
 | `react-native-safe-area-context` | Safe area insets for notches / home indicators |
 | `react-native-screens` | Native navigation screen containers |
+

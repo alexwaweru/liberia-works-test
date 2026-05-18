@@ -11,7 +11,6 @@ declare module 'fastify' {
 
 const redisPlugin: FastifyPluginAsync = async (app) => {
   const redis = new Redis(env.REDIS_URL, {
-    // Required for BullMQ compatibility
     maxRetriesPerRequest: null,
   })
 

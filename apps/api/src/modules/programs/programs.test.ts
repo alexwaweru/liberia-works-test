@@ -10,10 +10,9 @@ vi.mock('../../config/env.js', () => ({
   },
 }))
 
-vi.mock('bullmq', () => ({
-  Queue: vi.fn().mockImplementation(() => ({
-    add: vi.fn().mockResolvedValue(undefined),
-  })),
+vi.mock('../../lib/inngest/index.js', () => ({
+  inngest: { send: vi.fn().mockResolvedValue(undefined) },
+  inngestFunctions: [],
 }))
 
 import Fastify from 'fastify'

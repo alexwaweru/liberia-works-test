@@ -7,14 +7,16 @@ Fastify REST API for the Liberia Works platform. Serves all domains — authenti
 | Layer | Technology |
 |-------|-----------|
 | Framework | Fastify 5 with Zod type provider |
-| Database | PostgreSQL 16 via Prisma 6 |
-| Cache / queues | Redis 7 + BullMQ 5 |
+| Database | PostgreSQL 16 via Prisma 7 (Supabase in production) |
+| Cache | Redis 7 (Upstash in production) — rate-limit, idempotency, bot session |
+| Background jobs | Inngest (event-driven; cron triggers replace repeatable jobs) |
 | Auth | JWT (httpOnly cookies), 15 min access / 30 day refresh |
-| File storage | DigitalOcean Spaces (S3-compatible, pre-signed client uploads) |
+| File storage | Vercel Blob (client-direct uploads via `@vercel/blob/client`) |
 | SMS / WhatsApp | Africa's Talking |
 | Email | Resend |
-| CV parsing | OpenAI GPT-4o via BullMQ worker |
-| API docs | Swagger UI at `/documentation` |
+| CV parsing | OpenAI GPT-4o via the `cv-parse` Inngest function |
+| API docs | Scalar UI at `/documentation` |
+| Hosting | Vercel (Fastify wrapped as a single serverless function) |
 | Testing | Vitest |
 
 ## Running locally
@@ -40,8 +42,12 @@ pnpm --filter @liberia-works/api db:seed
 # Seed location data
 pnpm --filter @liberia-works/api db:seed:locations
 
+# Seed test data
+pnpm --filter @liberia-works/api db:seed:test
+
 # Start the API in watch mode
 pnpm --filter @liberia-works/api dev
+
 ```
 
 The API listens on `http://localhost:3001` by default.
@@ -50,9 +56,9 @@ The API listens on `http://localhost:3001` by default.
 
 | Script | Command |
 |--------|---------|
-| `dev` | `tsx watch src/server.ts` |
+| `dev` | `tsx watch src/start.ts` |
 | `build` | `tsc` → `dist/` |
-| `start` | `node dist/server.js` |
+| `start` | `node dist/start.js` |
 | `typecheck` | `tsc --noEmit` |
 | `test` | `vitest run` |
 | `db:generate` | `prisma generate` |
@@ -61,27 +67,28 @@ The API listens on `http://localhost:3001` by default.
 | `db:seed` | `tsx prisma/seed.ts` |
 | `db:studio` | `prisma studio` |
 
+`src/start.ts` is the local-dev entry; the Vercel deployment uses `api/index.ts`, which imports `buildApp()` from `src/server.ts`.
+
 ## Environment variables
 
 | Variable | Description |
 |----------|-------------|
 | `NODE_ENV` | `development` / `production` |
-| `PORT` | API port (default `3001`) |
-| `HOST` | Bind address (default `0.0.0.0`) |
+| `PORT` | API port (default `3001`, local dev only) |
+| `HOST` | Bind address (default `0.0.0.0`, local dev only) |
 | `LOG_LEVEL` | Fastify log level (`info`, `debug`, etc.) |
-| `DATABASE_URL` | PostgreSQL connection string |
-| `REDIS_URL` | Redis connection string |
+| `DATABASE_URL` | Postgres connection — use Supabase **pooled** URL (port 6543) in prod |
+| `DIRECT_URL` | Postgres direct connection (port 5432) — used only by `prisma migrate` |
+| `REDIS_URL` | Redis connection (Upstash `rediss://…` in prod) |
 | `JWT_SECRET` | Min 32-character secret |
 | `JWT_ACCESS_EXPIRES_IN` | Access token TTL (e.g. `15m`) |
 | `JWT_REFRESH_EXPIRES_IN` | Refresh token TTL (e.g. `30d`) |
 | `AT_API_KEY` | Africa's Talking API key |
 | `AT_USERNAME` | Africa's Talking username |
 | `AT_SENDER_ID` | Africa's Talking sender ID |
-| `DO_SPACES_KEY` | DigitalOcean Spaces access key |
-| `DO_SPACES_SECRET` | DigitalOcean Spaces secret |
-| `DO_SPACES_ENDPOINT` | e.g. `https://fra1.digitaloceanspaces.com` |
-| `DO_SPACES_BUCKET` | Bucket name |
-| `DO_SPACES_REGION` | e.g. `fra1` |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob read/write token (from `vercel blob` CLI or dashboard) |
+| `INNGEST_EVENT_KEY` | Inngest event key (signs outbound events) |
+| `INNGEST_SIGNING_KEY` | Inngest signing key (verifies inbound requests to `/api/inngest`) |
 | `OPENAI_API_KEY` | OpenAI key for CV parsing |
 | `RESEND_API_KEY` | Resend key for email delivery |
 | `ALLOWED_ORIGINS` | Comma-separated CORS origins |
@@ -119,22 +126,25 @@ Health check: `GET /health`
 
 **Mandatory advertising** (Regulation RL/MOL/CWK/M/1011/725): work permit applications must reference a vacancy flagged `isMandatoryAdvertised = true` that has been posted for at least 60 days in the same occupation group.
 
-**CV parsing** is asynchronous. Uploading a CV document triggers a BullMQ job that calls GPT-4o. Status is polled via the `/ai/cv-parse-jobs/:id` endpoint.
+**CV parsing** is asynchronous. Uploading a CV document sends a `cv-parse/start` Inngest event; the corresponding function calls GPT-4o and writes results back. Status is polled via the `/cv-parse-jobs/:id` endpoint.
 
 **Audit log** rows are append-only at the database level — a Postgres rule revokes `UPDATE` and `DELETE` on the `audit_log` table for the application role.
 
-**Message retention**: message bodies are anonymised at `retention_expires_at` via a scheduled BullMQ job to comply with data minimisation requirements.
+**Message retention**: message bodies are anonymised at `retention_expires_at` via a cron-triggered Inngest function (`0 2 * * *`).
 
-## Docker
+## Deployment (Vercel)
 
-Build from the monorepo root (the Dockerfile requires the workspace context):
+Configured via `vercel.json`. The whole Fastify app is wrapped as a single
+serverless function at `api/index.ts`; a catch-all rewrite forwards every path
+to it. Set the Vercel project's **Root Directory** to `apps/api` — `vercel.json`
+handles install + build (it builds shared workspace packages first, then `tsc`).
+Background functions are mounted at `POST /api/inngest`; Inngest cloud discovers
+them automatically.
 
-```bash
-docker build -f apps/api/Dockerfile -t liberia-works-api .
-docker run --env-file .env -p 3001:3001 liberia-works-api
-```
-
-The image runs `prisma migrate deploy` before starting the server when launched via `docker compose`.
+Migrations run from CI (`.github/workflows/deploy.yml`) on push to `main` /
+`staging` using `DIRECT_URL` (the Supabase non-pooled connection). The CI step
+should land before Vercel's deploy completes, but Vercel's deploy isn't gated
+on it — keep schema changes additive.
 
 ## Test credentials
 

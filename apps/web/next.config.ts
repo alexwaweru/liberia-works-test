@@ -11,12 +11,12 @@ const nextConfig: NextConfig = {
     '@liberia-works/shared-utils',
   ],
 
-  // Images from DO Spaces CDN
+  // Images from Vercel Blob
   images: {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '*.digitaloceanspaces.com',
+        hostname: '*.public.blob.vercel-storage.com',
       },
     ],
   },

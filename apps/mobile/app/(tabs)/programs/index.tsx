@@ -170,12 +170,6 @@ function ProgramCard({
 
       <Text style={styles.cardType}>{item.type}</Text>
 
-      {item.description ? (
-        <Text style={styles.cardDescription} numberOfLines={3}>
-          {item.description}
-        </Text>
-      ) : null}
-
       <View style={styles.cardDates}>
         <Text style={styles.dateText}>
           {formatDate(item.startDate)} – {formatDate(item.endDate)}
@@ -409,7 +403,6 @@ const styles = StyleSheet.create({
   },
   cardTitle: { flex: 1, fontSize: 16, fontFamily: lwFont.familyBold, color: lwColors.foreground },
   cardType: { fontSize: 13, fontFamily: lwFont.familyBold, color: lwColors.mutedFg, marginBottom: 8 },
-  cardDescription: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.foreground, lineHeight: 20, marginBottom: 12 },
   cardDates: {
     flexDirection: 'row',
     justifyContent: 'space-between',

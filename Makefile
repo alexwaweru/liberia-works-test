@@ -1,42 +1,37 @@
-.PHONY: dev-infra dev-backend dev-frontend db-studio db-migrate db-seed help up
+.PHONY: dev-infra dev-api dev-web dev-inngest db-studio db-migrate db-seed help
 
 # Default target
 help:
 	@echo "Available commands:"
-	@echo "  make dev-infra     - Start database and redis in background"
-	@echo "  make dev-backend   - Start the backend API (requires infra)"
-	@echo "  make dev-frontend  - Start the frontend web app"
+	@echo "  make dev-infra     - Start Postgres + Redis + pgadmin (Docker)"
+	@echo "  make dev-api       - Run the Fastify API natively (pnpm)"
+	@echo "  make dev-web       - Run the Next.js web app natively (pnpm)"
+	@echo "  make dev-inngest   - Run the Inngest dev server (UI: http://localhost:8288)"
 	@echo "  make db-studio     - Open Prisma Studio"
-	@echo "  make db-migrate    - Run database migrations"
-	@echo "  make db-seed       - Seed the database with all required data"
-	@echo "  make up            - Start all Docker services"
+	@echo "  make db-migrate    - Run Prisma migrations against the local DB"
+	@echo "  make db-seed       - Seed the local DB"
 
-# Infrastructure
+# Infrastructure — Postgres + Redis + pgadmin via Docker.
+# The api + web run natively so the dev experience matches Vercel.
 dev-infra:
-	docker compose up -d postgres redis
+	docker compose up -d postgres redis pgadmin
 
-# Backend
-dev-backend:
+dev-api:
 	cd apps/api && pnpm run dev
 
-# Frontend
-dev-frontend:
+dev-web:
 	cd apps/web && pnpm run dev
 
-# Database Management
-# We add & to run in background so it doesn't hang the terminal, 
-# and use a wrapper to capture output for debugging if it crashes.
+# Inngest dev server discovers `/api/inngest` on the local API automatically.
+dev-inngest:
+	npx inngest-cli@latest dev
+
 db-studio:
-	docker compose exec -d api sh -c "cd apps/api && npx prisma studio --port 5555 --browser none > studio.log 2>&1"
-	@echo "Prisma Studio started in background. Check studio.log inside the container if it fails."
+	cd apps/api && pnpm run db:studio
 
 db-migrate:
-	docker compose exec api sh -c "cd apps/api && npx prisma migrate deploy"
+	cd apps/api && pnpm run db:migrate:dev
 
 db-seed:
-	docker compose exec api sh -c "cd apps/api && npx tsx prisma/seed-locations.ts && npx tsx prisma/seed.ts"
+	cd apps/api && pnpm run db:seed:locations && pnpm run db:seed
 	@echo "Base seeds applied."
-
-# Full stack start
-up:
-	docker compose up -d --build

@@ -14,8 +14,7 @@ import { EMPLOYER_ROLES, MOL_ROLES } from "@liberia-works/shared-types"
 import { requireRole } from "../../plugins/auth.js"
 import { encodeCursor, decodeCursor } from "../../lib/cursor.js"
 import type { ProgramCycle } from "@prisma/client"
-import { Queue } from "bullmq"
-import { env } from "../../config/env.js"
+import { inngest } from "../../lib/inngest/index.js"
 
 function formatCycle(c: ProgramCycle) {
   return {
@@ -96,8 +95,6 @@ const MyOptInsResponseSchema = z.object({
     total: z.number(),
   }),
 })
-
-const matchingQueue = new Queue("matching", { connection: { url: env.REDIS_URL } })
 
 export const programsModule: FastifyPluginAsync = async (app) => {
   const server = app.withTypeProvider<ZodTypeProvider>()
@@ -984,7 +981,10 @@ export const programsModule: FastifyPluginAsync = async (app) => {
       requestId: req.id as string,
     })
 
-    await matchingQueue.add("trigger-matching", { cycleId: id, requestId: req.id as string })
+    await inngest.send({
+      name: "matching/trigger",
+      data: { cycleId: id, requestId: req.id as string },
+    })
     return { success: true, message: "Opt-in successful" }
   })
 

@@ -256,7 +256,11 @@ export async function loginWithPassword(body: {
   email?: string
   password: string
 }): Promise<AuthTokenResponse> {
-  const { data } = await xhrPost<AuthTokenResponse>('/api/v1/auth/login', body)
+  const { data, cookieHeader } = await xhrPost<AuthTokenResponse>('/api/v1/auth/login', body)
+  if (data?.accessToken) {
+    const { refreshToken } = parseTokensFromCookieHeader(cookieHeader)
+    await storeTokens(data.accessToken, refreshToken ?? undefined)
+  }
   return data
 }
 
@@ -293,7 +297,11 @@ export async function verifyOtp(body: {
   otp: string
   purpose: 'REGISTRATION' | 'LOGIN'
 }): Promise<AuthTokenResponse> {
-  const { data } = await xhrPost<AuthTokenResponse>('/api/v1/auth/otp/verify', body)
+  const { data, cookieHeader } = await xhrPost<AuthTokenResponse>('/api/v1/auth/otp/verify', body)
+  if (data?.accessToken) {
+    const { refreshToken } = parseTokensFromCookieHeader(cookieHeader)
+    await storeTokens(data.accessToken, refreshToken ?? undefined)
+  }
   return data
 }
 

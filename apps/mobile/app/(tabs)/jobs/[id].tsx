@@ -18,19 +18,8 @@ import { getPublicVacancy, createApplication } from '@/lib/api'
 import LoadingView from '@/components/LoadingView'
 import ErrorView from '@/components/ErrorView'
 import Badge from '@/components/Badge'
+import HtmlContent from '@/components/HtmlContent'
 import { lwColors, lwFont, lwRadius } from '@/lib/theme'
-
-function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&quot;/g, '"')
-    .replace(/\s{2,}/g, ' ')
-    .trim()
-}
 
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString('en-US', {
@@ -153,7 +142,7 @@ export default function JobDetailScreen() {
         {/* Description */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Description</Text>
-          <Text style={styles.description}>{stripHtml(vacancy.description)}</Text>
+          <HtmlContent html={vacancy.description ?? ''} />
         </View>
 
         {/* Apply button */}
@@ -250,7 +239,6 @@ const styles = StyleSheet.create({
   infoValue: { fontSize: 15, fontFamily: lwFont.familyBold, color: lwColors.foreground },
   section: { marginBottom: 24 },
   sectionTitle: { fontSize: 16, fontFamily: lwFont.familyBold, color: lwColors.foreground, marginBottom: 10 },
-  description: { fontSize: 14, fontFamily: lwFont.family, color: lwColors.foreground, lineHeight: 22 },
   applyButton: {
     backgroundColor: lwColors.crimson,
     borderRadius: lwRadius.default,

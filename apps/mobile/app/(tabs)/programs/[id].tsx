@@ -21,19 +21,8 @@ import {
 import LoadingView from '@/components/LoadingView'
 import ErrorView from '@/components/ErrorView'
 import Badge from '@/components/Badge'
+import HtmlContent from '@/components/HtmlContent'
 import { lwColors, lwFont, lwRadius } from '@/lib/theme'
-
-function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&quot;/g, '"')
-    .replace(/\s{2,}/g, ' ')
-    .trim()
-}
 
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString('en-US', {
@@ -107,7 +96,7 @@ export default function ProgramDetailScreen() {
   }
 
   const isOpen = cycle.status === 'OPEN'
-  const descriptionText = stripHtml(cycle.description ?? '')
+  const hasDescription = (cycle.description ?? '').trim().length > 0
   const optInStatusStyle = existingOptIn ? OPT_IN_STATUS_COLORS[existingOptIn.status] : null
 
   function handleCloseModal() {
@@ -155,8 +144,8 @@ export default function ProgramDetailScreen() {
         {/* Description */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Description</Text>
-          {descriptionText ? (
-            <Text style={styles.description}>{descriptionText}</Text>
+          {hasDescription ? (
+            <HtmlContent html={cycle.description!} />
           ) : (
             <Text style={styles.descriptionEmpty}>No description provided.</Text>
           )}
@@ -290,12 +279,6 @@ const styles = StyleSheet.create({
     fontFamily: lwFont.familyBold,
     color: lwColors.foreground,
     marginBottom: 10,
-  },
-  description: {
-    fontSize: 14,
-    fontFamily: lwFont.family,
-    color: lwColors.foreground,
-    lineHeight: 22,
   },
   descriptionEmpty: {
     fontSize: 14,
